@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/profile.dart';
+import 'dashboard_view.dart';
 
 class MainView extends StatefulWidget {
   const MainView({super.key});
@@ -16,23 +17,28 @@ class _MainViewState extends State<MainView> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("HealthTracker"),
+
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {},
           ),
+
           PopupMenuButton<Profile>(
             icon: const Icon(Icons.person),
+
             onSelected: (profile) {
               setState(() {
                 activeProfile = profile;
               });
             },
-            itemBuilder: (context) => const [
+
+            itemBuilder: (context) => [
               PopupMenuItem(
                 value: goetz,
                 child: Text("🟢 Götz"),
               ),
+
               PopupMenuItem(
                 value: christin,
                 child: Text("⚫ Christin"),
@@ -41,16 +47,9 @@ class _MainViewState extends State<MainView> {
           ),
         ],
       ),
-      body: Center(
-        child: Text(
-          "Willkommen ${activeProfile.name}",
-          style: Theme.of(context)
-              .textTheme
-              .headlineMedium
-              ?.copyWith(
-                color: activeProfile.color,
-              ),
-        ),
+
+      body: DashboardView(
+        profile: activeProfile,
       ),
     );
   }
