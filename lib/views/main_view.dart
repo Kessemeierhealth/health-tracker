@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import '../models/profile.dart';
-import 'dashboard_view.dart';
 
 class MainView extends StatefulWidget {
   const MainView({super.key});
@@ -10,46 +8,71 @@ class MainView extends StatefulWidget {
 }
 
 class _MainViewState extends State<MainView> {
-  Profile activeProfile = goetz;
+  int _selectedIndex = 0;
+
+  final List<Widget> _pages = [
+    const Center(child: Text('Dashboard')),
+    const Center(child: Text('Erfassen')),
+    const Center(child: Text('Ernährung')),
+    const Center(child: Text('Verlauf')),
+    const Center(child: Text('Analyse')),
+    const Center(child: Text('Medikamente')),
+    const Center(child: Text('Ziele')),
+    const Center(child: Text('Profile')),
+  ];
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("HealthTracker"),
-
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {},
-          ),
-
-          PopupMenuButton<Profile>(
-            icon: const Icon(Icons.person),
-
-            onSelected: (profile) {
-              setState(() {
-                activeProfile = profile;
-              });
-            },
-
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: goetz,
-                child: Text("🟢 Götz"),
-              ),
-
-              PopupMenuItem(
-                value: christin,
-                child: Text("⚫ Christin"),
-              ),
-            ],
-          ),
-        ],
+        title: const Text('HealthTracker'),
       ),
 
-      body: DashboardView(
-        profile: activeProfile,
+      body: _pages[_selectedIndex],
+
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: _onItemTapped,
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.dashboard),
+            label: 'Dashboard',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.add_circle),
+            label: 'Erfassen',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.restaurant),
+            label: 'Ernährung',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.show_chart),
+            label: 'Verlauf',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.psychology),
+            label: 'Analyse',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.medication),
+            label: 'Medikamente',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.flag),
+            label: 'Ziele',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
       ),
     );
   }

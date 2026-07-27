@@ -1,40 +1,19 @@
-import 'package:flutter/material.dart';
-import 'health_data.dart';
-import 'dashboard_settings.dart';
+import 'health_profile.dart';
+
 
 class Profile {
-  final String name;
-  final Color color;
+  final String id;
+  String Name;
+  int? birthYear;
+  double? height;
 
-  final HealthData healthData;
-  final DashboardSettings dashboardSettings;
+  HealthProfile health_profile;
 
-  const Profile({
+  Profile({
+    required this.id,
     required this.name,
-    required this.color,
-    required this.healthData,
-    required this.dashboardSettings,
-  });
+    this.birthYear,
+    this.height,
+    HealthProfile? HealthProfile,
+  }) : HealthProfile = HealthProfile ?? HealthProfile();
 }
-
-final goetz = Profile(
-  name: "Götz",
-  color: Colors.green,
-  healthData: HealthData(
-    weight: 0,
-    waistCircumference: 0,
-    pulse: 0,
-  ),
-  dashboardSettings: DashboardSettings(),
-);
-
-final christin = Profile(
-  name: "Christin",
-  color: Colors.black,
-  healthData: HealthData(
-    weight: 0,
-    waistCircumference: 0,
-    pulse: 0,
-  ),
-  dashboardSettings: DashboardSettings(),
-);
