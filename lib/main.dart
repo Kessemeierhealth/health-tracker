@@ -1,22 +1,15 @@
 import 'package:flutter/material.dart';
-import 'theme/app_theme.dart';
-import 'views/main_view.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'app/app.dart';
 
-void main() {
-  runApp(const HealthTrackerApp());
-}
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
 
-class HealthTrackerApp extends StatelessWidget {
-  const HealthTrackerApp({super.key});
+  // Später: Isar-Datenbank & SharedPreferences hier vorinstallieren
 
-  @override 
-  Widget build(BuildContext context) {
-
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: "HealthTracker",
-      theme: AppTheme.light,
-      home: const MainView(),
-    );
-  }
+  runApp(
+    const ProviderScope(
+      child: HealthTrackerApp(),
+    ),
+  );
 }
