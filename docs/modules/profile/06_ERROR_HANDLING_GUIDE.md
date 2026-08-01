@@ -6684,6 +6684,75 @@ Die Übersetzung erfolgt außerhalb der Domain.
 
 ---
 
+# Projektweite Fehlerklassifikation
+
+Der Error Handling Guide unterscheidet sechs Fehlerklassen.
+
+| Fehlerklasse | Präfix | Zweck |
+|--------------|---------|-------|
+| Validation | `validation.` | Validierung einzelner Domänenobjekte und Aggregate |
+| Business | `business.` | Verletzung fachlicher Geschäftsregeln |
+| Security | `security.` | Sicherheits- und Authentifizierungsfehler |
+| Infrastructure | `infrastructure.` | Technische Infrastrukturfehler |
+| Persistence | `persistence.` | Speicherung und Transaktionen |
+| Integration | `integration.` | Kommunikation mit externen Systemen |
+
+Diese Präfixe gelten projektweit für sämtliche Module.
+
+---
+
+# Architekturhierarchie
+
+Die Fehlerbehandlung orientiert sich an der Architektur des Systems.
+
+```text
+Value Object
+        ↓
+Entity
+        ↓
+Aggregate
+        ↓
+Business Rules
+        ↓
+Domain Events
+        ↓
+Application Layer
+        ↓
+Infrastructure
+```
+
+---
+
+
+---
+
+### Änderung 3 – Single Source of Truth
+**Position:** Nach der Architekturhierarchie.
+
+```markdown
+# Single Source of Truth
+
+Das Dokument
+
+`05_DOMAIN_MODEL.md`
+
+definiert sämtliche fachlichen Domänentypen.
+
+Hierzu gehören insbesondere
+
+- Aggregate
+- Aggregate Roots
+- Entities
+- Value Objects
+- Domain Services
+- Domain Events
+
+Der Error Handling Guide definiert keine eigenen Domänentypen.
+
+Alle fachlichen Begriffe werden ausschließlich aus dem Domain Model übernommen.
+
+---
+
 # Begriffe
 
 | Begriff | Bedeutung |
@@ -6721,6 +6790,26 @@ Localization
 ↓
 
 UI
+```
+
+---
+
+# Fehlerverarbeitungsreihenfolge
+
+Die Fehlerverarbeitung erfolgt projektweit in einer festen Reihenfolge.
+
+```text
+Validation
+        ↓
+Aggregate Validation
+        ↓
+Business Rules
+        ↓
+Domain Events
+        ↓
+Application Layer
+        ↓
+Technical Processing
 ```
 
 ---
@@ -7407,6 +7496,39 @@ zu verwenden.
 - Teil 2
 - Teil 3
 - Teil 4
+
+---
+
+### Änderung 5 – Kapitelübersicht
+**Position:** Im Inhaltsüberblick von Kapitel 5.
+
+```markdown
+## Kapitelübersicht
+
+| Kapitel | Inhalt |
+|----------|--------|
+| 5B-1 | Validation Errors |
+| 5B-1b-2 | Aggregate Validation |
+| 5B-2 | Business Rule Errors |
+| 5C | Security, Infrastructure, Persistence und Integration Errors |
+| 5D | Governance und Lebenszyklus des Fehlerkatalogs |
+
+---
+
+# Führende Referenzdokumente
+
+| Thema | Führendes Dokument |
+|--------|--------------------|
+| Domain Model | `05_DOMAIN_MODEL.md` |
+| Business Rules | `04_BUSINESS_RULES.md` |
+| Error Handling | `06_ERROR_HANDLING_GUIDE.md` |
+| Application Architecture | `07_APPLICATION_ARCHITECTURE.md` |
+| API | `08_API_GUIDE.md` |
+| Tests | `09_TEST_GUIDE.md` |
+
+Jedes Dokument besitzt einen klar definierten Verantwortungsbereich.
+
+Querverweise erfolgen ausschließlich auf das jeweils führende Dokument.
 
 ---
 
@@ -8545,109 +8667,66 @@ Die konkreten Validation Error Codes werden ausschließlich im **Validation Erro
 
 # 06_ERROR_HANDLING_GUIDE.md
 
-# Teil 5B-1b-1 – Core Validation Codes
+# Teil 5B-1b-1a – Core Validation Codes (Profile Aggregate)
 
 ## Zweck
 
-Dieses Kapitel definiert die projektweiten Validation Error Codes der Core Domain.
+Dieses Kapitel definiert die projektweiten Validation Error Codes des **Profile Aggregates**.
 
 Die allgemeinen Regeln für
 
-- Validation Processing,
-- Parameter,
-- Message Keys,
-- ErrorCode-Konventionen,
-- Architektur,
-- Dokumentation
+- Validation Framework
+- Validation Processing
+- ErrorCode-Konventionen
+- Parameter
+- Message Keys
+- Architekturregeln
 
-werden ausschließlich in **Kapitel 5B-1a** beschrieben.
+werden ausschließlich in **Kapitel 5B-1a** definiert.
 
-Dieses Kapitel enthält ausschließlich die fachlichen Error Codes.
-
----
-
-# Reihenfolge der Error Codes
-
-## Zweck
-
-Alle Validation Error Codes werden projektweit in einer einheitlichen Reihenfolge dokumentiert.
-
-Dadurch bleiben sämtliche Module konsistent aufgebaut und leichter vergleichbar.
+Dieses Kapitel beschreibt ausschließlich die domänenspezifischen Validation Error Codes des Profile Aggregates.
 
 ---
 
-## Standardreihenfolge
+# Profile Aggregate
 
-Innerhalb eines Moduls werden Error Codes grundsätzlich in folgender Reihenfolge dokumentiert:
+## Aggregate Root
 
-1. required
-2. invalid
-3. blank / empty
-4. format
-5. minimum
-6. maximum
-7. precision
-8. reference
-9. duplicate
-10. modulspezifische Regeln
+- Profile
 
 ---
 
-## Regeln
+## Enthaltene Entities
 
-Nicht benötigte Kategorien werden ausgelassen.
+- Profile
+- ProfileSettings
+- ProfileSecurity
 
-Die Reihenfolge wird nicht verändert.
+---
+
+## Enthaltene Value Objects
+
+- ProfileImage
+- ProfileName
+- BirthYear
+- Height
+- ProfileColor
+- DefaultProfileFlag
+- AuditInformation
+- Timestamp
+- AggregateVersion
 
 ---
 
 ## Architekturregel
 
-Die Dokumentationsreihenfolge besitzt keine fachliche Bedeutung.
+Validation Errors werden grundsätzlich demjenigen Domänentyp zugeordnet,
 
-Sie dient ausschließlich der Konsistenz der Dokumentation.
+der die jeweilige fachliche Invariante besitzt.
 
----
+Dadurch wird verhindert,
 
-# Domain Type Identifier
-
-Zur eindeutigen Referenzierung besitzt jeder im Validation Error Catalog dokumentierte Domänentyp einen stabilen Identifier.
-
-| Domänentyp | Identifier |
-|-------------|------------|
-| Profile | DOM-PRO |
-| ProfileName | DOM-NAM |
-| BirthYear | DOM-BYR |
-| Height | DOM-HGT |
-| Weight | DOM-WGT |
-| WaistCircumference | DOM-WST |
-| Password | DOM-PWD |
-| AuthenticationRequirement | DOM-AUT |
-
----
-
-## Zweck
-
-Die Domain Type Identifier dienen ausschließlich
-
-- der Architekturdokumentation,
-- der Traceability,
-- Architecture Decision Records (ADR),
-- Testreferenzen,
-- Querverweisen zwischen Dokumenten.
-
----
-
-## Architekturregel
-
-Domain Type Identifier sind Dokumentationsartefakte.
-
-Sie sind **kein Bestandteil**
-
-- eines Error Codes,
-- eines Message Keys,
-- eines Domain Results,
-- eines API-Vertrags.
+dass identische Validierungsregeln mehrfach dokumentiert werden.
 
 ---
 
@@ -8655,9 +8734,23 @@ Sie sind **kein Bestandteil**
 
 ### Zugeordneter Domänentyp
 
-**Entity**
+**Aggregate Root / Entity**
 
 - Profile
+
+---
+
+## Zweck
+
+Dieser Abschnitt definiert sämtliche Validation Error Codes,
+
+die unmittelbar das Profile Aggregate oder die Entity **Profile**
+betreffen.
+
+Validation Errors der enthaltenen Entities und Value Objects
+werden ausschließlich in deren jeweiligen Abschnitten dokumentiert.
+
+---
 
 ## Error Codes
 
@@ -8665,18 +8758,392 @@ Sie sind **kein Bestandteil**
 |------------|------------|
 | validation.profile.required | validation.profile.required |
 | validation.profile.invalid | validation.profile.invalid |
-| validation.profile.archived | validation.profile.archived |
-| validation.profile.locked | validation.profile.locked |
-| validation.profile.readOnly | validation.profile.readOnly |
-| validation.profile.defaultRequired | validation.profile.defaultRequired |
-
-### Besonderheiten
-
-Die Validierung betrifft ausschließlich die Konsistenz eines einzelnen Profils.
+| validation.profile.duplicate | validation.profile.duplicate |
+| validation.profile.aggregate.invalid | validation.profile.aggregate.invalid |
 
 ---
 
-# Profile Name
+### Dokumentationsreihenfolge
+
+Die Reihenfolge der Error Codes entspricht den Vorgaben aus Kapitel **5B-1a**.
+
+Nicht benötigte Kategorien werden ausgelassen.
+
+---
+
+### Referenz zum Domain Model
+
+Der Domänentyp **Profile** wird ausschließlich im Dokument
+
+```text
+05_DOMAIN_MODEL.md
+```
+
+definiert.
+
+Änderungen erfolgen ausschließlich dort.
+
+---
+
+### Zugehörige Business Rules
+
+Die fachlichen Regeln werden ausschließlich im Dokument
+
+```text
+04_BUSINESS_RULES.md
+```
+
+beschrieben.
+
+Der Error Handling Guide enthält keine Definition fachlicher Regeln.
+
+---
+
+### Beziehung zu Domain Events
+
+Validation Errors verhindern die erfolgreiche Ausführung
+einer fachlichen Operation.
+
+Solange Validation Errors vorliegen,
+
+dürfen keine Domain Events erzeugt werden.
+
+---
+
+### Domänenspezifische Besonderheiten
+
+Die Aggregate Root stellt die Konsistenz
+des gesamten Profile Aggregates sicher.
+
+Validation Errors dieses Abschnitts beziehen sich ausschließlich
+auf Invarianten,
+
+die das vollständige Aggregate betreffen.
+
+# 06_ERROR_HANDLING_GUIDE.md
+
+# Teil 5B-1b-1b – Core Validation Codes (ProfileSettings und ProfileSecurity)
+
+## Zweck
+
+Dieses Kapitel definiert die Validation Error Codes der Entities
+
+- ProfileSettings
+- ProfileSecurity
+
+des **Profile Aggregates**.
+
+Die allgemeinen Regeln des Validation Frameworks werden ausschließlich in **Kapitel 5B-1a** definiert.
+
+---
+
+# ProfileSettings
+
+### Zugeordneter Domänentyp
+
+**Entity**
+
+- ProfileSettings
+
+---
+
+## Zweck
+
+Dieser Abschnitt definiert sämtliche Validation Error Codes der Entity **ProfileSettings**.
+
+Die Validierung betrifft ausschließlich die fachliche Konsistenz der Profileinstellungen.
+
+---
+
+## Zugehörige Value Objects
+
+- ProfileSettingsId
+- LocalizationSettings
+- DashboardSettings
+- AppearanceSettings
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey |
+|------------|------------|
+| validation.profileSettings.required | validation.profileSettings.required |
+| validation.profileSettings.invalid | validation.profileSettings.invalid |
+| validation.profileSettings.duplicate | validation.profileSettings.duplicate |
+
+---
+
+# LocalizationSettings
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- LocalizationSettings
+
+## Error Codes
+
+| ErrorCode | MessageKey |
+|------------|------------|
+| validation.localization.required | validation.localization.required |
+| validation.localization.language.invalid | validation.localization.language.invalid |
+| validation.localization.country.invalid | validation.localization.country.invalid |
+| validation.localization.timezone.invalid | validation.localization.timezone.invalid |
+
+---
+
+# DashboardSettings
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- DashboardSettings
+
+## Error Codes
+
+| ErrorCode | MessageKey |
+|------------|------------|
+| validation.dashboard.required | validation.dashboard.required |
+| validation.dashboard.invalid | validation.dashboard.invalid |
+| validation.dashboard.widget.invalid | validation.dashboard.widget.invalid |
+| validation.dashboard.layout.invalid | validation.dashboard.layout.invalid |
+
+---
+
+# AppearanceSettings
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- AppearanceSettings
+
+## Error Codes
+
+| ErrorCode | MessageKey |
+|------------|------------|
+| validation.appearance.required | validation.appearance.required |
+| validation.appearance.invalid | validation.appearance.invalid |
+| validation.appearance.theme.invalid | validation.appearance.theme.invalid |
+
+---
+
+# ProfileSecurity
+
+### Zugeordneter Domänentyp
+
+**Entity**
+
+- ProfileSecurity
+
+---
+
+## Zweck
+
+Dieser Abschnitt definiert sämtliche Validation Error Codes der Entity **ProfileSecurity**.
+
+Die Entity stellt sämtliche sicherheitsrelevanten fachlichen Invarianten des Profile Aggregates sicher.
+
+---
+
+## Zugehörige Value Objects
+
+- ProfileSecurityId
+- PlainPassword
+- PasswordCredential
+- AuthenticationProof
+- LockState
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey |
+|------------|------------|
+| validation.profileSecurity.required | validation.profileSecurity.required |
+| validation.profileSecurity.invalid | validation.profileSecurity.invalid |
+
+---
+
+# PlainPassword
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- PlainPassword
+
+## Zweck
+
+Dieses Value Object beschreibt ein vom Benutzer eingegebenes Passwort vor dessen kryptographischer Verarbeitung.
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey |
+|------------|------------|
+| validation.password.required | validation.password.required |
+| validation.password.blank | validation.password.blank |
+| validation.password.minimumLength | validation.password.minimumLength |
+| validation.password.maximumLength | validation.password.maximumLength |
+| validation.password.tooWeak | validation.password.tooWeak |
+
+---
+
+# PasswordCredential
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- PasswordCredential
+
+## Zweck
+
+Dieses Value Object repräsentiert die fachlichen Passwortinformationen eines Benutzerprofils.
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey |
+|------------|------------|
+| validation.passwordCredential.invalid | validation.passwordCredential.invalid |
+
+---
+
+# AuthenticationProof
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- AuthenticationProof
+
+## Zweck
+
+Dieses Value Object beschreibt den Nachweis einer erfolgreichen Authentifizierung.
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey |
+|------------|------------|
+| validation.authenticationProof.invalid | validation.authenticationProof.invalid |
+
+---
+
+# LockState
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- LockState
+
+## Zweck
+
+Dieses Value Object beschreibt den Sperrstatus eines Profils.
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey |
+|------------|------------|
+| validation.lockState.invalid | validation.lockState.invalid |
+
+# 06_ERROR_HANDLING_GUIDE.md
+
+# Teil 5B-1b-1c – Core Validation Codes (Profile Value Objects)
+
+## Zweck
+
+Dieses Kapitel definiert sämtliche Validation Error Codes der verbleibenden
+Value Objects des **Profile Aggregates**.
+
+Die allgemeinen Regeln des Validation Frameworks werden ausschließlich
+in Kapitel **5B-1a** definiert.
+
+---
+
+# ProfileImage
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- ProfileImage
+
+## Zugehörige Value Objects
+
+- ImageReference
+- ImageDimensions
+- ImageChecksum
+
+## Error Codes
+
+| ErrorCode | MessageKey |
+|------------|------------|
+| validation.profileImage.required | validation.profileImage.required |
+| validation.profileImage.invalid | validation.profileImage.invalid |
+
+---
+
+# ImageReference
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- ImageReference
+
+## Error Codes
+
+| ErrorCode | MessageKey |
+|------------|------------|
+| validation.imageReference.required | validation.imageReference.required |
+| validation.imageReference.invalid | validation.imageReference.invalid |
+
+---
+
+# ImageDimensions
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- ImageDimensions
+
+## Error Codes
+
+| ErrorCode | MessageKey |
+|------------|------------|
+| validation.imageDimensions.invalid | validation.imageDimensions.invalid |
+
+---
+
+# ImageChecksum
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- ImageChecksum
+
+## Error Codes
+
+| ErrorCode | MessageKey |
+|------------|------------|
+| validation.imageChecksum.invalid | validation.imageChecksum.invalid |
+
+---
+
+# ProfileName
 
 ### Zugeordneter Domänentyp
 
@@ -8688,16 +9155,9 @@ Die Validierung betrifft ausschließlich die Konsistenz eines einzelnen Profils.
 
 | ErrorCode | MessageKey |
 |------------|------------|
-| validation.profile.name.required | validation.profile.name.required |
-| validation.profile.name.blank | validation.profile.name.blank |
-| validation.profile.name.minimumLength | validation.profile.name.minimumLength |
-| validation.profile.name.maximumLength | validation.profile.name.maximumLength |
-| validation.profile.name.invalidCharacters | validation.profile.name.invalidCharacters |
-| validation.profile.name.duplicate | validation.profile.name.duplicate |
-
-### Besonderheiten
-
-Die Duplicate-Prüfung bewertet ausschließlich den eingegebenen Namen.
+| validation.profileName.required | validation.profileName.required |
+| validation.profileName.blank | validation.profileName.blank |
+| validation.profileName.maximumLength | validation.profileName.maximumLength |
 
 ---
 
@@ -8715,16 +9175,6 @@ Die Duplicate-Prüfung bewertet ausschließlich den eingegebenen Namen.
 |------------|------------|
 | validation.birthYear.required | validation.birthYear.required |
 | validation.birthYear.invalid | validation.birthYear.invalid |
-| validation.birthYear.minimum | validation.birthYear.minimum |
-| validation.birthYear.maximum | validation.birthYear.maximum |
-| validation.birthYear.future | validation.birthYear.future |
-| validation.birthYear.unsupported | validation.birthYear.unsupported |
-
-### Besonderheiten
-
-Altersabhängige Grenzwerte werden ausschließlich über Parameter beschrieben.
-
-Der ErrorCode bleibt unverändert.
 
 ---
 
@@ -8742,567 +9192,1032 @@ Der ErrorCode bleibt unverändert.
 |------------|------------|
 | validation.height.required | validation.height.required |
 | validation.height.invalid | validation.height.invalid |
-| validation.height.minimum | validation.height.minimum |
-| validation.height.maximum | validation.height.maximum |
-| validation.height.precision | validation.height.precision |
-
-### Besonderheiten
-
-Die projektweit definierte Basiseinheit ist **cm**.
 
 ---
 
-# Weight
+# ProfileColor
 
 ### Zugeordneter Domänentyp
 
 **Value Object**
 
-- Weight
+- ProfileColor
 
 ## Error Codes
 
 | ErrorCode | MessageKey |
 |------------|------------|
-| validation.weight.required | validation.weight.required |
-| validation.weight.invalid | validation.weight.invalid |
-| validation.weight.minimum | validation.weight.minimum |
-| validation.weight.maximum | validation.weight.maximum |
-| validation.weight.precision | validation.weight.precision |
-
-### Besonderheiten
-
-Die projektweit definierte Basiseinheit ist **kg**.
+| validation.profileColor.required | validation.profileColor.required |
+| validation.profileColor.invalid | validation.profileColor.invalid |
 
 ---
 
-# Waist Circumference
+# DefaultProfileFlag
 
 ### Zugeordneter Domänentyp
 
 **Value Object**
 
-- WaistCircumference
+- DefaultProfileFlag
 
 ## Error Codes
 
 | ErrorCode | MessageKey |
 |------------|------------|
-| validation.waist.required | validation.waist.required |
-| validation.waist.invalid | validation.waist.invalid |
-| validation.waist.minimum | validation.waist.minimum |
-| validation.waist.maximum | validation.waist.maximum |
-
-### Besonderheiten
-
-Die projektweit definierte Basiseinheit ist **cm**.
+| validation.defaultProfileFlag.invalid | validation.defaultProfileFlag.invalid |
 
 ---
 
-# Password
+# AuditInformation
 
 ### Zugeordneter Domänentyp
 
 **Value Object**
 
-- Password
+- AuditInformation
 
 ## Error Codes
 
 | ErrorCode | MessageKey |
 |------------|------------|
-| validation.password.required | validation.password.required |
-| validation.password.minimumLength | validation.password.minimumLength |
-| validation.password.maximumLength | validation.password.maximumLength |
-| validation.password.complexity | validation.password.complexity |
-| validation.password.invalidCharacters | validation.password.invalidCharacters |
-
-### Besonderheiten
-
-Die konkreten Passwortanforderungen werden ausschließlich über Parameter beschrieben.
-
-Neue Passwortregeln erzeugen keine neuen Error Codes.
+| validation.auditInformation.invalid | validation.auditInformation.invalid |
 
 ---
 
-# Authentication
+# Timestamp
 
 ### Zugeordneter Domänentyp
 
 **Value Object**
 
-- AuthenticationRequirement
+- Timestamp
 
 ## Error Codes
 
 | ErrorCode | MessageKey |
 |------------|------------|
-| validation.authentication.required | validation.authentication.required |
-
-### Besonderheiten
-
-Authentifizierungsfehler wie
-
-- fehlgeschlagene Anmeldung,
-- abgelaufene Anmeldung,
-- gesperrte Anmeldung
-
-gehören ausschließlich zu den **Security Error Codes**.
+| validation.timestamp.required | validation.timestamp.required |
+| validation.timestamp.invalid | validation.timestamp.invalid |
+| validation.timestamp.future | validation.timestamp.future |
 
 ---
 
-# Deprecated Error Codes
+# AggregateVersion
 
-## Status
+### Zugeordneter Domänentyp
 
-Derzeit existieren keine veralteten Validation Error Codes.
+**Value Object**
 
----
+- AggregateVersion
 
-## Regeln
+## Error Codes
 
-Veraltete Error Codes
-
-- bleiben dokumentiert,
-- werden als **Deprecated** gekennzeichnet,
-- werden nicht erneut verwendet.
-
-Ein entfernter Error Code darf keinem neuen fachlichen Sachverhalt zugeordnet werden.
-
----
-
-## Architekturregel
-
-Die fachliche Bedeutung eines veröffentlichten Error Codes bleibt dauerhaft erhalten.
+| ErrorCode | MessageKey |
+|------------|------------|
+| validation.aggregateVersion.invalid | validation.aggregateVersion.invalid |
 
 ---
 
 # Status dieses Abschnitts
 
-Dieser Abschnitt definiert ausschließlich die Core Validation Error Codes.
+Dieses Kapitel definiert ausschließlich die Validation Error Codes
+der verbleibenden Value Objects des Profile Aggregates.
 
-Gemeinsame Regeln werden zentral in **Kapitel 5B-1a** beschrieben.
-
-Die Extended Validation Error Codes folgen in **Teil 5B-1b-2**.
+Technische Fehler,
+Persistenzfehler,
+Security Errors,
+Infrastructure Errors
+und Business Rule Errors
+werden in späteren Kapiteln beschrieben.
 
 # 06_ERROR_HANDLING_GUIDE.md
 
-# Teil 5B-1b-2a – Extended Validation Codes (Health Domain)
+# Teil 5B-1b-2 – Aggregate Validation
 
 ## Zweck
 
-Dieses Kapitel definiert die projektweiten Validation Error Codes der erweiterten Health Domain.
+Dieses Kapitel definiert Validation Errors,
 
-Die allgemeinen Regeln für
+die nicht einem einzelnen Domänenobjekt zugeordnet werden können,
 
-- Validation Framework,
-- Validation Processing,
-- Parameter,
-- ErrorCode-Konventionen,
-- MessageKeys,
-- Architekturregeln
+sondern ausschließlich die Konsistenz des gesamten **Profile Aggregates**
+betreffen.
 
-werden ausschließlich in **Kapitel 5B-1a** beschrieben.
+Diese Validation Errors prüfen Beziehungen zwischen mehreren Entities,
+Value Objects oder Aggregatebestandteilen.
 
-Dieses Kapitel enthält ausschließlich domänenspezifische Validation Error Codes.
+Sie ergänzen die objektbezogenen Validation Errors aus Kapitel **5B-1b-1**.
 
 ---
 
-# Nutrition
+# Architekturregel
 
-### Zugeordneter Domänentyp
+Aggregate Validation überprüft ausschließlich Invarianten,
 
-**Entity**
+die mehrere Domänenobjekte gleichzeitig betreffen.
 
-- NutritionEntry
-
-### Referenz zum Domain Model
-
-Die Bezeichnung des Domänentyps entspricht ausschließlich der Definition im Dokument
-
-```text
-05_DOMAIN_MODEL.md
-```
-
-Abweichende Bezeichnungen sind nicht zulässig.
-
-Änderungen am Domänentyp erfolgen ausschließlich über das Domain Model.
-
-## Error Codes
-
-| ErrorCode | MessageKey |
-|------------|------------|
-| validation.nutrition.required | validation.nutrition.required |
-| validation.nutrition.food.required | validation.nutrition.food.required |
-| validation.nutrition.amount.invalid | validation.nutrition.amount.invalid |
-| validation.nutrition.unit.required | validation.nutrition.unit.required |
-| validation.nutrition.calories.invalid | validation.nutrition.calories.invalid |
-| validation.nutrition.mealType.invalid | validation.nutrition.mealType.invalid |
-
-### Dokumentationsreihenfolge
-
-Die Error Codes dieses Domänentyps folgen der projektweit definierten Reihenfolge aus **Kapitel 5B-1a-1**.
-
-Nicht benötigte Kategorien werden ausgelassen.
-
-Die Reihenfolge besitzt ausschließlich dokumentarischen Charakter und hat keinen Einfluss auf das Laufzeitverhalten.
-
-### Domänenspezifische Besonderheiten
-
-Die Validierung bewertet ausschließlich die Konsistenz eines Ernährungseintrags.
-
-Ernährungsanalysen oder Empfehlungen gehören nicht zur Validation.
-
-### Zugehörige Business Rules
-
-Die fachlichen Business Rules für diesen Domänentyp werden im Dokument
-
-```text
-04_BUSINESS_RULES.md
-```
-
-definiert.
-
-Der Validation Error Catalog referenziert ausschließlich diese Regeln.
-
-Die Definition der Business Rules erfolgt nicht innerhalb dieses Dokuments.
-
-### Beziehung zu Domain Events
-
-Validation Errors verhindern die erfolgreiche Ausführung einer fachlichen Operation.
-
-Solange Validation Errors vorliegen,
-
-dürfen keine Domain Events erzeugt werden.
-
-Erst nach erfolgreicher Validierung dürfen Domain Events veröffentlicht werden.
-
-Diese Regel gilt für sämtliche Domänentypen.
+Validation Errors eines einzelnen Domänenobjekts
+werden ausschließlich in Kapitel **5B-1b-1**
+dokumentiert.
 
 ---
 
-# Medication
+# Aggregate Root
 
-### Zugeordneter Domänentyp
+## Profile
 
-**Entity**
+### Zweck
 
-- Medication
+Die Aggregate Root stellt sicher,
 
-### Referenz zum Domain Model
-
-Die Bezeichnung des Domänentyps entspricht ausschließlich der Definition im Dokument
-
-```text
-05_DOMAIN_MODEL.md
-```
-
-Abweichende Bezeichnungen sind nicht zulässig.
-
-Änderungen am Domänentyp erfolgen ausschließlich über das Domain Model.
-
-## Error Codes
-
-| ErrorCode | MessageKey |
-|------------|------------|
-| validation.medication.required | validation.medication.required |
-| validation.medication.name.required | validation.medication.name.required |
-| validation.medication.name.maximumLength | validation.medication.name.maximumLength |
-| validation.medication.dosage.required | validation.medication.dosage.required |
-| validation.medication.dosage.invalid | validation.medication.dosage.invalid |
-| validation.medication.unit.required | validation.medication.unit.required |
-| validation.medication.frequency.invalid | validation.medication.frequency.invalid |
-| validation.medication.duplicate | validation.medication.duplicate |
-
-### Dokumentationsreihenfolge
-
-Die Error Codes dieses Domänentyps folgen der projektweit definierten Reihenfolge aus **Kapitel 5B-1a-1**.
-
-Nicht benötigte Kategorien werden ausgelassen.
-
-Die Reihenfolge besitzt ausschließlich dokumentarischen Charakter und hat keinen Einfluss auf das Laufzeitverhalten.
-
-### Domänenspezifische Besonderheiten
-
-Duplicate-Prüfungen beziehen sich ausschließlich auf die fachliche Medikation innerhalb eines Profils.
-
-### Zugehörige Business Rules
-
-Die fachlichen Business Rules für diesen Domänentyp werden im Dokument
-
-```text
-04_BUSINESS_RULES.md
-```
-
-definiert.
-
-Der Validation Error Catalog referenziert ausschließlich diese Regeln.
-
-Die Definition der Business Rules erfolgt nicht innerhalb dieses Dokuments.
-
-### Beziehung zu Domain Events
-
-Validation Errors verhindern die erfolgreiche Ausführung einer fachlichen Operation.
-
-Solange Validation Errors vorliegen,
-
-dürfen keine Domain Events erzeugt werden.
-
-Erst nach erfolgreicher Validierung dürfen Domain Events veröffentlicht werden.
-
-Diese Regel gilt für sämtliche Domänentypen.
+dass sämtliche enthaltenen Entities und Value Objects
+gemeinsam einen fachlich gültigen Zustand bilden.
 
 ---
 
-# Measurement
-
-### Zugeordneter Domänentyp
-
-**Entity**
-
-- Measurement
-
-### Referenz zum Domain Model
-
-Die Bezeichnung des Domänentyps entspricht ausschließlich der Definition im Dokument
-
-```text
-05_DOMAIN_MODEL.md
-```
-
-Abweichende Bezeichnungen sind nicht zulässig.
-
-Änderungen am Domänentyp erfolgen ausschließlich über das Domain Model.
-
-## Error Codes
+## Aggregate Validation Errors
 
 | ErrorCode | MessageKey |
 |------------|------------|
-| validation.measurement.required | validation.measurement.required |
-| validation.measurement.type.required | validation.measurement.type.required |
-| validation.measurement.value.required | validation.measurement.value.required |
-| validation.measurement.value.invalid | validation.measurement.value.invalid |
-| validation.measurement.unit.required | validation.measurement.unit.required |
-| validation.measurement.timestamp.required | validation.measurement.timestamp.required |
-| validation.measurement.timestamp.invalid | validation.measurement.timestamp.invalid |
-| validation.measurement.timestamp.future | validation.measurement.timestamp.future |
-| validation.measurement.duplicate | validation.measurement.duplicate |
-
-### Dokumentationsreihenfolge
-
-Die Error Codes dieses Domänentyps folgen der projektweit definierten Reihenfolge aus **Kapitel 5B-1a-1**.
-
-Nicht benötigte Kategorien werden ausgelassen.
-
-Die Reihenfolge besitzt ausschließlich dokumentarischen Charakter und hat keinen Einfluss auf das Laufzeitverhalten.
-
-### Domänenspezifische Besonderheiten
-
-Zeitstempel werden ausschließlich hinsichtlich ihrer fachlichen Gültigkeit validiert.
-
-Zeitzonenumrechnungen gehören nicht zur Domänenvalidierung.
-
-### Zugehörige Business Rules
-
-Die fachlichen Business Rules für diesen Domänentyp werden im Dokument
-
-```text
-04_BUSINESS_RULES.md
-```
-
-definiert.
-
-Der Validation Error Catalog referenziert ausschließlich diese Regeln.
-
-Die Definition der Business Rules erfolgt nicht innerhalb dieses Dokuments.
-
-### Beziehung zu Domain Events
-
-Validation Errors verhindern die erfolgreiche Ausführung einer fachlichen Operation.
-
-Solange Validation Errors vorliegen,
-
-dürfen keine Domain Events erzeugt werden.
-
-Erst nach erfolgreicher Validierung dürfen Domain Events veröffentlicht werden.
-
-Diese Regel gilt für sämtliche Domänentypen.
+| validation.profile.aggregate.invalid | validation.profile.aggregate.invalid |
+| validation.profile.aggregate.inconsistent | validation.profile.aggregate.inconsistent |
+| validation.profile.aggregate.incomplete | validation.profile.aggregate.incomplete |
 
 ---
 
-# Device
+# Cross Object Validation
 
-### Zugeordneter Domänentyp
+## Zweck
 
-**Entity**
+Cross Object Validation überprüft fachliche Beziehungen
+zwischen mehreren Domänenobjekten.
 
-- Device
-
-### Referenz zum Domain Model
-
-Die Bezeichnung des Domänentyps entspricht ausschließlich der Definition im Dokument
-
-```text
-05_DOMAIN_MODEL.md
-```
-
-Abweichende Bezeichnungen sind nicht zulässig.
-
-Änderungen am Domänentyp erfolgen ausschließlich über das Domain Model.
-
-## Error Codes
-
-| ErrorCode | MessageKey |
-|------------|------------|
-| validation.device.required | validation.device.required |
-| validation.device.name.required | validation.device.name.required |
-| validation.device.type.required | validation.device.type.required |
-| validation.device.identifier.required | validation.device.identifier.required |
-| validation.device.identifier.invalid | validation.device.identifier.invalid |
-| validation.device.connection.invalid | validation.device.connection.invalid |
-
-### Dokumentationsreihenfolge
-
-Die Error Codes dieses Domänentyps folgen der projektweit definierten Reihenfolge aus **Kapitel 5B-1a-1**.
-
-Nicht benötigte Kategorien werden ausgelassen.
-
-Die Reihenfolge besitzt ausschließlich dokumentarischen Charakter und hat keinen Einfluss auf das Laufzeitverhalten.
-
-### Domänenspezifische Besonderheiten
-
-Es wird ausschließlich die fachliche Gerätekonfiguration validiert.
-
-Kommunikations- oder Verbindungsfehler gehören zu den Infrastructure Error Codes.
-
-### Zugehörige Business Rules
-
-Die fachlichen Business Rules für diesen Domänentyp werden im Dokument
-
-```text
-04_BUSINESS_RULES.md
-```
-
-definiert.
-
-Der Validation Error Catalog referenziert ausschließlich diese Regeln.
-
-Die Definition der Business Rules erfolgt nicht innerhalb dieses Dokuments.
-
-### Beziehung zu Domain Events
-
-Validation Errors verhindern die erfolgreiche Ausführung einer fachlichen Operation.
-
-Solange Validation Errors vorliegen,
-
-dürfen keine Domain Events erzeugt werden.
-
-Erst nach erfolgreicher Validierung dürfen Domain Events veröffentlicht werden.
-
-Diese Regel gilt für sämtliche Domänentypen.
+Die Validierung erfolgt immer auf Aggregate-Ebene.
 
 ---
 
-# Dashboard
+## Profile ↔ ProfileSettings
 
-### Zugeordneter Domänentyp
-
-**Entity**
-
-- DashboardConfiguration
-
-### Referenz zum Domain Model
-
-Die Bezeichnung des Domänentyps entspricht ausschließlich der Definition im Dokument
-
-```text
-05_DOMAIN_MODEL.md
-```
-
-Abweichende Bezeichnungen sind nicht zulässig.
-
-Änderungen am Domänentyp erfolgen ausschließlich über das Domain Model.
-
-## Error Codes
+### Beispiele
 
 | ErrorCode | MessageKey |
 |------------|------------|
-| validation.dashboard.required | validation.dashboard.required |
-| validation.dashboard.widget.required | validation.dashboard.widget.required |
-| validation.dashboard.layout.invalid | validation.dashboard.layout.invalid |
+| validation.profile.settings.required | validation.profile.settings.required |
+| validation.profile.settings.inconsistent | validation.profile.settings.inconsistent |
+
+---
+
+## Profile ↔ ProfileSecurity
+
+### Beispiele
+
+| ErrorCode | MessageKey |
+|------------|------------|
+| validation.profile.security.required | validation.profile.security.required |
+| validation.profile.security.inconsistent | validation.profile.security.inconsistent |
+
+---
+
+## Profile ↔ ProfileImage
+
+### Beispiele
+
+| ErrorCode | MessageKey |
+|------------|------------|
+| validation.profile.image.required | validation.profile.image.required |
+| validation.profile.image.inconsistent | validation.profile.image.inconsistent |
+
+---
+
+## ProfileSettings ↔ LocalizationSettings
+
+### Beispiele
+
+| ErrorCode | MessageKey |
+|------------|------------|
+| validation.localization.configuration.invalid | validation.localization.configuration.invalid |
+
+---
+
+## ProfileSettings ↔ DashboardSettings
+
+### Beispiele
+
+| ErrorCode | MessageKey |
+|------------|------------|
 | validation.dashboard.configuration.invalid | validation.dashboard.configuration.invalid |
-| validation.dashboard.duplicateWidget | validation.dashboard.duplicateWidget |
 
-### Dokumentationsreihenfolge
+---
 
-Die Error Codes dieses Domänentyps folgen der projektweit definierten Reihenfolge aus **Kapitel 5B-1a-1**.
+## ProfileSettings ↔ AppearanceSettings
 
-Nicht benötigte Kategorien werden ausgelassen.
+### Beispiele
 
-Die Reihenfolge besitzt ausschließlich dokumentarischen Charakter und hat keinen Einfluss auf das Laufzeitverhalten.
+| ErrorCode | MessageKey |
+|------------|------------|
+| validation.appearance.configuration.invalid | validation.appearance.configuration.invalid |
 
-### Domänenspezifische Besonderheiten
+---
 
-Die Domäne validiert ausschließlich die Konsistenz der Dashboard-Konfiguration.
+# Validierungsreihenfolge
 
-Eine automatische Korrektur erfolgt nicht.
+Aggregate Validation wird ausschließlich ausgeführt,
 
-### Zugehörige Business Rules
+nachdem
 
-Die fachlichen Business Rules für diesen Domänentyp werden im Dokument
+- sämtliche Entities
+- sämtliche Value Objects
+
+erfolgreich validiert wurden.
+
+Existieren bereits objektbezogene Validation Errors,
+
+wird Aggregate Validation nicht mehr ausgeführt.
+
+Dadurch werden Folgefehler vermieden.
+
+---
+
+# Beziehung zu Business Rules
+
+Aggregate Validation prüft ausschließlich
+
+fachliche Konsistenzregeln innerhalb eines Aggregates.
+
+Komplexe Geschäftsregeln,
+
+die Domänenvorgänge oder mehrere Aggregate betreffen,
+
+werden ausschließlich als **Business Rule Errors**
+in Kapitel **5B-2**
+behandelt.
+
+---
+
+# Beziehung zu Domain Events
+
+Nur ein erfolgreich validiertes Aggregate
+
+darf Domain Events erzeugen.
+
+Aggregate Validation Errors verhindern
+die Erzeugung sämtlicher Domain Events
+des betroffenen Aggregates.
+
+---
+
+# Status dieses Abschnitts
+
+Dieses Kapitel definiert ausschließlich
+
+Aggregate Validation.
+
+Objektbezogene Validation Errors
+werden in Kapitel **5B-1b-1**
+
+Business Rule Errors
+werden in Kapitel **5B-2**
+
+Infrastructure Errors
+werden in Kapitel **5C**
+
+dokumentiert.
+
+# Teil 5B-2 – Business Rule Errors
+
+## Zweck
+
+Dieses Kapitel definiert sämtliche Business Rule Errors der Domäne.
+
+Business Rule Errors beschreiben Verletzungen fachlicher Geschäftsregeln,
+die nach erfolgreicher Validierung einzelner Domänenobjekte und Aggregate
+auftreten können.
+
+Validation Errors werden ausschließlich in Kapitel **5B-1**
+behandelt.
+
+---
+
+# Architekturregel
+
+Business Rule Errors
+
+- beschreiben ausschließlich fachliche Regelverletzungen,
+- sind unabhängig von UI,
+- sind unabhängig von Persistenz,
+- sind unabhängig von Infrastruktur,
+- sind unabhängig von Integrationen.
+
+Sie werden ausschließlich innerhalb der Domäne definiert.
+
+---
+
+# Präfix
+
+Alle Business Rule Errors verwenden ausschließlich das Präfix
 
 ```text
-04_BUSINESS_RULES.md
+business.
 ```
 
-definiert.
+Beispiele
 
-Der Validation Error Catalog referenziert ausschließlich diese Regeln.
+```text
+business.profile.default.alreadyExists
 
-Die Definition der Business Rules erfolgt nicht innerhalb dieses Dokuments.
+business.profile.security.locked
 
-### Beziehung zu Domain Events
+business.profile.delete.notAllowed
+```
 
-Validation Errors verhindern die erfolgreiche Ausführung einer fachlichen Operation.
+---
 
-Solange Validation Errors vorliegen,
+# Profile Aggregate
 
-dürfen keine Domain Events erzeugt werden.
+## DefaultProfile
 
-Erst nach erfolgreicher Validierung dürfen Domain Events veröffentlicht werden.
+### Fachliche Regel
 
-Diese Regel gilt für sämtliche Domänentypen.
+Innerhalb des Systems darf genau ein Standardprofil existieren.
+
+### Error Codes
+
+| ErrorCode | MessageKey |
+|------------|------------|
+| business.profile.default.alreadyExists | business.profile.default.alreadyExists |
+| business.profile.default.required | business.profile.default.required |
+
+---
+
+## ProfileSecurity
+
+### Fachliche Regel
+
+Ein gesperrtes Profil darf keine Authentifizierung durchführen.
+
+### Error Codes
+
+| ErrorCode | MessageKey |
+|------------|------------|
+| business.profile.security.locked | business.profile.security.locked |
+
+---
+
+## ProfileImage
+
+### Fachliche Regel
+
+Ein Profilbild muss den fachlichen Vorgaben des Systems entsprechen.
+
+### Error Codes
+
+| ErrorCode | MessageKey |
+|------------|------------|
+| business.profile.image.notAllowed | business.profile.image.notAllowed |
+
+---
+
+# Zustandsübergänge
+
+Business Rule Errors können ebenfalls entstehen,
+wenn ein fachlich unzulässiger Zustandswechsel angefordert wird.
+
+## Beispiele
+
+| ErrorCode | MessageKey |
+|------------|------------|
+| business.profile.state.invalidTransition | business.profile.state.invalidTransition |
+| business.profile.delete.notAllowed | business.profile.delete.notAllowed |
+| business.profile.activate.notAllowed | business.profile.activate.notAllowed |
+| business.profile.deactivate.notAllowed | business.profile.deactivate.notAllowed |
+
+---
+
+# Beziehung zu Validation Errors
+
+Business Rule Errors werden ausschließlich ausgeführt,
+
+nachdem
+
+- alle Value Objects,
+- alle Entities,
+- das Aggregate
+
+erfolgreich validiert wurden.
+
+Existieren Validation Errors,
+
+werden Business Rules nicht mehr ausgeführt.
+
+---
+
+# Beziehung zu Domain Events
+
+Business Rule Errors verhindern die Veröffentlichung sämtlicher
+Domain Events des betroffenen Aggregates.
+
+Erst nach erfolgreicher Ausführung aller Business Rules
+dürfen Domain Events erzeugt werden.
 
 ---
 
 # Erweiterbarkeit
 
-## Zweck
+Jedes Aggregate besitzt einen eigenen Abschnitt
+für Business Rule Errors.
 
-Der Validation Error Catalog ist für zukünftige Domänentypen erweiterbar.
+Neue Aggregate ergänzen ausschließlich neue Kapitel.
 
----
-
-## Regeln
-
-Neue Domänentypen werden ausschließlich durch neue Kapitel ergänzt.
-
-Bestehende Validation Error Codes werden dabei nicht verändert.
-
-Bereits veröffentlichte Error Codes bleiben fachlich stabil.
-
----
-
-## Architekturregel
-
-Neue Domänentypen übernehmen dieselbe Dokumentationsstruktur wie die bestehenden Kapitel.
-
-Dadurch bleibt der Validation Error Catalog projektweit konsistent.
+Bereits veröffentlichte Business Rule Errors
+werden fachlich nicht umdefiniert.
 
 ---
 
 # Status dieses Abschnitts
 
-Dieses Kapitel definiert ausschließlich die erweiterten Validation Error Codes der Health Domain.
+Dieses Kapitel definiert ausschließlich Business Rule Errors.
 
-Die Infrastruktur-bezogenen Validation Error Codes folgen in **Teil 5B-1b-2b**.
+Die projektweite Fehlerklassifikation lautet:
+
+| Fehlerklasse | Präfix |
+|--------------|---------|
+| Validation | `validation.` |
+| Business Rules | `business.` |
+| Security | `security.` |
+| Infrastructure | `infrastructure.` |
+| Integration | `integration.` |
+| Persistence | `persistence.` |
+
+Diese Präfixe gelten projektweit
+für sämtliche Module der Health-Tracker-Anwendung.
+
+# 06_ERROR_HANDLING_GUIDE.md
+
+# Teil 5C – Security, Infrastructure, Persistence und Integration Errors
+
+## Zweck
+
+Dieses Kapitel definiert sämtliche technischen Fehlerklassen
+außerhalb der Domäne.
+
+Diese Fehler entstehen nicht durch fachliche Validierung
+oder Business Rules,
+
+sondern durch technische Komponenten
+der Anwendung.
+
+---
+
+# Architekturregel
+
+Technische Fehler
+
+- besitzen keine fachliche Bedeutung,
+- verändern keine Business Rules,
+- verändern keine Aggregate,
+- dürfen niemals Business Rule Errors ersetzen.
+
+Technische Fehler werden ausschließlich
+außerhalb der Domäne erzeugt.
+
+---
+
+# Fehlerklassifikation
+
+| Fehlerklasse | Präfix |
+|--------------|---------|
+| Security | `security.` |
+| Infrastructure | `infrastructure.` |
+| Persistence | `persistence.` |
+| Integration | `integration.` |
+
+---
+
+# Security Errors
+
+## Zweck
+
+Security Errors beschreiben technische Sicherheitsfehler.
+
+Sie entstehen beispielsweise
+
+- während der Authentifizierung,
+- bei der Autorisierung,
+- während kryptographischer Operationen,
+- oder bei Sicherheitsrichtlinien.
+
+### Error Codes
+
+| ErrorCode | MessageKey |
+|------------|------------|
+| security.authentication.failed | security.authentication.failed |
+| security.authentication.expired | security.authentication.expired |
+| security.authorization.denied | security.authorization.denied |
+| security.password.hash.failed | security.password.hash.failed |
+| security.password.verification.failed | security.password.verification.failed |
+| security.encryption.failed | security.encryption.failed |
+| security.decryption.failed | security.decryption.failed |
+| security.token.invalid | security.token.invalid |
+| security.token.expired | security.token.expired |
+
+---
+
+# Infrastructure Errors
+
+## Zweck
+
+Infrastructure Errors beschreiben Fehler
+der technischen Infrastruktur.
+
+### Error Codes
+
+| ErrorCode | MessageKey |
+|------------|------------|
+| infrastructure.configuration.invalid | infrastructure.configuration.invalid |
+| infrastructure.configuration.missing | infrastructure.configuration.missing |
+| infrastructure.file.notFound | infrastructure.file.notFound |
+| infrastructure.file.accessDenied | infrastructure.file.accessDenied |
+| infrastructure.io.failed | infrastructure.io.failed |
+| infrastructure.network.unavailable | infrastructure.network.unavailable |
+| infrastructure.timeout | infrastructure.timeout |
+
+---
+
+# Persistence Errors
+
+## Zweck
+
+Persistence Errors beschreiben Fehler
+beim Speichern oder Laden
+fachlicher Daten.
+
+### Error Codes
+
+| ErrorCode | MessageKey |
+|------------|------------|
+| persistence.database.failed | persistence.database.failed |
+| persistence.transaction.failed | persistence.transaction.failed |
+| persistence.optimisticLock.failed | persistence.optimisticLock.failed |
+| persistence.constraint.failed | persistence.constraint.failed |
+| persistence.record.notFound | persistence.record.notFound |
+| persistence.record.alreadyExists | persistence.record.alreadyExists |
+
+---
+
+# Integration Errors
+
+## Zweck
+
+Integration Errors entstehen
+bei der Kommunikation
+mit externen Systemen.
+
+Hierzu gehören beispielsweise
+
+- Health Connect
+- Apple Health
+- Google Fit
+- Smartwatches
+- Cloud Services
+- Backup Services
+
+### Error Codes
+
+| ErrorCode | MessageKey |
+|------------|------------|
+| integration.healthConnect.unavailable | integration.healthConnect.unavailable |
+| integration.healthConnect.permissionDenied | integration.healthConnect.permissionDenied |
+| integration.appleHealth.unavailable | integration.appleHealth.unavailable |
+| integration.googleFit.unavailable | integration.googleFit.unavailable |
+| integration.device.notConnected | integration.device.notConnected |
+| integration.device.timeout | integration.device.timeout |
+| integration.backup.failed | integration.backup.failed |
+| integration.import.failed | integration.import.failed |
+| integration.export.failed | integration.export.failed |
+
+---
+
+# Recovery-Strategien
+
+Die Recovery-Strategie wird pro Fehlerklasse definiert.
+
+| Fehlerklasse | Retry | Fallback | Logging | Benutzerinformation |
+|--------------|:----:|:--------:|:-------:|:-------------------:|
+| Security | ❌ | ❌ | ✅ | ✅ |
+| Infrastructure | ✅ | ✅ | ✅ | Optional |
+| Persistence | Bedingt | ❌ | ✅ | ✅ |
+| Integration | ✅ | ✅ | ✅ | Optional |
+
+## Regeln
+
+- Security Errors dürfen niemals automatisch wiederholt werden.
+- Infrastructure Errors dürfen automatische Retry-Strategien verwenden.
+- Persistence Errors dürfen ausschließlich bei transienten Fehlern wiederholt werden.
+- Integration Errors dürfen Retry- und Fallback-Strategien verwenden, sofern dies fachlich zulässig ist.
+
+---
+
+# Exception-Zuordnung
+
+Die technische Implementierung verwendet pro Fehlerklasse genau eine abstrakte Basisklasse.
+
+| Fehlerklasse | Basisklasse |
+|--------------|-------------|
+| Security | `SecurityException` |
+| Infrastructure | `InfrastructureException` |
+| Persistence | `PersistenceException` |
+| Integration | `IntegrationException` |
+
+Konkrete Implementierungen dürfen von diesen Basisklassen ableiten.
+
+Die Domäne besitzt keine Abhängigkeit zu diesen technischen Exceptions.
+
+---
+
+# Beziehung zur Domäne
+
+Technische Fehler
+
+- dürfen Aggregate nicht verändern,
+- dürfen Business Rules nicht umgehen,
+- dürfen Validation nicht überspringen.
+
+Sie werden ausschließlich
+an den Infrastrukturgrenzen behandelt.
+
+---
+
+# Beziehung zu Domain Events
+
+Technische Fehler erzeugen keine Domain Events.
+
+Sie können jedoch verhindern,
+dass eine Anwendung erfolgreich abgeschlossen wird.
+
+Domain Events entstehen ausschließlich
+innerhalb der Domäne.
+
+---
+
+# Erweiterbarkeit
+
+Neue technische Komponenten ergänzen ausschließlich neue Error Codes innerhalb ihrer Fehlerklasse.
+
+Neue Fehlerklassen dürfen nur eingeführt werden,
+wenn sie architektonisch eindeutig von den bestehenden Klassen abgegrenzt werden können.
+
+---
+
+# Status dieses Abschnitts
+
+Dieses Kapitel definiert ausschließlich
+
+- Security Errors
+- Infrastructure Errors
+- Persistence Errors
+- Integration Errors
+
+Validation Errors werden in Kapitel **5B-1**
+
+Business Rule Errors in Kapitel **5B-2**
+
+Governance-Regeln in Kapitel **5D**
+
+beschrieben.
+
+# 06_ERROR_HANDLING_GUIDE.md
+
+# Teil 5D – Governance und Lebenszyklus des Fehlerkatalogs
+
+## Zweck
+
+Dieses Kapitel definiert die projektweiten Regeln
+für Verwaltung, Erweiterung, Versionierung
+und Qualitätssicherung des Error Handling Guides.
+
+Ziel ist ein langfristig konsistenter,
+stabiler und nachvollziehbarer Fehlerkatalog
+für sämtliche Module der Anwendung.
+
+---
+
+# Architekturprinzipien
+
+Der Error Handling Guide folgt den Prinzipien
+
+- Domain-Driven Design
+- Clean Architecture
+- SOLID
+- Single Source of Truth
+
+Der Fehlerkatalog wird ausschließlich
+aus dem Domain Model abgeleitet.
+
+---
+
+# Single Source of Truth
+
+Das Dokument
+
+```text
+05_DOMAIN_MODEL.md
+```
+
+definiert sämtliche
+
+- Aggregate
+- Aggregate Roots
+- Entities
+- Value Objects
+- Domain Services
+- Domain Events
+
+Der Error Handling Guide definiert
+keine eigenen Domänentypen.
+
+---
+
+# Ownership
+
+Für jede Fehlerklasse
+existiert genau ein verantwortlicher Eigentümer.
+
+| Bereich | Verantwortlich |
+|----------|----------------|
+| Validation | Domain Layer |
+| Business Rules | Domain Layer |
+| Security | Security Layer |
+| Infrastructure | Infrastructure Layer |
+| Persistence | Persistence Layer |
+| Integration | Integration Layer |
+
+---
+
+# Lebenszyklus
+
+Jeder Error Code besitzt genau einen Status.
+
+| Status | Beschreibung |
+|---------|--------------|
+| Draft | In Bearbeitung |
+| Active | Freigegeben |
+| Deprecated | Veraltet |
+| Removed | Entfernt |
+
+---
+
+# Versionierung
+
+## Regeln
+
+Error Codes besitzen eine stabile fachliche Bedeutung.
+
+Bereits veröffentlichte Error Codes
+
+- werden nicht umdefiniert,
+- werden nicht wiederverwendet,
+- bleiben fachlich stabil.
+
+Neue Anforderungen führen ausschließlich
+
+- zu neuen Error Codes
+- oder zu einer Deprecation.
+
+---
+
+# Deprecation
+
+Veraltete Error Codes
+
+werden zunächst als
+
+```text
+Deprecated
+```
+
+markiert.
+
+Zusätzlich werden dokumentiert
+
+- Nachfolger
+- Version
+- Migrationshinweise
+
+Erst nach Abschluss des definierten
+Migrationszeitraums
+dürfen Error Codes entfernt werden.
+
+---
+
+# Erweiterbarkeit
+
+Neue Error Codes
+
+werden ausschließlich ergänzt.
+
+Neue Fehlerklassen
+
+dürfen nur eingeführt werden,
+
+wenn sie architektonisch
+eindeutig begründet sind.
+
+---
+
+# Reviewprozess
+
+Jede Änderung
+am Error Handling Guide
+durchläuft mindestens
+
+1. Domain Model Review
+2. Architekturreview
+3. Konsistenzprüfung
+4. Dokumentationsreview
+5. Implementierungsreview
+6. Testreview
+7. Freigabe
+
+---
+
+# Konsistenzprüfung
+
+Vor jeder Freigabe
+werden mindestens folgende Punkte geprüft.
+
+## Domain Model
+
+- Aggregate vollständig
+- Entities vollständig
+- Value Objects vollständig
+
+## Error Handling Guide
+
+- ausschließlich Domänentypen des Domain Models verwendet
+- keine Dubletten
+- keine widersprüchlichen Error Codes
+
+## Architektur
+
+- DDD
+- Clean Architecture
+- SOLID
+- Single Source of Truth
+
+---
+
+# Testbarkeit
+
+Jeder Error Code
+
+muss
+
+- reproduzierbar,
+- testbar,
+- dokumentiert
+
+sein.
+
+Automatisierte Tests
+decken mindestens ab
+
+- Validation Errors
+- Business Rule Errors
+- Security Errors
+- Infrastructure Errors
+- Persistence Errors
+- Integration Errors
+
+---
+
+# Dokumentationsregeln
+
+Jeder Error Code dokumentiert mindestens
+
+- ErrorCode
+- MessageKey
+- Fehlerklasse
+- Beschreibung
+- Ursache
+- empfohlene Behandlung
+
+Optional
+
+- Recovery
+- Retry
+- Logging
+- Telemetrie
+
+---
+
+# Traceability
+
+Jeder Error Code darf einer oder mehreren
+fachlichen Quellen zugeordnet werden.
+
+Mögliche Referenzen sind
+
+- Domain Model
+- Business Rules
+- Architecture Decision Records (ADR)
+- Use Cases
+- Anforderungen
+- Testfälle
+
+Die Referenzen dienen ausschließlich
+der Nachvollziehbarkeit
+und besitzen keine technische Bedeutung.
+
+### Beispiel
+
+| Artefakt | Referenz |
+|----------|-----------|
+| Domain Model | VO-ProfileName |
+| Business Rule | BR-014 |
+| ADR | ADR-007 |
+| Testfall | TC-Validation-021 |
+
+---
+
+# Project Error Registry
+
+Alle veröffentlichten Error Codes
+werden in einer zentralen Registry geführt.
+
+Die Registry stellt sicher,
+
+- jeder Error Code ist eindeutig,
+- jeder MessageKey ist eindeutig,
+- Error Codes werden nicht mehrfach verwendet,
+- Deprecation wird nachvollziehbar dokumentiert,
+- Nachfolger werden eindeutig referenziert.
+
+Die Registry dient als projektweite
+Referenz für Implementierung,
+Dokumentation
+und Qualitätssicherung.
+
+Automatisierte Prüfungen dürfen sicherstellen,
+
+- dass keine doppelten Error Codes entstehen,
+- dass keine doppelten MessageKeys entstehen,
+- dass ausschließlich gültige Präfixe verwendet werden,
+- dass Deprecation-Regeln eingehalten werden.
+
+---
+
+# Rückwärtskompatibilität
+
+Neue Versionen
+
+dürfen bestehende Clients
+nicht beeinträchtigen.
+
+Veröffentlichte Error Codes
+bleiben fachlich stabil.
+
+---
+
+# Projektstandard
+
+Diese Governance-Regeln gelten
+für sämtliche Module
+des Health Trackers.
+
+Neue Module übernehmen unverändert
+
+- Fehlerklassifikation
+- Präfixe
+- Dokumentationsstruktur
+- Reviewprozess
+- Governance
+- Traceability
+- Error Registry
+
+---
+
+# Abschluss
+
+Kapitel 5 definiert vollständig
+
+- Validation Errors
+- Business Rule Errors
+- Security Errors
+- Infrastructure Errors
+- Persistence Errors
+- Integration Errors
+
+sowie deren
+
+- Governance
+- Versionierung
+- Lebenszyklus
+- Pflege
+- Erweiterbarkeit
+- Traceability
+- zentrale Error Registry.
+
+Weitere Fehlerarten
+werden ausschließlich
+durch Erweiterung
+dieses Dokuments eingeführt.
