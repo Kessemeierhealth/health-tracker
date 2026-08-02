@@ -1,333 +1,250 @@
-# HealthTracker Documentation
+# Health Tracker – Dokumentationsübersicht
 
-> Zentrale Dokumentation des HealthTracker-Projekts
+Version: 1.0
 
----
-
-# Dokumentinformationen
-
-| Feld | Wert |
-|------|------|
-| Dokument-ID | DOC-ROOT-001 |
-| Dokument | docs/README.md |
-| Dokumenttyp | Dokumentationsindex |
-| Version | 1.0.0 |
-| Status | Approved |
-| Gültig ab | Version 1.0 |
-| Letzte Änderung | 2026-07-31 |
+Status: Active
 
 ---
 
-# Willkommen
+# Zweck
 
-Willkommen in der Projektdokumentation von **HealthTracker**.
+Diese Datei dient als Einstiegspunkt in die Projektdokumentation.
 
-Diese Dokumentation beschreibt sämtliche fachlichen und technischen Aspekte des Projekts.
+Sie beschreibt
 
-Sie dient als zentrale Wissensbasis für
+- die Dokumentationsstruktur,
+- den aktuellen Dokumentationsstand,
+- die Projektarchitektur,
+- sowie die Beziehungen zwischen den einzelnen Dokumenten.
 
-- Entwicklung
-- Architektur
-- Qualitätssicherung
-- Dokumentation
-- Wartung
-- zukünftige Erweiterungen
-
-Die Dokumentation ist integraler Bestandteil des Projekts und wird gemeinsam mit dem Quellcode gepflegt.
-
----
-
-# Projektziele
-
-HealthTracker verfolgt folgende Ziele:
-
-- Verwaltung persönlicher Gesundheitsdaten
-- Offline-First-Ansatz
-- Datenschutz nach dem Prinzip "Privacy by Design"
-- Plattformübergreifende Nutzung
-- Hohe Wartbarkeit
-- Nachvollziehbare Architektur
-- Automatisierte Tests
-- Langfristige Erweiterbarkeit
-
----
-
-# Dokumentationsprinzipien
-
-Die Dokumentation folgt den Grundsätzen:
-
-- Ein Modul = ein Dokumentationspaket
-- Eine Datei = ein Thema
-- Dokumentation vor Implementierung
-- Traceability für alle Anforderungen
-- Standards statt individueller Lösungen
-- Architektur vor Code
-- Konsistente Terminologie
+Neue Entwickler sollten mit diesem Dokument beginnen.
 
 ---
 
 # Dokumentationsstruktur
 
+Die Projektdokumentation besteht aus zwei Ebenen.
+
 ```text
 docs/
-│
-├── README.md
-│
-├── standards/
-│
-├── templates/
-│
-├── project/
-│
 ├── architecture/
-│
-├── data_model/
-│
-├── medical/
-│
-├── modules/
-│
-│   ├── profile/
-│   ├── dashboard/
-│   ├── measurements/
-│   ├── medication/
-│   ├── nutrition/
-│   ├── analysis/
-│   ├── devices/
-│   └── settings/
-│
-└── adr/
+└── modules/
 ```
 
 ---
 
-# Standards
+# Projektweite Architektur
 
-Die folgenden Dokumente definieren die verbindlichen Projektstandards.
+Projektweite Architekturdokumente befinden sich unter
 
-| Dokument | Beschreibung |
-|----------|--------------|
-| DOCUMENTATION_STANDARD.md | Aufbau aller Dokumente |
-| STYLE_GUIDE.md | Schreibstil und Formatierung |
-| NAMING_CONVENTIONS.md | Benennungsregeln |
-| REVIEW_GUIDE.md | Reviewprozess |
-| TRACEABILITY_GUIDE.md | Rückverfolgbarkeit |
+```text
+docs/architecture/
+```
 
-Alle Standards sind verbindlich.
-
----
-
-# Projektübersicht
-
-| Bereich | Beschreibung |
-|----------|--------------|
-| Projekt | Vision, Roadmap, Scope |
-| Architektur | Technische Architektur |
-| Datenmodell | Fachliche Datenstrukturen |
-| Module | Fachliche Spezifikationen |
-| Medizin | Medizinische Regeln |
-| ADR | Architekturentscheidungen |
+| Dokument | Status | Version |
+|----------|--------|---------|
+| 00_ARCHITECTURE_CONVENTIONS.md | Frozen | 1.0 |
+| 07_APPLICATION_ARCHITECTURE.md | In Bearbeitung | 0.2 |
+| 08_API_GUIDE.md | Geplant | – |
+| 09_TEST_GUIDE.md | Geplant | – |
 
 ---
 
 # Module
 
-Jedes Modul besitzt ein eigenes Dokumentationspaket.
-
-Der Aufbau ist für alle Module identisch.
+Jedes Modul besitzt eine eigenständige Dokumentation.
 
 ```text
-module/
+docs/modules/
+```
 
-README.md
+## Profile
 
-01_REQUIREMENTS.md
+```text
+docs/modules/profile/
+```
 
-02_USE_CASES.md
+| Dokument | Status | Version |
+|----------|--------|---------|
+| 01_REQUIREMENTS.md | Vorhanden | 1.0 |
+| 02_USE_CASES.md | Vorhanden | 1.0 |
+| 03_BUSINESS_RULES.md | Vorhanden | 1.0 |
+| 04_VALIDATION_RULES.md | Vorhanden | 1.0 |
+| 05_DOMAIN_MODEL.md | Vorhanden | 1.0 |
+| 06_ERROR_HANDLING_GUIDE.md | Frozen | 1.0 |
 
-03_BUSINESS_RULES.md
+Weitere Module folgen derselben Dokumentationsstruktur.
 
-04_VALIDATION_RULES.md
+---
 
-05_DATA_MODEL.md
+# Dokumentationsworkflow
 
-06_UI_SPECIFICATION.md
+## Moduldokumentation
 
-07_STATE_MODEL.md
+```text
+01 Requirements
+        │
+        ▼
+02 Use Cases
+        │
+        ▼
+03 Business Rules
+        │
+        ▼
+04 Validation Rules
+        │
+        ▼
+05 Domain Model
+        │
+        ▼
+06 Error Handling Guide
+```
 
-08_EVENTS.md
+## Projektweite Architektur
 
-09_INTERFACES.md
-
-10_MODULE_API.md
-
-11_TEST_SPECIFICATION.md
-
-12_TRACEABILITY.md
-
-13_CHANGELOG.md
+```text
+00 Architecture Conventions
+        │
+        ▼
+07 Application Architecture
+        │
+        ▼
+08 API Guide
+        │
+        ▼
+09 Test Guide
 ```
 
 ---
 
-# Entwicklungsprozess
+# Architekturartefakte
 
-HealthTracker wird iterativ entwickelt.
+Projektweit werden folgende Architekturartefakte verwendet.
 
-Jeder Sprint besteht aus fünf Phasen.
+| Präfix | Bedeutung |
+|---------|-----------|
+| AP | Architecture Principle |
+| AR | Architecture Rule |
+| ADR | Architecture Decision Record |
+| AD | Architecture Diagram |
+| BR | Business Rule |
+| UC | Use Case |
+| AGG | Aggregate |
+| ENT | Entity |
+| VO | Value Object |
+| EVT | Domain Event |
+| ERR | Error Reference |
+
+---
+
+# Architekturdiagramme
+
+Projektweite Diagramme
 
 ```text
-Anforderungen
-
-↓
-
-Dokumentation
-
-↓
-
-Implementierung
-
-↓
-
-Tests
-
-↓
-
-Review
+docs/architecture/diagrams/
 ```
 
-Ein Modul wird erst implementiert, wenn die Dokumentation den Status **Ready** erreicht hat.
-
----
-
-# Qualitätssicherung
-
-Alle Module erfüllen folgende Anforderungen:
-
-- dokumentiert
-- reviewed
-- getestet
-- nachvollziehbar
-- wartbar
-
-Vor jedem Merge werden mindestens folgende Prüfungen durchgeführt:
-
-- Fachliches Review
-- Technisches Review
-- Testreview
-- flutter analyze
-- Unit Tests
-- Widget Tests
-- Integration Tests
-
----
-
-# Traceability
-
-Alle Functional Requirements werden vollständig zurückverfolgt.
+Modulspezifische Diagramme
 
 ```text
-Functional Requirement
-
-↓
-
-Use Case
-
-↓
-
-Business Rule
-
-↓
-
-Validation Rule
-
-↓
-
-Module API
-
-↓
-
-Implementierung
-
-↓
-
-Test Case
+docs/modules/<module>/diagrams/
 ```
 
-Dadurch bleibt jederzeit nachvollziehbar, warum eine Funktion existiert und wie sie umgesetzt wurde.
+| Präfix | Diagrammtyp |
+|---------|-------------|
+| AD-L | Layer Diagram |
+| AD-D | Dependency Diagram |
+| AD-F | Flow Diagram |
+| AD-S | Sequence Diagram |
+| AD-C | Component Diagram |
+| AD-M | Module Diagram |
+| AD-E | Event Diagram |
+| AD-R | Repository Diagram |
+| AD-U | Deployment Diagram |
 
 ---
 
-# Architekturprinzipien
-
-Die Entwicklung orientiert sich an folgenden Grundsätzen:
-
-- Clean Architecture
-- Domain Driven Design
-- SOLID
-- Separation of Concerns
-- Single Source of Truth
-- Offline First
-- Privacy by Design
-- Test Driven Development (wo sinnvoll)
-
----
-
-# Dokumentenstatus
+# Dokumentstatus
 
 | Status | Bedeutung |
 |---------|-----------|
-| Draft | Entwurf |
-| In Review | Fachliche Prüfung |
-| Approved | Freigegeben |
-| Ready | Bereit für Implementierung |
-| Implemented | Implementiert |
-| Verified | Erfolgreich getestet |
+| Draft | In Bearbeitung |
+| Review | In Prüfung |
+| Frozen | Freigegeben |
 | Deprecated | Veraltet |
 | Archived | Archiviert |
 
 ---
 
-# Definition of Ready
+# Projektfortschritt
 
-Ein Dokument gilt als **Ready**, wenn
+## Projektweite Dokumentation
 
-- alle Pflichtkapitel vorhanden sind,
-- das Review erfolgreich abgeschlossen wurde,
-- alle Referenzen korrekt sind,
-- die Traceability vollständig ist.
-
----
-
-# Definition of Done
-
-Ein Modul gilt als abgeschlossen, wenn
-
-- Dokumentation vollständig ist,
-- Implementierung abgeschlossen ist,
-- Tests erfolgreich sind,
-- Changelog aktualisiert wurde,
-- Review erfolgt ist,
-- alle Qualitätsziele erfüllt sind.
+| Dokument | Status |
+|----------|--------|
+| Architecture Conventions | ✅ |
+| Application Architecture | 🟡 |
+| API Guide | ⏳ |
+| Test Guide | ⏳ |
 
 ---
 
-# Mitwirken
+## Moduldokumentation
 
-Vor Änderungen an Dokumentation oder Architektur sind folgende Dokumente zu beachten:
+| Modul | Req | UC | BR | VR | DM | EH |
+|--------|:---:|:--:|:--:|:--:|:--:|:--:|
+| Profile | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Measurement | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
+| Medication | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
+| Nutrition | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
+| Devices | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
+| Reports | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
 
-- DOCUMENTATION_STANDARD.md
-- STYLE_GUIDE.md
-- NAMING_CONVENTIONS.md
-- REVIEW_GUIDE.md
-- TRACEABILITY_GUIDE.md
+Legende
 
-Neue Module werden ausschließlich auf Basis der bereitgestellten Templates erstellt.
+- Req = Requirements
+- UC = Use Cases
+- BR = Business Rules
+- VR = Validation Rules
+- DM = Domain Model
+- EH = Error Handling Guide
 
 ---
 
-# Änderungsverlauf
+# Nächste Schritte
 
-| Version | Datum | Änderung |
-|---------|-------|----------|
-| 1.0.0 | 2026-07-31 | Erster Dokumentationsindex |
+Aktueller Schwerpunkt
+
+```text
+07_APPLICATION_ARCHITECTURE.md
+```
+
+Nach Abschluss folgen
+
+- 08_API_GUIDE.md
+- 09_TEST_GUIDE.md
+
+Danach werden weitere Module nach derselben Dokumentationsstrategie entwickelt.
+
+---
+
+# Referenzen
+
+Projektweite Architektur
+
+```text
+docs/architecture/
+```
+
+Moduldokumentation
+
+```text
+docs/modules/
+```
+
+Projektweite Konventionen
+
+```text
+docs/architecture/00_ARCHITECTURE_CONVENTIONS.md
+```

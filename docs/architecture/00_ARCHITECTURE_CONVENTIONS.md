@@ -190,16 +190,19 @@ Nicht benötigte Kapitel dürfen entfallen.
 
 ## Moduldokumente
 
-| Dokument | Nummer |
+| Dokument | Nummer | Zweck |
 |----------|---------|
-| Requirements | 01 |
-| Use Cases | 02 |
-| Business Rules | 03 |
-| Validation Rules | 04 |
-| Domain Model | 05 |
-| Error Handling Guide | 06 |
+| Requirements | 01 | Anforderungen |
+| Use Cases | 02 | Anwendungsfälle |
+| Business Rules | 03 | Geschäftsregeln |
+| Validation Rules | 04 | Validierungsregeln |
+| Domain Model | 05 | Fachliches Domänmodell |
+| Error Handling Guide | 06 | Fehlebehandlung |
+| TEST_SPECIFICATION | 07 | Testkonzept |
+| APPLICATION_MODEL | 08 | Anwendungsmodell |
+| INFRASTRUCTURE_MODEL | 09 | Infrastrucutre Layer |
 
-Die Nummern 01–06 gelten innerhalb jedes Moduls.
+Die Nummern 01–09 gelten innerhalb jedes Moduls.
 
 ---
 
@@ -452,6 +455,46 @@ Bei Widersprüchen gilt stets die textliche Spezifikation als führende Quelle.
 
 ---
 
+# Architekturdiagramme
+
+Architekturdiagramme sind eigenständige Architekturartefakte.
+
+Sie visualisieren die in den Architekturdokumenten beschriebenen Zusammenhänge.
+
+Die textliche Spezifikation besitzt bei Widersprüchen Vorrang.
+
+---
+
+## Diagrammtypen
+
+| Präfix | Bedeutung | Verwendung |
+|---------|-----------|------------|
+| AD-L | Layer Diagram | Beziehungen zwischen Architekturschichten |
+| AD-C | Component Diagram | Komponenten innerhalb einer Architekturschicht |
+| AD-M | Module Diagram | Aufbau eines fachlichen Moduls |
+| AD-D | Dependency Diagram | Abhängigkeiten zwischen Komponenten oder Schichten |
+| AD-F | Flow Diagram | Fachliche oder technische Abläufe |
+| AD-S | Sequence Diagram | Nachrichten- und Methodenfolgen |
+| AD-E | Event Diagram | Domain Events und Event-Flows |
+| AD-R | Repository Diagram | Persistenz- und Repositorystruktur |
+| AD-U | Deployment Diagram | Laufzeit- und Deploymentarchitektur |
+
+---
+
+## Nummerierung
+
+Jeder Diagrammtyp besitzt eine eigene fortlaufende Nummerierung.
+
+Beispiele
+
+- AD-L-001 Overall Layer Architecture
+- AD-C-001 Domain Layer Components
+- AD-M-001 Profile Module
+- AD-D-001 Layer Dependencies
+- AD-F-001 Request Flow
+
+---
+
 # 10. Dokumentationsregeln
 
 Architekturdokumente
@@ -476,6 +519,28 @@ Jedes Dokument durchläuft denselben Qualitätsprozess.
 7. Status "Frozen"
 
 Nach der Freigabe erfolgen Änderungen ausschließlich versioniert.
+
+# Dokumentations-Checkliste
+
+Jedes Architektur- und Designdokument durchläuft vor der Freigabe dieselbe Abschlussprüfung.
+
+## Abschluss-Checkliste
+
+- Dokument erstellt
+- Architekturreview durchgeführt
+- Überarbeitung abgeschlossen
+- Zugehörige Architekturdiagramme erstellt oder aktualisiert
+- Querverweise geprüft
+- Konsistenz mit den führenden Dokumenten geprüft
+- `docs/README.md` aktualisiert
+- Versionsnummer geprüft
+- Dokumentstatus aktualisiert
+- Git Commit erstellt
+- Änderungen nach GitHub übertragen
+
+Erst nach erfolgreichem Abschluss dieser Checkliste erhält ein Dokument den Status
+
+`Frozen`.
 
 ---
 
