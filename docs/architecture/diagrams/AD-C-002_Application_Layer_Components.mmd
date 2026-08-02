@@ -1,0 +1,81 @@
+%% AD-C-002 – Application Layer Components
+%% Version: 1.0
+%% Status: Draft
+%% Referenz:
+%% docs/architecture/07_APPLICATION_ARCHITECTURE.md – Kapitel 4
+
+flowchart TB
+
+    CALLER["Aufrufer<br/>(Architekturkontext)"]
+
+    subgraph AL["Application Layer"]
+        direction TB
+
+        INBOUND_PORT["Inbound Ports<br/>Use-Case-Schnittstellen"]
+
+        subgraph CONTROL["Steuerung"]
+            direction LR
+
+            USE_CASE["Use Cases"]
+            APPLICATION_SERVICE["Application Services"]
+        end
+
+        subgraph INPUT["Eingabemodelle"]
+            direction LR
+
+            COMMAND["Commands"]
+            QUERY["Queries"]
+        end
+
+        subgraph OUTPUT["Ausgabemodelle"]
+            direction LR
+
+            DTO["Data Transfer Objects<br/>(DTOs)"]
+        end
+
+        APPLICATION_MAPPER["Application Mappers"]
+    end
+
+    subgraph DL["Domain Layer – Architekturkontext"]
+        DOMAIN_MODEL["Domänenmodelle und<br/>fachliche Funktionen"]
+    end
+
+    CALLER -->|"ruft auf"| INBOUND_PORT
+    CALLER -->|"übergibt"| COMMAND
+    CALLER -->|"übergibt"| QUERY
+
+    USE_CASE -.->|"implementiert"| INBOUND_PORT
+
+    COMMAND -->|"dient als Eingabe für"| USE_CASE
+    QUERY -->|"dient als Eingabe für"| USE_CASE
+
+    USE_CASE -->|"nutzt gemeinsame Funktionalität"| APPLICATION_SERVICE
+
+    USE_CASE -->|"nutzt"| DOMAIN_MODEL
+    APPLICATION_SERVICE -->|"nutzt"| DOMAIN_MODEL
+
+    USE_CASE -->|"verwendet"| APPLICATION_MAPPER
+    APPLICATION_SERVICE -->|"kann verwenden"| APPLICATION_MAPPER
+
+    APPLICATION_MAPPER -->|"transformiert Domänenmodelle"| DOMAIN_MODEL
+    APPLICATION_MAPPER -->|"erzeugt oder verarbeitet"| DTO
+
+    USE_CASE -->|"liefert"| DTO
+
+    classDef control fill:#E4F3DF,stroke:#3B7D23,color:#244A18,stroke-width:2px;
+    classDef communication fill:#EEF8EA,stroke:#5B8F45,color:#244A18,stroke-width:2px;
+    classDef port fill:#D7EDD0,stroke:#326A20,color:#244A18,stroke-width:2px;
+    classDef context fill:#ECEFF3,stroke:#5A6573,color:#303943,stroke-width:2px;
+    classDef domain fill:#FFF2CC,stroke:#B7791F,color:#6B460D,stroke-width:2px;
+
+    class USE_CASE,APPLICATION_SERVICE control;
+    class COMMAND,QUERY,DTO,APPLICATION_MAPPER communication;
+    class INBOUND_PORT port;
+    class CALLER context;
+    class DOMAIN_MODEL domain;
+
+    style AL fill:#F4FAF1,stroke:#3B7D23,stroke-width:3px
+    style CONTROL fill:#FAFDF8,stroke:#6E9E5A,stroke-width:2px
+    style INPUT fill:#FAFDF8,stroke:#6E9E5A,stroke-width:2px
+    style OUTPUT fill:#FAFDF8,stroke:#6E9E5A,stroke-width:2px
+    style DL fill:#FFFAEB,stroke:#B7791F,stroke-width:2px

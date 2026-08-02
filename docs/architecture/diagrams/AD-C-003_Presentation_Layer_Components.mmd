@@ -1,0 +1,64 @@
+%% AD-C-003 – Presentation Layer Components
+%% Version: 1.0
+%% Status: Draft
+%% UI Architecture: Clean UI
+%% Referenz:
+%% docs/architecture/07_APPLICATION_ARCHITECTURE.md – Kapitel 5
+
+flowchart TB
+
+    USER["Benutzer"]
+
+    subgraph PL["Presentation Layer – Clean UI"]
+        direction TB
+
+        subgraph DISPLAY["Darstellung"]
+            direction LR
+
+            VIEW["Views"]
+            UI_STATE["UI State"]
+            PRESENTATION_MAPPER["Presentation Mappers"]
+        end
+
+        subgraph INTERACTION["Interaktion"]
+            direction LR
+
+            NAVIGATION["Navigation"]
+            UI_COMPONENT["UI Components"]
+        end
+    end
+
+    subgraph AL["Application Layer – Architekturkontext"]
+        APPLICATION_PORT["Inbound Ports<br/>Use-Case-Schnittstellen"]
+        APPLICATION_OUTPUT["Application-Ausgabemodelle"]
+    end
+
+    USER -->|"interagiert mit"| VIEW
+
+    VIEW -->|"stellt dar"| UI_STATE
+    VIEW -->|"verwendet"| UI_COMPONENT
+    VIEW -->|"steuert"| NAVIGATION
+
+    UI_COMPONENT -->|"meldet Benutzerinteraktion"| VIEW
+
+    VIEW -->|"ruft fachliche Anwendungsfälle auf"| APPLICATION_PORT
+
+    PRESENTATION_MAPPER -->|"verarbeitet"| APPLICATION_OUTPUT
+    PRESENTATION_MAPPER -->|"erzeugt Darstellungsdaten für"| UI_STATE
+
+    VIEW -->|"verwendet"| PRESENTATION_MAPPER
+
+    classDef display fill:#DCEBFA,stroke:#2B6CB0,color:#163A63,stroke-width:2px;
+    classDef interaction fill:#EAF3FC,stroke:#4D83B6,color:#163A63,stroke-width:2px;
+    classDef context fill:#ECEFF3,stroke:#5A6573,color:#303943,stroke-width:2px;
+    classDef application fill:#E4F3DF,stroke:#3B7D23,color:#244A18,stroke-width:2px;
+
+    class VIEW,UI_STATE,PRESENTATION_MAPPER display;
+    class NAVIGATION,UI_COMPONENT interaction;
+    class USER context;
+    class APPLICATION_PORT,APPLICATION_OUTPUT application;
+
+    style PL fill:#F4F8FD,stroke:#2B6CB0,stroke-width:3px
+    style DISPLAY fill:#FAFCFF,stroke:#6697C4,stroke-width:2px
+    style INTERACTION fill:#FAFCFF,stroke:#6697C4,stroke-width:2px
+    style AL fill:#F4FAF1,stroke:#3B7D23,stroke-width:2px

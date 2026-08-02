@@ -359,7 +359,7 @@ Es dient als Referenzdiagramm für sämtliche projektweiten Architekturdokumente
 Bearbeitbare Diagrammdatei
 
 ```text
-docs/architecture/diagrams/AD-L-001_Overall_Layer_Architecture.drawio
+docs/architecture/diagrams/AD-L-001_Overall_Layer_Architecture.mmd
 ```
 
 Dokumentationsversion

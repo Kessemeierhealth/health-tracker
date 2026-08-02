@@ -1,0 +1,72 @@
+%% AD-C-004 – Infrastructure Layer Components
+%% Version: 1.0
+%% Status: Draft
+%% Referenz:
+%% docs/architecture/07_APPLICATION_ARCHITECTURE.md – Kapitel 6
+
+flowchart TB
+
+    subgraph CONTEXT["Übergeordneter Architekturkontext"]
+        direction LR
+
+        DOMAIN_PORT["Domain Outbound Ports"]
+        APPLICATION_PORT["Application Outbound Ports"]
+    end
+
+    subgraph IL["Infrastructure Layer"]
+        direction TB
+
+        subgraph PERSISTENCE["Persistenz"]
+            direction LR
+
+            REPOSITORY_IMPLEMENTATION["Repository Implementations"]
+            DATA_SOURCE["Data Sources"]
+        end
+
+        subgraph INTEGRATION["Integration"]
+            direction LR
+
+            INFRASTRUCTURE_ADAPTER["Infrastructure Adapters"]
+            PLATFORM_SERVICE["Platform Services"]
+            EXTERNAL_SERVICE["External Services"]
+        end
+    end
+
+    subgraph ENVIRONMENT["External Environment"]
+        direction LR
+
+        PERSISTENCE_TECHNOLOGY["Persistenztechnologien"]
+        PLATFORM_API["Plattformdienste und APIs"]
+        EXTERNAL_SYSTEM["Externe Systeme"]
+    end
+
+    REPOSITORY_IMPLEMENTATION -.->|"implementiert"| DOMAIN_PORT
+    REPOSITORY_IMPLEMENTATION -.->|"kann implementieren"| APPLICATION_PORT
+
+    INFRASTRUCTURE_ADAPTER -.->|"implementiert"| DOMAIN_PORT
+    INFRASTRUCTURE_ADAPTER -.->|"implementiert"| APPLICATION_PORT
+
+    REPOSITORY_IMPLEMENTATION -->|"verwendet"| DATA_SOURCE
+
+    INFRASTRUCTURE_ADAPTER -->|"nutzt"| PLATFORM_SERVICE
+    INFRASTRUCTURE_ADAPTER -->|"nutzt"| EXTERNAL_SERVICE
+
+    DATA_SOURCE -->|"greift zu auf"| PERSISTENCE_TECHNOLOGY
+    PLATFORM_SERVICE -->|"greift zu auf"| PLATFORM_API
+    EXTERNAL_SERVICE -->|"kommuniziert mit"| EXTERNAL_SYSTEM
+
+    classDef persistence fill:#FCE4D6,stroke:#C05621,color:#7A3214,stroke-width:2px;
+    classDef integration fill:#FDEDE4,stroke:#D27847,color:#7A3214,stroke-width:2px;
+    classDef environment fill:#ECEFF3,stroke:#5A6573,color:#303943,stroke-width:2px;
+    classDef port fill:#F4E8C1,stroke:#9A6A14,color:#5D410E,stroke-width:2px;
+
+    class REPOSITORY_IMPLEMENTATION,DATA_SOURCE persistence;
+    class INFRASTRUCTURE_ADAPTER,PLATFORM_SERVICE,EXTERNAL_SERVICE integration;
+    class PERSISTENCE_TECHNOLOGY,PLATFORM_API,EXTERNAL_SYSTEM environment;
+    class DOMAIN_PORT,APPLICATION_PORT port;
+
+    style CONTEXT fill:#FFFDF5,stroke:#B7791F,stroke-width:2px
+    style IL fill:#FFF5EF,stroke:#C05621,stroke-width:3px
+    style PERSISTENCE fill:#FFFAF7,stroke:#D78A60,stroke-width:2px
+    style INTEGRATION fill:#FFFAF7,stroke:#D78A60,stroke-width:2px
+    style ENVIRONMENT fill:#F7F8FA,stroke:#5A6573,stroke-width:3px

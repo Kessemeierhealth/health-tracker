@@ -187,6 +187,20 @@ Nicht benötigte Kapitel dürfen entfallen.
 | Application Architecture | 07 |
 | API Guide | 08 |
 | Test Guide | 09 |
+| DIAGRAM_REGISTER | 10 |
+| Glossary | 11 |
+
+## Gültigkeit der Dokumentnummern
+
+Dokumentnummern gelten ausschließlich innerhalb des jeweiligen
+Dokumentationsverzeichnisses.
+
+Die Nummerierung der projektweiten Architekturdokumente unter
+`docs/architecture/` ist unabhängig von der Nummerierung der
+Moduldokumente unter `docs/modules/<module>/`.
+
+Identische Dokumentnummern in unterschiedlichen Verzeichnissen stellen
+daher keinen Namens- oder Versionskonflikt dar.
 
 ## Moduldokumente
 
@@ -196,14 +210,25 @@ Nicht benötigte Kapitel dürfen entfallen.
 | Use Cases | 02 | Anwendungsfälle |
 | Business Rules | 03 | Geschäftsregeln |
 | Validation Rules | 04 | Validierungsregeln |
-| Domain Model | 05 | Fachliches Domänmodell |
-| Error Handling Guide | 06 | Fehlebehandlung |
+| DOMAIN_MODEL | 05 | Fachliches Domänmodell |
+| ERROR_HANDLING_GUIDE | 06 | Fehlebehandlung |
 | TEST_SPECIFICATION | 07 | Testkonzept |
 | APPLICATION_MODEL | 08 | Anwendungsmodell |
 | INFRASTRUCTURE_MODEL | 09 | Infrastrucutre Layer |
 
 Die Nummern 01–09 gelten innerhalb jedes Moduls.
 
+## Gültigkeit der Dokumentnummern
+
+Dokumentnummern gelten ausschließlich innerhalb des jeweiligen
+Dokumentationsverzeichnisses.
+
+Die Nummerierung der projektweiten Architekturdokumente unter
+`docs/architecture/` ist unabhängig von der Nummerierung der
+Moduldokumente unter `docs/modules/<module>/`.
+
+Identische Dokumentnummern in unterschiedlichen Verzeichnissen stellen
+daher keinen Namens- oder Versionskonflikt dar.
 ---
 
 # 7. Single Source of Truth

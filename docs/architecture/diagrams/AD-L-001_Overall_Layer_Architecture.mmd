@@ -1,0 +1,47 @@
+flowchart TB
+
+    subgraph PL["Presentation Layer"]
+        PL_CORE["Benutzerinteraktion, Darstellung und UI State"]
+    end
+
+    subgraph AL["Application Layer"]
+        AL_CORE["Koordination fachlicher Anwendungsfälle"]
+    end
+
+    subgraph DL["Domain Layer"]
+        DL_CORE["Fachliche Modelle, Geschäftsregeln und Verträge"]
+    end
+
+    subgraph IL["Infrastructure Layer"]
+        IL_CORE["Technische Implementierungen definierter Schnittstellen"]
+    end
+
+    subgraph EE["External Environment"]
+        EE_CORE["Betriebssystem, Plattform-APIs, Persistenz und externe Systeme"]
+    end
+
+    PL_CORE -->|"nutzt"| AL_CORE
+    AL_CORE -->|"nutzt"| DL_CORE
+
+    IL_CORE -.->|"implementiert definierte Schnittstellen"| DL_CORE
+    IL_CORE -.->|"implementiert definierte Schnittstellen"| AL_CORE
+
+    IL_CORE -->|"greift zu auf"| EE_CORE
+
+    classDef presentation fill:#DCEBFA,stroke:#2B6CB0,color:#163A63,stroke-width:2px
+    classDef application fill:#E4F3DF,stroke:#3B7D23,color:#244A18,stroke-width:2px
+    classDef domain fill:#FFF2CC,stroke:#B7791F,color:#6B460D,stroke-width:2px
+    classDef infrastructure fill:#FCE4D6,stroke:#C05621,color:#7A3214,stroke-width:2px
+    classDef environment fill:#ECEFF3,stroke:#5A6573,color:#303943,stroke-width:2px
+
+    class PL_CORE presentation
+    class AL_CORE application
+    class DL_CORE domain
+    class IL_CORE infrastructure
+    class EE_CORE environment
+
+    style PL fill:#F4F8FD,stroke:#2B6CB0,stroke-width:3px
+    style AL fill:#F4FAF1,stroke:#3B7D23,stroke-width:3px
+    style DL fill:#FFFAEB,stroke:#B7791F,stroke-width:3px
+    style IL fill:#FFF5EF,stroke:#C05621,stroke-width:3px
+    style EE fill:#F7F8FA,stroke:#5A6573,stroke-width:3px

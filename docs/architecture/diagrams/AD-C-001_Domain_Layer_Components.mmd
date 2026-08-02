@@ -1,0 +1,55 @@
+%% AD-C-001 – Domain Layer Components
+%% Version: 1.0
+%% Status: Draft
+%% Referenz:
+%% docs/architecture/07_APPLICATION_ARCHITECTURE.md – Kapitel 3
+
+flowchart TB
+
+    APPLICATION["Application Layer<br/>(Architekturkontext)"]
+    INFRASTRUCTURE["Infrastructure Layer<br/>(Architekturkontext)"]
+
+    subgraph DL["Domain Layer"]
+        direction TB
+
+        subgraph AGGREGATE["Aggregate – fachliche Konsistenzgrenze"]
+            direction TB
+
+            ROOT["Aggregate Root"]
+            ENTITY["Entities"]
+            VALUE_OBJECT["Value Objects"]
+
+            ROOT -->|"verwaltet"| ENTITY
+            ROOT -->|"verwendet"| VALUE_OBJECT
+            ENTITY -->|"verwendet"| VALUE_OBJECT
+        end
+
+        DOMAIN_SERVICE["Domain Services"]
+        DOMAIN_EVENT["Domain Events"]
+        OUTBOUND_PORT["Outbound Ports"]
+
+        ROOT -->|"kann verwenden"| DOMAIN_SERVICE
+        ROOT -->|"erzeugt"| DOMAIN_EVENT
+        DOMAIN_SERVICE -->|"arbeitet mit"| AGGREGATE
+
+        ROOT -->|"nutzt fachliche Verträge"| OUTBOUND_PORT
+        DOMAIN_SERVICE -->|"kann fachliche Verträge nutzen"| OUTBOUND_PORT
+    end
+
+    APPLICATION -->|"nutzt fachliche Funktionen"| ROOT
+    APPLICATION -->|"nutzt fachliche Funktionen"| DOMAIN_SERVICE
+
+    INFRASTRUCTURE -.->|"implementiert"| OUTBOUND_PORT
+
+    classDef domainObject fill:#FFF2CC,stroke:#B7791F,color:#6B460D,stroke-width:2px;
+    classDef domainConcept fill:#FFF7E6,stroke:#C58B26,color:#6B460D,stroke-width:2px;
+    classDef port fill:#F4E8C1,stroke:#9A6A14,color:#5D410E,stroke-width:2px;
+    classDef context fill:#ECEFF3,stroke:#5A6573,color:#303943,stroke-width:2px;
+
+    class ROOT,ENTITY,VALUE_OBJECT domainObject;
+    class DOMAIN_SERVICE,DOMAIN_EVENT domainConcept;
+    class OUTBOUND_PORT port;
+    class APPLICATION,INFRASTRUCTURE context;
+
+    style DL fill:#FFFAEB,stroke:#B7791F,stroke-width:3px
+    style AGGREGATE fill:#FFFDF5,stroke:#D6A84C,stroke-width:2px
