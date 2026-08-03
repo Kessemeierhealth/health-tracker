@@ -485,11 +485,261 @@ Traceability
 
 Die folgenden Kapitel definieren die konkreten Validierungsregeln des Profilmoduls.
 
-- PRO-VR-001 – Profilname
-- PRO-VR-002 – Geburtsjahr
-- PRO-VR-003 – Körpergröße
-- PRO-VR-004 – Geschlecht
-- PRO-VR-005 – Profilfarbe
+# PRO-VR-001
+
+## Titel
+
+Profilname validieren
+
+### Typ
+
+Pflichtfeld
+
+### Beschreibung
+
+Jedes Profil besitzt einen sichtbaren Namen.
+
+Der Profilname dient ausschließlich der Anzeige und Identifikation durch den Benutzer. Die fachliche Identität eines Profils wird ausschließlich durch die Profil-ID bestimmt.
+
+### Fachliche Regeln
+
+Der Profilname
+
+- MUSS vorhanden sein.
+- DARF nicht leer sein.
+- DARF nicht ausschließlich aus Leerzeichen bestehen.
+- MUSS nach der Normalisierung mindestens einen sichtbaren Buchstaben oder ein sichtbares Zeichen enthalten.
+- DARF maximal 100 Zeichen enthalten.
+
+### Normalisierung
+
+Vor der Validierung wird
+
+- führender Leerraum entfernt,
+- nachfolgender Leerraum entfernt,
+- mehrfacher zusammenhängender Leerraum innerhalb des Namens auf genau ein Leerzeichen reduziert.
+
+Die Groß-/Kleinschreibung bleibt erhalten.
+
+### Fehlercodes
+
+| Fehlercode | Message Key | Constraint | Parameter |
+|------------|-------------|------------|-----------|
+| PRO-VAL-NAME-001 | `validation.profile.name.required` | required | – |
+| PRO-VAL-NAME-002 | `validation.profile.name.blank` | blank | – |
+| PRO-VAL-NAME-003 | `validation.profile.name.maximum` | maximum | `{"maximum":100,"unit":"characters"}` |
+
+### Traceability
+
+**Requirements**
+
+- PRO-FR-002
+
+**Use Cases**
+
+- PRO-UC-001
+
+**Business Rules**
+
+- PRO-BR-002
+
+**Testfälle**
+
+- PRO-TC-001
+
+
+# PRO-VR-002
+
+## Titel
+
+Geburtsjahr validieren
+
+### Typ
+
+Pflichtfeld
+
+### Beschreibung
+
+Für jedes Profil wird ausschließlich das Geburtsjahr gespeichert.
+
+### Fachliche Regeln
+
+Das Geburtsjahr
+
+- MUSS vorhanden sein.
+- DARF nicht in der Zukunft liegen.
+
+### Fehlercodes
+
+| Fehlercode | Message Key | Constraint | Parameter |
+|------------|-------------|------------|-----------|
+| PRO-VAL-BIRTHYEAR-001 | `validation.profile.birthYear.required` | required | – |
+| PRO-VAL-BIRTHYEAR-002 | `validation.profile.birthYear.future` | maximum | `{"maximum":"currentYear"}` |
+
+### Traceability
+
+**Requirements**
+
+- PRO-FR-010
+
+**Use Cases**
+
+- PRO-UC-010
+
+**Business Rules**
+
+- PRO-BR-011
+
+**Testfälle**
+
+- PRO-TC-010
+
+
+# PRO-VR-003
+
+## Titel
+
+Körpergröße validieren
+
+### Typ
+
+Pflichtfeld
+
+### Beschreibung
+
+Die Körpergröße wird in Zentimetern gespeichert.
+
+### Fachliche Regeln
+
+Die Körpergröße
+
+- MUSS vorhanden sein.
+- MUSS mindestens 20 cm betragen.
+- DARF höchstens 300 cm betragen.
+
+### Fehlercodes
+
+| Fehlercode | Message Key | Constraint | Parameter |
+|------------|-------------|------------|-----------|
+| PRO-VAL-HEIGHT-001 | `validation.profile.height.required` | required | – |
+| PRO-VAL-HEIGHT-002 | `validation.profile.height.maximum` | maximum | `{"maximum":300,"unit":"cm"}` |
+| PRO-VAL-HEIGHT-003 | `validation.profile.height.minimum` | minimum | `{"minimum":20,"unit":"cm"}` |
+
+### Traceability
+
+**Requirements**
+
+- PRO-FR-011
+
+**Use Cases**
+
+- PRO-UC-011
+
+**Business Rules**
+
+- PRO-BR-013
+
+**Testfälle**
+
+- PRO-TC-011
+
+
+# PRO-VR-004
+
+## Titel
+
+Geschlecht validieren
+
+### Typ
+
+Optionales Feld
+
+### Beschreibung
+
+Das Geschlecht dient ausschließlich der fachlichen Ergänzung des Profils.
+
+### Fachliche Regeln
+
+Ist ein Geschlecht angegeben,
+
+- MUSS es einem unterstützten Wert entsprechen.
+
+Nicht angegebene Werte werden fachlich als **unspecified** behandelt.
+
+### Fehlercodes
+
+| Fehlercode | Message Key | Constraint | Parameter |
+|------------|-------------|------------|-----------|
+| PRO-VAL-GENDER-001 | `validation.profile.gender.invalid` | enum | `{"allowedValues":["male","female","diverse","unspecified"]}` |
+
+### Traceability
+
+**Requirements**
+
+- PRO-FR-012
+
+**Use Cases**
+
+- PRO-UC-012
+
+**Business Rules**
+
+- PRO-BR-015
+
+**Testfälle**
+
+- PRO-TC-012
+
+
+# PRO-VR-005
+
+## Titel
+
+Profilfarbe validieren
+
+### Typ
+
+Pflichtfeld
+
+### Beschreibung
+
+Jedes Profil besitzt genau eine Profilfarbe.
+
+Profilfarben dienen ausschließlich der visuellen Zuordnung eines Profils und dürfen nicht zur Darstellung fachlicher Zustände verwendet werden.
+
+### Fachliche Regeln
+
+Die Profilfarbe
+
+- MUSS vorhanden sein.
+- MUSS einer unterstützten Profilfarbe entsprechen.
+
+### Fehlercodes
+
+| Fehlercode | Message Key | Constraint | Parameter |
+|------------|-------------|------------|-----------|
+| PRO-VAL-COLOR-001 | `validation.profile.color.required` | required | – |
+| PRO-VAL-COLOR-002 | `validation.profile.color.invalid` | enum | `{"allowedValues":["green","black"]}` |
+
+### Traceability
+
+**Requirements**
+
+- PRO-FR-013
+
+**Use Cases**
+
+- PRO-UC-013
+
+**Business Rules**
+
+- PRO-BR-016
+
+**Testfälle**
+
+- PRO-TC-013
+
+
 - PRO-VR-006 – Passwort
 - PRO-VR-007 – Passwortbestätigung
 - PRO-VR-008 – Aktuelles Passwort
@@ -1500,7 +1750,7 @@ Dieses Dokument verwendet und ergänzt folgende Spezifikationen:
 - 03_BUSINESS_RULES.md
 - SECURITY_GUIDE.md
 - TESTING_GUIDE.md
-- ../../ui/UI_GUIDE.md.md
+- ../../ui/UI_GUIDE.md
 
 Später zusätzlich
 

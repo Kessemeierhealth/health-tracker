@@ -31,6 +31,15 @@ Hierzu gehören insbesondere
 - Business Rules
 - Domain Model
 - Error Handling Guide
+- UI Guide
+- Navigation Specification
+- Seitenspezifikationen
+- Komponentenrichtlinien
+- Formularrichtlinien
+- Diagrammrichtlinien
+- Project Roadmap
+- Sprint Plan
+- Changelog
 - Application Architecture
 - API Guide
 - Test Guide
@@ -85,6 +94,39 @@ Jedes Modul verwendet grundsätzlich dieselbe Dokumentstruktur.
 
 Weitere Dokumente dürfen ergänzt werden,
 wenn sie ausschließlich modulspezifische Inhalte beschreiben.
+
+## UI-Dokumentation
+
+Die projektweite UI-Dokumentation befindet sich unter
+
+```text
+docs/ui/
+```
+
+Sie definiert die Benutzeroberfläche unabhängig von der Implementierung.
+
+Hierzu gehören insbesondere
+
+- UI Guide
+- Navigation Specification
+- Seitenspezifikationen
+- Komponentenbibliothek
+- Formularrichtlinien
+- Diagrammrichtlinien
+
+Unterstruktur
+
+```text
+docs/ui/
+├── navigation/
+├── pages/
+├── components/
+└── assets/
+```
+
+Die UI-Dokumentation beschreibt ausschließlich Bedienung, Darstellung und Interaktion.
+
+Sie enthält keine fachliche Geschäftslogik.
 
 ---
 
@@ -190,6 +232,24 @@ Nicht benötigte Kapitel dürfen entfallen.
 | DIAGRAM_REGISTER | 10 |
 | Glossary | 11 |
 
+## Projektdokumente
+
+Projektmanagementdokumente werden nicht nummeriert.
+
+Sie befinden sich unter
+
+```text
+docs/project/
+```
+
+und verwenden sprechende Dateinamen.
+
+| Dokument |
+|----------|
+| ROADMAP.md |
+| SPRINT_PLAN.md |
+| CHANGELOG.md |
+
 ## Gültigkeit der Dokumentnummern
 
 Dokumentnummern gelten ausschließlich innerhalb des jeweiligen
@@ -253,6 +313,15 @@ Nachgelagerte Dokumente übernehmen ausschließlich Begriffe, Regeln und Struktu
 | Application Architecture | `07_APPLICATION_ARCHITECTURE.md` |
 | API-Konventionen | `08_API_GUIDE.md` |
 | Teststrategie | `09_TEST_GUIDE.md` |
+| UI Design | docs/ui/UI_GUIDE.md |
+| Navigation | docs/ui/navigation/NAVIGATION_SPEC.md |
+| Seitenspezifikation | docs/ui/pages/ |
+| Komponenten | docs/ui/components/COMPONENT_LIBRARY.md |
+| Formulare | docs/ui/components/FORM_GUIDELINES.md |
+| Diagramme | docs/ui/components/CHART_GUIDELINES.md |
+| Projektplanung | docs/project/SPRINT_PLAN.md |
+| Produktplanung | docs/project/ROADMAP.md |
+| Versionshistorie | docs/project/CHANGELOG.md |
 
 Die führende Quelle ist ausschließlich für die Definition des jeweiligen Artefakts verantwortlich.
 
