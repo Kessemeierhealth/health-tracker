@@ -1340,7 +1340,7 @@ Barrierefreiheit
 
 ### Beschreibung
 
-Alle Funktionen des Profilmoduls müssen gemäß den Anforderungen des UI_GUIDE bedienbar sein.
+Alle Funktionen des Profilmoduls müssen gemäß den Anforderungen des ../../ui/UI_GUIDE.md bedienbar sein.
 
 Dazu gehören insbesondere:
 
@@ -1617,7 +1617,7 @@ Zurzeit keine.
 - ARCHITECTURE_GUIDE.md
 - TESTING_GUIDE.md
 - SECURITY_GUIDE.md
-- UI_GUIDE.md
+- ../../ui/UI_GUIDE.md
 - REVIEW_GUIDE.md
 
 ---

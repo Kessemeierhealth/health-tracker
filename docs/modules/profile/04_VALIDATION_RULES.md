@@ -1500,7 +1500,7 @@ Dieses Dokument verwendet und ergänzt folgende Spezifikationen:
 - 03_BUSINESS_RULES.md
 - SECURITY_GUIDE.md
 - TESTING_GUIDE.md
-- UI_GUIDE.md
+- ../../ui/UI_GUIDE.md.md
 
 Später zusätzlich
 

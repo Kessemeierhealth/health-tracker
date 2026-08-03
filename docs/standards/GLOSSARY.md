@@ -1932,7 +1932,7 @@ Insbesondere:
 - TESTING_GUIDE.md
 - SECURITY_GUIDE.md
 - GIT_GUIDE.md
-- UI_GUIDE.md
+- `../ui/UI_GUIDE.md`
 
 ---
 

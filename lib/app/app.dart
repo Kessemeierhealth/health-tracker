@@ -1,22 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'router.dart';
-import 'theme/app_theme.dart';
 
-class HealthTrackerApp extends ConsumerWidget {
+import 'router.dart';
+
+/// Einstiegspunkt der Flutter-Anwendung.
+///
+/// Die eigentliche Navigation wird zentral über den [AppRouter]
+/// konfiguriert.
+class HealthTrackerApp extends StatelessWidget {
   const HealthTrackerApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final router = ref.watch(routerProvider);
-
-    return MaterialApp.router(
-      title: 'HealthTracker',
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Health Tracker',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.system,
-      routerConfig: router,
+
+      // Theme
+      theme: ThemeData(
+        colorSchemeSeed: Colors.green,
+        useMaterial3: true,
+      ),
+
+      // Navigation
+      onGenerateRoute: AppRouter.onGenerateRoute,
     );
   }
 }

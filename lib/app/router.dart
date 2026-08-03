@@ -17,8 +17,8 @@ class AppRouter {
 
 /// Temporäre Startseite.
 ///
-/// Diese Seite wird später durch die echte Startseite gemäß
-/// `Start_Page_SPEC.md` ersetzt.
+/// Diese temporäre Seite wird später durch die Startseite gemäß
+/// `docs/ui/pages/HOME_PAGE_SPEC.md` ersetzt.
 class PlaceholderHomePage extends StatelessWidget {
   const PlaceholderHomePage({super.key});
 

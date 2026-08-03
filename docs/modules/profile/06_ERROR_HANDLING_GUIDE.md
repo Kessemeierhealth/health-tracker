@@ -859,7 +859,7 @@ Dieser Leitfaden ergänzt insbesondere:
 - `05_DOMAIN_MODEL.md`,
 - `SECURITY_GUIDE.md`,
 - `TESTING_GUIDE.md`,
-- `UI_GUIDE.md`,
+- `../../ui/UI_GUIDE.md`,
 - zukünftige Application- und Persistence-Dokumente.
 
 Modulspezifische Validierungsfehler behalten ihre dort definierten:

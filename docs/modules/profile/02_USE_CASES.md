@@ -2488,7 +2488,7 @@ Ein Use Case gilt als umgesetzt, wenn:
 - ARCHITECTURE_GUIDE.md
 - SECURITY_GUIDE.md
 - TESTING_GUIDE.md
-- UI_GUIDE.md
+- ../../ui/UI_GUIDE.md
 - REVIEW_GUIDE.md
 
 ---
