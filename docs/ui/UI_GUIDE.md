@@ -1,7 +1,7 @@
 # Health Tracker – UI Guide
 
 **Status:** Verbindliche Designgrundlage  
-**Version:** 1.3  
+**Version:** 1.4
 **Stand:** 2. August 2026
 
 ## 1. Zweck
@@ -277,6 +277,36 @@ Für Hinweismeldungen gilt in allen Bereichen und auf allen Seiten dieselbe zent
 
 Die einheitlichen Aktionsbezeichnungen lauten **Schließen** und **Später erinnern**. Nach Auswahl von **Später erinnern** werden mindestens **In einer Woche**, **In zwei Wochen** und **Datum auswählen** angeboten.
 
+### 7.6 Globale Bildschirmzustände
+
+Alle Bildschirme der Anwendung verwenden dieselben grundlegenden Zustände. Dadurch entsteht ein konsistentes Bedienverhalten unabhängig vom jeweiligen Fachbereich.
+
+Folgende Zustände werden unterschieden:
+
+- **Loading:** Daten werden geladen. Der Bildschirm zeigt Skeletons oder einen dezenten Ladeindikator statt leerer Flächen.
+- **Content:** Die regulären Inhalte stehen vollständig zur Verfügung.
+- **Empty:** Es sind noch keine Daten vorhanden. Statt einer leeren Liste werden eine kurze Erklärung sowie eine passende Primäraktion angezeigt.
+- **Error:** Die angeforderten Daten konnten nicht geladen oder verarbeitet werden. Die Ursache wird verständlich beschrieben und eine erneute Ausführung angeboten.
+- **Offline:** Für die aktuelle Funktion ist eine Netzwerkverbindung erforderlich oder die Datenquelle ist vorübergehend nicht erreichbar. Bereits lokal verfügbare Daten bleiben sichtbar.
+
+Jeder Zustand muss eindeutig erkennbar sein und darf sich nicht ausschließlich durch Farben unterscheiden.
+
+Leere Zustände sollen den Benutzer aktiv unterstützen und nach Möglichkeit eine sinnvolle nächste Aktion anbieten.
+
+### 7.7 Animationen
+
+Animationen dienen ausschließlich der besseren Orientierung und Rückmeldung. Sie dürfen nie Selbstzweck sein oder die Bedienung verzögern.
+
+Es gelten folgende Regeln:
+
+- Animationen unterstützen Zustandswechsel und Navigation.
+- Erfolgreiche Aktionen dürfen dezent bestätigt werden.
+- Übergänge bleiben kurz und flüssig.
+- Lange oder dekorative Animationen sind zu vermeiden.
+- Animationen dürfen Inhalte nicht verdecken oder verzögern.
+- Systemeinstellungen zur reduzierten Bewegung werden berücksichtigt.
+- Alle Funktionen müssen auch ohne Animation vollständig nutzbar bleiben.
+
 ## 8. Erscheinungsbilder
 
 Der Health Tracker bietet auswählbare **Erscheinungsbilder**, aber keine unterschiedlichen Bedienoberflächen. Navigation, Informationsarchitektur, Position und Bedeutung zentraler Bedienelemente sowie sämtliche fachlichen Abläufe bleiben in allen Erscheinungsbildern gleich.
@@ -384,6 +414,24 @@ Die fünf Hauptbereiche bleiben auf allen Zielgeräten erreichbar.
 
 ## 13. Verbindliche Regeln für die Entwicklung
 
+### 13.1 Design Tokens
+
+Alle visuellen Eigenschaften werden zentral über Design Tokens definiert. Komponenten verwenden ausschließlich diese Tokens und enthalten keine fest codierten Designwerte.
+
+Mindestens folgende Token-Gruppen werden bereitgestellt:
+
+- Farben
+- Typografie
+- Abstände
+- Rundungen
+- Rahmen
+- Schatten
+- Icongrößen
+- Animationen
+- Dauer und Kurven von Übergängen
+
+Neue Erscheinungsbilder verändern ausschließlich die Tokenwerte. Fachliche Widgets und Komponenten bleiben unverändert.
+
 - Farben zentral als Design-Tokens beziehungsweise im Flutter-Theme definieren; keine verstreuten Hexwerte in Widgets.
 - Neutrale, Bereichs-, Profil- und Statusfarben technisch getrennt modellieren.
 - Erscheinungsbilder zentral über Theme-Tokens und gemeinsame Komponenten umsetzen.
@@ -421,3 +469,6 @@ Dieser Guide legt das gemeinsame Designsystem fest. Folgende Themen erhalten bei
 - Bildschirmabläufe für Meine Gesundheit, Ernährung, Training und Meine Entwicklung,
 - Diagramm- und Datenvisualisierungsregeln,
 - Formulare, Validierung und Fehlermeldungen.
+- gemeinsame Komponentenbibliothek,
+- Formular- und Eingaberichtlinien,
+- Diagramm- und Visualisierungsrichtlinien.
