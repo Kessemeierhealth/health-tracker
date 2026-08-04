@@ -825,3 +825,21 @@ Frozen
 Dieses Dokument definiert die projektweiten Architektur- und Dokumentationskonventionen des Health-Tracker-Projekts.
 
 Es bildet die Grundlage für sämtliche nachfolgenden Architektur- und Designdokumente.
+
+# Dokumentations-Review
+
+## Review-Basis
+
+Ein Review bezieht sich ausschließlich auf die zuletzt bereitgestellte Version
+eines Dokuments.
+
+Ältere Fassungen gelten für das Review als ersetzt und dürfen nicht als
+Bewertungsgrundlage verwendet werden.
+
+## Nachvollziehbarkeit
+
+Jede Feststellung muss anhand der aktuellen Dokumentversion nachvollziehbar
+sein.
+
+Kann eine Feststellung nicht anhand der aktuellen Version belegt werden, darf
+sie nicht als Review-Ergebnis aufgenommen werden.

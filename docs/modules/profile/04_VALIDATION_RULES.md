@@ -637,7 +637,6 @@ Die Körpergröße
 | PRO-VAL-HEIGHT-001 | `validation.profile.height.required` | required | – |
 | PRO-VAL-HEIGHT-002 | `validation.profile.height.maximum` | maximum | `{"maximum":300,"unit":"cm"}` |
 | PRO-VAL-HEIGHT-003 | `validation.profile.height.minimum` | minimum | `{"minimum":20,"unit":"cm"}` |
-| PRO-VAL-HEIGHT-004 | `validation.profile.height.precision` | scale | `{"maximumFractionDigits":1}` |
 
 ### Traceability
 

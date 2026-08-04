@@ -89,12 +89,18 @@ Es umfasst
 
 Nicht Bestandteil sind
 
-- Dashboard
+- fachliche Dashboard-Inhalte und Dashboard-Auswertungen anderer Module
 - Messwerte
 - Ernährung
 - Medikamente
 - Geräte
 - Empfehlungen
+
+
+**Hinweis**
+
+Profilbezogene Dashboard-Präferenzen wie Auswahl, Sichtbarkeit und Anordnung
+gehören als `DashboardSettings` zum Profile-Aggregate.
 
 ---
 
@@ -245,11 +251,20 @@ gehören nicht zur öffentlichen Domänenschnittstelle.
 
 Jede fachliche Operation
 
-- validiert Eingaben,
-- schützt Invarianten,
-- aktualisiert Auditinformationen,
-- erzeugt Domain Events,
-- wird atomar ausgeführt.
+- prüft ihre Preconditions,
+- schützt die betroffenen Invarianten,
+- liefert ein strukturiertes `DomainResult<T>`,
+- wird innerhalb ihrer fachlichen Zuständigkeit atomar ausgeführt.
+
+Jede erfolgreiche zustandsändernde Operation
+
+- aktualisiert die Auditinformationen,
+- erhöht die Aggregate-Version genau einmal,
+- erzeugt die zugehörigen Domain Events.
+
+Erfolgreiche Operationen ohne Zustandsänderung verändern weder
+Auditinformationen noch Aggregate-Version und erzeugen keine
+Änderungs-Domain-Events.
 
 ---
 
@@ -308,7 +323,8 @@ Direkte Änderungen an internen Domänenobjekten sind unzulässig.
 | Default Profile | Standardprofil |
 | Active Profile | Aktives Profil |
 | Archived Profile | Archiviertes Profil |
-| Locked Profile | Passwortgeschütztes Profil |
+| Locked Profile | Gesperrtes Profil |
+| Password-Protected Profile | Passwortgeschütztes Profil |
 | Profile Image | Profilbild |
 | Profile Settings | Profileinstellungen |
 | Profile Security | Sicherheitsinformationen |
@@ -565,8 +581,10 @@ DomainResult<void>
 Bei Erfolg enthält das Ergebnis:
 
 - den fachlichen Rückgabewert,
-- erzeugte Domain Events oder eine Referenz auf die im Aggregate gesammelten Events,
 - optionale Informationen oder Warnungen.
+
+Erzeugte Domain Events werden ausschließlich im internen Event-Puffer des
+Aggregats gesammelt. Sie sind nicht Bestandteil von `DomainResult<T>`.
 
 ## Fehler
 
@@ -660,8 +678,6 @@ Beispiele:
 Das Aggregate Root stellt mindestens folgende Operationen bereit:
 
 ```text
-create()
-
 changeName()
 
 changeBirthYear()
@@ -688,9 +704,11 @@ changeLanguage()
 
 changeMeasurementSystem()
 
-changeDashboardLayout()
+changeDashboardSettings()
 
-changeThemePreference()
+changeAppearanceSettings()
+
+resetSettings()
 
 enablePasswordProtection()
 
@@ -706,10 +724,18 @@ replaceProfileImage()
 
 removeProfileImage()
 
-delete()
+requestDeletion()
 ```
 
-Technische Setter und generische CRUD-Operationen sind nicht Bestandteil der öffentlichen Domänenschnittstelle.
+Die Erzeugung eines neuen Aggregats erfolgt ausschließlich über
+`ProfileFactory.createNew(...)` und ist keine öffentliche Änderungsoperation
+einer bereits vorhandenen `Profile`-Instanz.
+
+Technische Setter und generische CRUD-Operationen gehören nicht zur
+öffentlichen Domänenschnittstelle.
+
+Die öffentliche API des Aggregats besteht ausschließlich aus fachlichen
+Operationen, die die Invarianten des Aggregats wahren.
 
 ---
 
@@ -818,15 +844,23 @@ DomainResult<Profile> enablePasswordProtection(
   PasswordCredential credential
 )
 
-DomainResult<Profile> disablePasswordProtection()
-
-DomainResult<Profile> changePassword(
-  PasswordCredential credential
+DomainResult<Profile> disablePasswordProtection(
+  AuthenticationProof proof
 )
 
-DomainResult<Profile> lock()
+DomainResult<Profile> changePassword(
+  PasswordCredential newCredential,
+  AuthenticationProof proof
+)
 
-DomainResult<Profile> unlock()
+DomainResult<Profile> lock(
+  Timestamp now
+)
+
+DomainResult<Profile> unlock(
+  AuthenticationProof proof,
+  Timestamp now
+)
 ```
 
 Die technische Prüfung des Klartextpassworts erfolgt außerhalb des Aggregats.
@@ -877,7 +911,9 @@ wird durch `DefaultProfileCoordinator` geschützt.
 ## Löschung
 
 ```text
-DomainResult<ProfileDeletionDecision> delete()
+DomainResult<ProfileDeletionDecision> requestDeletion(
+  DeletionAuthorization authorization
+)
 ```
 
 Die Operation kann konzeptionell eine Löschentscheidung liefern.
@@ -888,7 +924,12 @@ Sie löscht nicht selbst:
 - Bilddateien,
 - Gesundheitsdaten anderer Module.
 
-Das Aggregate bestätigt lediglich, dass es fachlich gelöscht werden darf und erzeugt nach erfolgreicher Koordination das Ereignis:
+Das Aggregate prüft ausschließlich, ob die fachlichen Voraussetzungen für
+eine Löschung erfüllt sind, und liefert eine `ProfileDeletionDecision`.
+
+Die technische Löschung und die Erzeugung beziehungsweise zuverlässige
+Speicherung des Ereignisses `ProfileDeleted` werden durch den zuständigen
+Application Service atomar koordiniert.
 
 ```text
 ProfileDeleted
@@ -1329,8 +1370,14 @@ Für alle Entities innerhalb des Aggregats gelten folgende Regeln:
 - Untergeordnete Entities sind außerhalb des Aggregats nicht direkt veränderbar.
 - Fachliche Fehler werden über `DomainResult<T>` zurückgegeben.
 - Fehlgeschlagene Operationen verändern den Zustand nicht.
-- Erfolgreiche Änderungen aktualisieren die Auditinformationen des Aggregats.
-- Erfolgreiche Änderungen können Domain Events erzeugen.
+- Erfolgreiche Änderungen untergeordneter Entities werden durch das Aggregate
+  Root übernommen.
+- Das Aggregate Root aktualisiert dabei die Auditinformationen und die
+  Aggregate-Version.
+- Erfolgreiche Änderungen untergeordneter Entities können das Aggregate Root
+  veranlassen, passende Domain Events zu erzeugen.
+- Untergeordnete Entities erzeugen und veröffentlichen selbst keine
+  Profil-Domain-Events.
 - Entities kennen keine Persistenztechnologie.
 - Entities kennen keine UI-Technologie.
 - Entities kennen keine DTO-, JSON- oder Datenbankmodelle.
@@ -1428,6 +1475,27 @@ Die profilübergreifende Aktivierung des ersten Profils erfolgt anschließend du
 
 ---
 
+## Gemeinsame Statusregel für Stammdatenänderungen
+
+Stammdatenänderungen sind für Profile mit dem Lebenszyklusstatus
+
+- `inactive`,
+- `active`
+
+zulässig.
+
+Für ein archiviertes Profil sind Stammdatenänderungen nicht zulässig.
+
+Der Sperrzustand allein verhindert keine Stammdatenänderung.
+
+Die Autorisierung eines Aufrufs bei einem gesperrten Profil wird vor dem
+Aufruf durch den zuständigen Application Service geprüft. Sie ist keine
+lokale Invariante der Stammdatenoperation.
+
+Das Aggregate prüft bei diesen Operationen keinen `AuthenticationProof`.
+
+---
+
 # Stammdatenoperationen
 
 ## changeName()
@@ -1438,9 +1506,9 @@ DomainResult<Profile> changeName(ProfileName newName)
 
 ### Preconditions
 
-- Das Profil ist nicht gelöscht.
 - `newName` ist gültig.
 - Das Aggregate befindet sich in einem konsistenten Zustand.
+- Die gemeinsame Statusregel für Stammdatenänderungen ist erfüllt.
 
 ### Verhalten
 
@@ -1490,8 +1558,7 @@ DomainResult<Profile> changeBirthYear(BirthYear newBirthYear)
 ### Preconditions
 
 - `newBirthYear` ist gültig.
-- Das Profil ist nicht gelöscht.
-- Die Operation ist im aktuellen Status zulässig.
+- Die gemeinsame Statusregel für Stammdatenänderungen ist erfüllt.
 
 ### Postconditions bei Änderung
 
@@ -1510,7 +1577,7 @@ DomainResult<Profile> changeHeight(Height newHeight)
 ### Preconditions
 
 - `newHeight` ist gültig.
-- Das Profil befindet sich in einem änderbaren Zustand.
+- Die gemeinsame Statusregel für Stammdatenänderungen ist erfüllt.
 
 ### Postconditions bei Änderung
 
@@ -1529,6 +1596,7 @@ DomainResult<Profile> changeGender(Gender newGender)
 ### Preconditions
 
 - `newGender` ist ein definierter Enum-Wert.
+- Die gemeinsame Statusregel für Stammdatenänderungen ist erfüllt.
 
 ### Postconditions bei Änderung
 
@@ -1548,6 +1616,7 @@ DomainResult<Profile> changeColor(ProfileColor newColor)
 
 - `newColor` ist gültig.
 - Die Profilfarbe erfüllt die fachlichen Farbregeln.
+- Die gemeinsame Statusregel für Stammdatenänderungen ist erfüllt.
 
 ### Postconditions bei Änderung
 
@@ -1569,13 +1638,23 @@ DomainResult<Profile> activate()
 
 - Das Profil ist nicht archiviert.
 - Das Profil ist nicht gesperrt.
-- Das Profil ist nicht bereits aktiv.
 
 ### Postconditions
 
 - `status` ist `active`.
 - Auditinformationen und Version wurden aktualisiert.
 - `ProfileActivated` wurde erzeugt.
+
+### No-Change-Verhalten
+
+Ist das Profil bereits aktiv, wird ein erfolgreiches Ergebnis ohne
+Zustandsänderung zurückgegeben.
+
+In diesem Fall:
+
+- bleiben Auditinformationen unverändert,
+- bleibt die Aggregate-Version unverändert,
+- wird kein `ProfileActivated`-Event erzeugt.
 
 ### Profilübergreifende Regel
 
@@ -1591,7 +1670,7 @@ DomainResult<Profile> deactivate()
 
 ### Preconditions
 
-- Das Profil ist aktiv.
+- Das Profil ist nicht archiviert.
 
 ### Postconditions
 
@@ -1599,7 +1678,16 @@ DomainResult<Profile> deactivate()
 - Auditinformationen und Version wurden aktualisiert.
 - `ProfileDeactivated` wurde erzeugt.
 
-Ist das Profil bereits inaktiv, kann ein erfolgreiches Ergebnis ohne Zustandsänderung zurückgegeben werden.
+### No-Change-Verhalten
+
+Ist das Profil bereits inaktiv, wird ein erfolgreiches Ergebnis ohne
+Zustandsänderung zurückgegeben.
+
+In diesem Fall:
+
+- bleiben Auditinformationen unverändert,
+- bleibt die Aggregate-Version unverändert,
+- wird kein `ProfileDeactivated`-Event erzeugt.
 
 ---
 
@@ -1611,7 +1699,6 @@ DomainResult<Profile> archive()
 
 ### Preconditions
 
-- Das Profil ist nicht bereits archiviert.
 - Die profilübergreifenden Folgeoperationen wurden vorbereitet.
 - Ein aktives Profil kann vor der Archivierung deaktiviert werden.
 
@@ -1622,6 +1709,25 @@ DomainResult<Profile> archive()
 - Das Profil ist nicht aktiv.
 - Auditinformationen und Version wurden aktualisiert.
 - `ProfileArchived` wurde erzeugt.
+
+### Event-Reihenfolge
+
+Ist das Profil vor der Operation aktiv, entstehen die Events in dieser
+Reihenfolge:
+
+1. `ProfileDeactivated`
+2. `ProfileArchived`
+
+### No-Change-Verhalten
+
+Ist das Profil bereits archiviert, wird ein erfolgreiches Ergebnis ohne
+Zustandsänderung zurückgegeben.
+
+In diesem Fall:
+
+- bleiben Auditinformationen unverändert,
+- bleibt die Aggregate-Version unverändert,
+- wird weder `ProfileDeactivated` noch `ProfileArchived` erzeugt.
 
 ### Fehlerfälle
 
@@ -1651,6 +1757,13 @@ DomainResult<Profile> restore()
 - Auditinformationen und Version wurden aktualisiert.
 - `ProfileRestored` wurde erzeugt.
 
+### Fehlerfall
+
+Ist das Profil nicht archiviert, schlägt die Operation mit einem fachlichen
+Fehler fehl.
+
+Es handelt sich nicht um einen No-Change.
+
 ---
 
 # Standardprofiloperationen
@@ -1664,7 +1777,6 @@ DomainResult<Profile> markAsDefault()
 ### Preconditions
 
 - Das Profil ist nicht archiviert.
-- Das Profil ist nicht bereits Standardprofil.
 
 Ein gesperrtes Profil darf Standardprofil sein.
 
@@ -1673,6 +1785,17 @@ Ein gesperrtes Profil darf Standardprofil sein.
 - `defaultFlag` ist aktiviert.
 - Auditinformationen und Version wurden aktualisiert.
 - `ProfileMarkedAsDefault` wurde erzeugt.
+
+### No-Change-Verhalten
+
+Ist das Profil bereits Standardprofil, wird ein erfolgreiches Ergebnis ohne
+Zustandsänderung zurückgegeben.
+
+In diesem Fall:
+
+- bleiben Auditinformationen unverändert,
+- bleibt die Aggregate-Version unverändert,
+- wird kein `ProfileMarkedAsDefault`-Event erzeugt.
 
 ### Profilübergreifende Regel
 
@@ -1686,15 +1809,13 @@ Dass höchstens ein Standardprofil existiert, wird durch den `DefaultProfileCoor
 DomainResult<Profile> removeDefault()
 ```
 
-### Preconditions
-
-- Das Profil ist Standardprofil.
-
 ### Postconditions
 
 - `defaultFlag` ist deaktiviert.
 - Auditinformationen und Version wurden aktualisiert.
 - `ProfileDefaultRemoved` wurde erzeugt.
+
+
 
 ---
 
@@ -1803,6 +1924,24 @@ Klartextpasswörter werden niemals an das Aggregate übergeben.
 
 ---
 
+## Verantwortung für AuthenticationProof
+
+Das Aggregate Root `Profile` prüft vor der Delegation an `ProfileSecurity`
+mindestens:
+
+- Übereinstimmung der `ProfileId`,
+- passenden `AuthenticationPurpose`,
+- zeitliche Gültigkeit,
+- erforderliche Wiederverwendungsregeln.
+
+`ProfileSecurity` erhält ausschließlich einen bereits fachlich geprüften
+Authentifizierungsnachweis.
+
+Die untergeordnete Entity prüft keine profilübergreifenden oder
+portabhängigen Eigenschaften des Proofs.
+
+---
+
 ## enablePasswordProtection()
 
 ```text
@@ -1894,6 +2033,14 @@ DomainResult<Profile> lock(Timestamp now)
 - Das Profil darf nicht aktiv bleiben.
 - Auditinformationen und Version wurden aktualisiert.
 - `ProfileLocked` wurde erzeugt.
+
+### Event-Reihenfolge
+
+Ist das Profil vor der Operation aktiv, entstehen die Events in dieser
+Reihenfolge:
+
+1. `ProfileDeactivated`
+2. `ProfileLocked`
 
 ### Koordination
 
@@ -2010,6 +2157,19 @@ Die Anfrage allein verändert den Aggregate-Zustand nicht.
 
 Das Ereignis `ProfileDeleted` wird erst nach erfolgreicher vollständiger Löschung und Commit erzeugt beziehungsweise veröffentlicht.
 
+### Event-Verantwortung bei endgültiger Löschung
+
+`requestDeletion()` erzeugt noch kein `ProfileDeleted`-Event, da zu diesem
+Zeitpunkt keine Löschung stattgefunden hat.
+
+`ProfileDeleted` wird durch den löschenden Application Service als
+fachliches Abschlussereignis erzeugt und gemeinsam mit der vollständigen
+Löschung zuverlässig gespeichert beziehungsweise über eine Outbox
+bereitgestellt.
+
+Diese Regel bildet eine ausdrücklich dokumentierte Ausnahme von der
+allgemeinen Regel, dass Domain Events durch Aggregate erzeugt werden.
+
 ---
 
 # Entity: ProfileSettings
@@ -2027,6 +2187,10 @@ Untergeordnete Entity
 Die Entity besitzt eine lokale Identität innerhalb des Aggregats.
 
 Sie ist außerhalb des Aggregate Roots nicht direkt zugänglich.
+
+Die lokale Identität bleibt über Rekonstruktionen und vollständige
+Zustandsersetzungen hinweg erhalten und ermöglicht die eindeutige Zuordnung
+der Entity innerhalb des Aggregats.
 
 ---
 
@@ -2140,6 +2304,24 @@ DomainResult<ProfileSettings> resetToDefaults(
 
 ---
 
+## No-Change-Verhalten
+
+Entspricht der neue Wert bereits dem aktuellen fachlichen Wert, liefert die
+Operation ein erfolgreiches `DomainResult<ProfileSettings>` ohne
+Zustandsänderung.
+
+In diesem Fall:
+
+- wird keine neue fachlich abweichende Entity erzeugt,
+- veranlasst das Aggregate Root keine Aktualisierung der Auditinformationen,
+- wird die Aggregate-Version nicht erhöht,
+- wird kein Änderungs-Domain-Event erzeugt.
+
+`resetToDefaults()` gilt ebenfalls als No Change, wenn sämtliche Einstellungen
+bereits den übergebenen Standardwerten entsprechen.
+
+---
+
 ## Invarianten
 
 - `settingsId` ist unveränderlich.
@@ -2164,6 +2346,13 @@ Untergeordnete Entity
 `ProfileSecurity` verwaltet den fachlichen Schutz- und Sperrzustand eines Profils.
 
 Sie enthält niemals Klartextpasswörter.
+
+Die Validierung der Profilzuordnung und der Verwendbarkeit eines
+`AuthenticationProof` gehört nicht zur Verantwortung dieser Entity.
+
+Die lokale Identität bleibt über Rekonstruktionen und vollständige
+Zustandsersetzungen hinweg erhalten und ermöglicht die eindeutige Zuordnung
+der Entity innerhalb des Aggregats.
 
 ---
 
@@ -2217,7 +2406,7 @@ DomainResult<ProfileSecurity> enablePasswordProtection(
 
 ---
 
-## disablePasswordProtection()
+## DomainResult<ProfileSecurity> disablePasswordProtection()
 
 ```text
 DomainResult<ProfileSecurity> disablePasswordProtection(
@@ -2228,7 +2417,7 @@ DomainResult<ProfileSecurity> disablePasswordProtection(
 ### Preconditions
 
 - Ein Credential ist vorhanden.
-- `proof` ist gültig.
+- Das Aggregate Root hat die erforderliche Authentifizierung bereits geprüft.
 
 ### Postconditions
 
@@ -2237,7 +2426,9 @@ DomainResult<ProfileSecurity> disablePasswordProtection(
 
 ---
 
-## changePasswordCredential()
+## DomainResult<ProfileSecurity> changePasswordCredential(
+  PasswordCredential newCredential
+)
 
 ```text
 DomainResult<ProfileSecurity> changePasswordCredential(
@@ -2249,7 +2440,7 @@ DomainResult<ProfileSecurity> changePasswordCredential(
 ### Preconditions
 
 - Der Passwortschutz ist aktiviert.
-- `proof` ist gültig.
+- Das Aggregate Root hat die erforderliche Authentifizierung bereits geprüft.
 - `newCredential` ist gültig.
 
 ### Postconditions
@@ -2277,7 +2468,9 @@ DomainResult<ProfileSecurity> lock(Timestamp now)
 
 ---
 
-## unlock()
+## DomainResult<ProfileSecurity> unlock(
+  Timestamp now
+)
 
 ```text
 DomainResult<ProfileSecurity> unlock(
@@ -2289,12 +2482,40 @@ DomainResult<ProfileSecurity> unlock(
 ### Preconditions
 
 - Der Zustand ist `locked`.
-- `proof` ist gültig.
+- Das Aggregate Root hat die erforderliche Authentifizierung bereits geprüft.
 
 ### Postconditions
 
 - `lockState` ist `unlocked`.
 - `unlockedAt` entspricht `now`.
+
+---
+
+## No-Change- und Wiederholungsregeln
+
+Für Sicherheitsoperationen gelten folgende verbindliche Regeln:
+
+| Operation | Bereits erreichter oder widersprüchlicher Zustand | Ergebnis |
+|-----------|---------------------------------------------------|----------|
+| `enablePasswordProtection()` | Credential bereits vorhanden | fachlicher Fehler |
+| `disablePasswordProtection()` | kein Credential vorhanden | erfolgreicher No-Change |
+| `changePasswordCredential()` | kein Credential vorhanden | fachlicher Fehler |
+| `changePasswordCredential()` | neues Credential fachlich identisch | erfolgreicher No-Change |
+| `lock()` | bereits gesperrt | erfolgreicher No-Change |
+| `lock()` | kein Credential vorhanden | fachlicher Fehler |
+| `unlock()` | bereits entsperrt | erfolgreicher No-Change |
+| `unlock()` | kein Credential vorhanden | erfolgreicher No-Change |
+
+Bei einem erfolgreichen No-Change:
+
+- bleibt die Entity unverändert,
+- werden Auditinformationen nicht aktualisiert,
+- wird die Aggregate-Version nicht erhöht,
+- wird kein Domain Event erzeugt.
+
+Bei einem fachlichen Fehler bleibt die Entity ebenfalls unverändert und das
+`DomainResult<ProfileSecurity>` enthält mindestens einen strukturierten
+Fehler.
 
 ---
 
@@ -2390,10 +2611,10 @@ Fehler:
 
 ---
 
-## initial()
+## createInitial()
 
 ```text
-DomainResult<AuditInformation> AuditInformation.initial(
+DomainResult<AuditInformation> AuditInformation.createInitial(
   Timestamp now
 )
 ```
@@ -5907,7 +6128,7 @@ DefaultProfileFlag.disabled()
 
 AggregateVersion.initial()
 
-AuditInformation.initial(now)
+AuditInformation.createInitial(now)
 ```
 
 Weiterhin
