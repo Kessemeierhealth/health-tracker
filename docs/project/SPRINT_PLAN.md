@@ -269,3 +269,39 @@ Nach Abschluss jedes Sprintabschnitts erfolgt
 - Testreview
 
 Erst danach beginnt der nächste Sprintabschnitt.
+
+### Sprint 2.1a – Domain Result Foundation
+
+Ziel:
+Implementierung der projektweiten Fehler- und Ergebnisbasistypen, die für
+kontrollierte Domain-Factory-Methoden benötigt werden.
+
+Umfang:
+
+- DomainResult<T>
+- DomainMessage
+- DomainError
+- DomainWarning
+- DomainInformation
+- ErrorCode
+- MessageKey
+- MessageSeverity
+- MessageCategory
+- ConstraintType
+- FieldReference
+
+Änderungsbereich:
+
+- lib/core/errors/
+- test/core/errors/
+
+Nicht Bestandteil:
+
+- modulspezifische Value Objects
+- UI
+- Persistenz
+- Repositorys
+- Application Services
+- Logging
+- Monitoring
+- Exception-Mapping
