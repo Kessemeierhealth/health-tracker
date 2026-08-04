@@ -2488,9 +2488,7 @@ DomainResult<ProfileSecurity> lock(Timestamp now)
 
 ---
 
-## DomainResult<ProfileSecurity> unlock(
-  Timestamp now
-)
+## unlock()
 
 ```text
 DomainResult<ProfileSecurity> unlock(
@@ -2904,20 +2902,70 @@ Integer       → ProfileColor
 
 Alle Factory-Methoden folgen einer einheitlichen Benennung.
 
-Erlaubte Muster
+Zulässige Benennungsmuster sind:
 
 ```text
 create(...)
 
-fromString(...)
+create<Zustand>(...)
 
-fromUuid(...)
+from<Repräsentation>(...)
 
-fromCentimeters(...)
+parse<Format>(...)
 
-fromMeters(...)
-
+generate()
 ```
+
+Beispiele zulässiger Factory-Namen
+
+```text
+create()
+
+createInitial()
+
+createEnabled()
+
+createDisabled()
+
+createLocked()
+
+createUnlocked()
+
+createVerified()
+
+fromString()
+
+fromUuid()
+
+fromValue()
+
+fromHex()
+
+fromArgb()
+
+fromMeters()
+
+fromCentimeters()
+
+fromUtc()
+
+fromPersistedValue()
+
+fromPersistedValues()
+
+parseIso8601()
+
+generate()
+```
+
+Die konkrete Factory-Bezeichnung muss eindeutig ausdrücken,
+
+- welcher fachliche Zustand erzeugt wird,
+- aus welcher Repräsentation ein Value Object rekonstruiert wird,
+- welches Eingabeformat geparst wird,
+- oder dass eine neue Identität erzeugt wird.
+
+`generate()` ist ausschließlich für Typen zulässig, deren fachliche Aufgabe die Erzeugung einer neuen Identität umfasst.
 
 Factory-Methoden erzeugen ausschließlich gültige Value Objects.
 
@@ -3784,14 +3832,44 @@ Alle Value Objects verwenden dieselben Factory-Konventionen.
 
 ---
 
-## Erlaubte Factory-Namen
+## Zulässige Factory-Benennungsmuster
+
+Factory-Namen werden anhand ihrer fachlichen Funktion gebildet.
 
 ```text
 create(...)
 
+create<Zustand>(...)
+
+from<Repräsentation>(...)
+
+parse<Format>(...)
+
+generate()
+```
+
+Beispiele:
+
+```text
+create(...)
+
+createInitial()
+
+createEnabled()
+
+createDisabled()
+
+createLocked(...)
+
+createUnlocked(...)
+
+createVerified(...)
+
 fromString(...)
 
 fromUuid(...)
+
+fromValue(...)
 
 fromHex(...)
 
@@ -3800,7 +3878,27 @@ fromArgb(...)
 fromMeters(...)
 
 fromCentimeters(...)
+
+fromUtc(...)
+
+fromPersistedValue(...)
+
+fromPersistedValues(...)
+
+parseIso8601(...)
+
+generate()
 ```
+
+Diese Beispiele sind nicht abschließend.
+
+Die konkrete Factory-Bezeichnung muss eindeutig ausdrücken,
+
+- ob ein allgemeiner gültiger Wert erzeugt wird,
+- welcher fachliche Zustand erzeugt wird,
+- aus welcher Repräsentation rekonstruiert wird,
+- welches Format geparst wird,
+- oder ob eine neue Identität erzeugt wird.
 
 ---
 
@@ -10809,13 +10907,11 @@ umgesetzt.
 
 # Abschluss
 
-Mit Teil **5D-2** ist das Dokument
+Mit Teil **5D-2** ist der fachliche Kern des Domain Models abgeschlossen.
 
-```text
-05_DOMAIN_MODEL.md
-```
-
-vollständig abgeschlossen.
+Die nachfolgenden Teile **5E-1** und **5E-2** ergänzen die
+projekteinheitliche Ereignisarchitektur (Domain Events) und schließen das
+Dokument vollständig ab.
 
 Das Domain Model definiert:
 
@@ -11533,7 +11629,7 @@ ProfileActivated
 
 ---
 
-## PasswordChanged
+## ProfilePasswordChanged
 
 ```text
 eventType
