@@ -2237,6 +2237,54 @@ der Entity innerhalb des Aggregats.
 
 ---
 
+## Erzeugung und Rekonstruktion
+
+Die kontrollierte Erzeugung und Rekonstruktion erfolgt ausschließlich über:
+
+```text
+DomainResult<ProfileSettings> ProfileSettings.create(
+  ProfileSettingsId settingsId,
+  LocalizationSettings localization,
+  DashboardSettings dashboard,
+  AppearanceSettings appearance
+)
+```
+
+Direkte öffentliche Konstruktoraufrufe sind nicht vorgesehen.
+
+Die Factory wird sowohl für die initiale Erzeugung als auch für die
+Rekonstruktion verwendet.
+
+Die Unterscheidung zwischen initialer Erzeugung und Rekonstruktion liegt
+außerhalb der Entity. In beiden Fällen erhält `ProfileSettings` bereits eine
+gültige und unveränderliche `ProfileSettingsId`.
+
+### Preconditions
+
+- `settingsId` ist gültig.
+- `localization` ist gültig.
+- `dashboard` ist gültig.
+- `appearance` ist gültig.
+- Sämtliche Pflichtwerte sind vorhanden.
+
+### Postconditions
+
+Bei Erfolg:
+
+- wurde eine vollständige und konsistente `ProfileSettings`-Entity erzeugt,
+- sind sämtliche Einstellungsbereiche vorhanden,
+- ist `settingsId` unveränderlich,
+- wurden keine Domain Events erzeugt,
+- wurden keine Auditinformationen oder Aggregate-Versionen verändert.
+
+Bei Fehler:
+
+- wird keine Entity erzeugt,
+- enthält `DomainResult<ProfileSettings>` mindestens einen strukturierten
+  Fehler.
+
+---
+
 ## changeLanguage()
 
 ```text
@@ -2315,30 +2363,25 @@ DomainResult<ProfileSettings> resetToDefaults(
 
 ### Preconditions
 
-- `defaults` enthält einen vollständigen gültigen Standardzustand.
+- `defaults` ist gültig.
+- `defaults` enthält einen vollständigen fachlichen Standardzustand.
 
-### Postconditions
+### Postconditions bei Änderung
 
-- Alle Einstellungsbereiche enthalten gültige Standardwerte.
-- Die lokale Entity-ID bleibt unverändert.
+- `localization` entspricht `defaults.localization`.
+- `dashboard` entspricht `defaults.dashboard`.
+- `appearance` entspricht `defaults.appearance`.
+- `settingsId` bleibt unverändert.
+- Es wurde eine vollständige und konsistente `ProfileSettings`-Entity erzeugt.
+- Die Entity erzeugt keine Domain Events.
+- Auditinformationen und Aggregate-Version werden nicht durch die Entity
+  verändert.
 
----
+### No-Change-Verhalten
 
-## No-Change-Verhalten
-
-Entspricht der neue Wert bereits dem aktuellen fachlichen Wert, liefert die
-Operation ein erfolgreiches `DomainResult<ProfileSettings>` ohne
-Zustandsänderung.
-
-In diesem Fall:
-
-- wird keine neue fachlich abweichende Entity erzeugt,
-- veranlasst das Aggregate Root keine Aktualisierung der Auditinformationen,
-- wird die Aggregate-Version nicht erhöht,
-- wird kein Änderungs-Domain-Event erzeugt.
-
-`resetToDefaults()` gilt ebenfalls als No Change, wenn sämtliche Einstellungen
-bereits den übergebenen Standardwerten entsprechen.
+Entsprechen alle drei Einstellungsbereiche bereits den Werten aus `defaults`,
+wird ein erfolgreiches `DomainResult<ProfileSettings>` ohne
+Zustandsänderung zurückgegeben.
 
 ---
 
@@ -5005,6 +5048,76 @@ deleteProfile
 
 ---
 
+# Value Object: ProfileSettingsDefaults
+
+## Zweck
+
+`ProfileSettingsDefaults` beschreibt einen vollständigen fachlich gültigen
+Standardzustand für die Profileinstellungen.
+
+Das Value Object wird ausschließlich für das Zurücksetzen einer
+`ProfileSettings`-Entity verwendet.
+
+## Attribute
+
+| Attribut | Typ |
+|---|---|
+| localization | LocalizationSettings |
+| dashboard | DashboardSettings |
+| appearance | AppearanceSettings |
+
+## Factory
+
+```text
+DomainResult<ProfileSettingsDefaults> create(
+  LocalizationSettings localization,
+  DashboardSettings dashboard,
+  AppearanceSettings appearance
+)
+```
+
+## Preconditions
+
+- `localization` ist gültig.
+- `dashboard` ist gültig.
+- `appearance` ist gültig.
+- Sämtliche Einstellungsbereiche sind vollständig vorhanden.
+
+## Postconditions
+
+Bei Erfolg:
+
+- wurde ein vollständiger und unveränderlicher Standardzustand erzeugt,
+- sind alle enthaltenen Value Objects gültig,
+- wurden keine technischen Seiteneffekte ausgelöst.
+
+Bei Fehler:
+
+- wird kein `ProfileSettingsDefaults` erzeugt,
+- enthält `DomainResult<ProfileSettingsDefaults>` mindestens einen
+  strukturierten Fehler.
+
+## Regeln
+
+- Das Value Object besitzt keine Identität.
+- Es ist vollständig unveränderlich.
+- Es enthält immer alle drei Einstellungsbereiche.
+- Es kennt keine ProfileSettingsId.
+- Es erzeugt keine Domain Events.
+- Es aktualisiert keine Auditinformationen oder Aggregate-Versionen.
+
+## Equality
+
+Zwei `ProfileSettingsDefaults` sind gleich, wenn
+
+- `localization`,
+- `dashboard`,
+- `appearance`
+
+fachlich gleich sind.
+
+---
+
 # Weitere fachliche Typen
 
 Die folgenden Typen werden in eigenen Modul- oder UI-Spezifikationen konkretisiert:
@@ -5017,8 +5130,6 @@ DashboardWidgetSelection
 DashboardConfigurationVersion
 
 TextScalePreference
-
-ProfileSettingsDefaults
 
 PlainPassword
 ```
