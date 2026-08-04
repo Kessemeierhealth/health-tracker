@@ -347,6 +347,15 @@ Neue Fehler erhalten einen neuen Error Code.
 
 Vorhandene Error Codes werden niemals umbenannt oder wiederverwendet.
 
+### Bootstrap-Regel
+
+Projektweite Basistypen dürfen während ihrer eigenen Initialimplementierung
+kontrolliert ArgumentError verwenden, wenn eine Verwendung von DomainResult
+zu einer zirkulären Abhängigkeit führen würde.
+
+Nach Abschluss der Domain Foundation verwenden fachliche Typen ausschließlich
+DomainResult und DomainMessage.
+
 ---
 
 # 7. Single Source of Truth
