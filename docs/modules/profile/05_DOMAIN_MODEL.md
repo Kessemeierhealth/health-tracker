@@ -2819,6 +2819,23 @@ Eine ProfileId
 
 ---
 
+### Zuständigkeit der Validierungsfehler
+
+Nicht alle dokumentierten Validierungsfehler werden durch das Value Object selbst ausgelöst.
+
+| Error Code | Zuständige Komponente |
+|------------|-----------------------|
+| PRO-VAL-ID-001 | ProfileId |
+| PRO-VAL-ID-002 | ProfileId |
+| PRO-VAL-ID-003 | Profile Aggregate |
+| PRO-VAL-ID-004 | Application Service oder Repository-Port |
+
+Das Value Object `ProfileId` prüft ausschließlich lokal validierbare Regeln.
+
+Regeln, die einen historischen Zustand, mehrere Profile oder Persistenzinformationen benötigen, werden von der jeweils zuständigen Architekturkomponente geprüft.
+
+---
+
 ## Equality
 
 Zwei ProfileIds sind gleich,
@@ -3294,6 +3311,23 @@ Das Value Object kennt keine
 - Material-Farben.
 
 Die Umwandlung erfolgt ausschließlich außerhalb der Domäne.
+
+---
+
+## Textuelle Repräsentation
+
+Die kanonische Hex-Repräsentation besteht aus genau acht hexadezimalen Zeichen
+im Format:
+
+AARRGGBB
+
+Beispiele:
+
+FF00AA33
+80000000
+
+Präfixe wie `#` oder `0x` sind nicht Bestandteil der kanonischen
+Domain-Repräsentation.
 
 ---
 

@@ -570,20 +570,10 @@ Für jedes Profil wird ausschließlich das Geburtsjahr als vierstellige Jahresza
 
 Das Geburtsjahr
 
-- MUSS vorhanden sein.
-- MUSS eine vierstellige Jahreszahl sein.
 - MUSS mindestens 1900 betragen.
 - DARF nicht in der Zukunft liegen.
 
 Die Obergrenze entspricht dynamisch dem aktuellen Kalenderjahr.
-
-### Noch festzulegender fachlicher Parameter
-
-Die konkrete Untergrenze des zulässigen Geburtsjahres ist in den Requirements noch nicht numerisch definiert.
-
-Bis zur Festlegung dieses Wertes ist die Minimumprüfung nicht implementierungsbereit.
-
-### Fehlercodes
 
 ### Fehlercodes
 

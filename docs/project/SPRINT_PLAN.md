@@ -305,3 +305,19 @@ Nicht Bestandteil:
 - Logging
 - Monitoring
 - Exception-Mapping
+
+### Technische Sprint-Vorprüfung
+
+Vor Freigabe eines Implementierungssprints werden geprüft:
+
+- benötigte Core-Typen,
+- benötigte Constraint-Typen,
+- primitive interne Repräsentationen,
+- Factory-Signaturen,
+- Normalisierungsregeln,
+- lokal prüfbare Regeln,
+- aggregate- oder systemweit prüfbare Regeln,
+- zeitabhängige Abstraktionen.
+
+Nicht lokal prüfbare Regeln werden vor Sprintbeginn einer konkreten
+Architekturkomponente zugeordnet.

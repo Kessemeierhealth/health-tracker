@@ -1,5 +1,6 @@
 enum ConstraintType {
   required,
+  blank,
   minimum,
   maximum,
   range,

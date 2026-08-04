@@ -358,6 +358,43 @@ DomainResult und DomainMessage.
 
 ---
 
+### Zuständigkeit nicht lokal prüfbarer Fehler
+
+Ein Value Object implementiert ausschließlich Regeln, die anhand seines
+eigenen Eingabewerts und ausdrücklich übergebener Abhängigkeiten geprüft
+werden können.
+
+Regeln, die
+
+- andere Aggregate,
+- mehrere Profile,
+- Persistenzzustände,
+- historische Zustände,
+- externe Systeme
+
+benötigen, werden dem zuständigen Aggregate, Domain Service,
+Application Service oder Port zugeordnet.
+
+Ein dokumentierter Error Code muss nicht zwangsläufig von dem Value Object
+ausgelöst werden, dessen Wert betroffen ist.
+
+---
+
+### Primitive Eingaben von Value-Object-Factories
+
+Factory-Methoden müssen eindeutig dokumentieren:
+
+- akzeptierten primitiven Eingabetyp,
+- Normalisierung,
+- kanonische interne Repräsentation,
+- Verhalten bei fehlenden Eingaben,
+- Verhalten bei ungültigen Eingaben.
+
+Alternative Eingabeformate werden nur unterstützt, wenn sie ausdrücklich
+spezifiziert sind.
+
+---
+
 # 7. Single Source of Truth
 
 Jedes fachliche oder technische Artefakt besitzt genau eine führende Quelle.

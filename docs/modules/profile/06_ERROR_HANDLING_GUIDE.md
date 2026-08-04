@@ -112,12 +112,13 @@ Die Fehlerarchitektur verfolgt folgende Ziele:
 | DomainError | Meldung, die den erfolgreichen Abschluss verhindert |
 | DomainWarning | Meldung, die eine Bestätigung oder besondere Aufmerksamkeit erfordert |
 | DomainInformation | Neutrale Information ohne Blockierungswirkung |
-| ErrorCode | Stabiler, sprachunabhängiger Code einer Meldung |
-| Message Key | Schlüssel zur Ermittlung eines lokalisierten Benutzertexts |
+| ErrorCode | Stabiler projektweiter fachlicher oder technischer Code |
+| Message Key | Schlüssel zur Lokalisierung von Benutzertexten |
 | Constraint | Art der verletzten Regel |
 | Parameters | Strukturierte Werte zur Erzeugung einer Meldung |
 | Exception | Unerwarteter technischer oder programmatischer Ausnahmezustand |
 | Correlation ID | Kennung zur Verbindung zusammengehöriger Abläufe |
+| CauseCode | Abstrahierte technische Ursache eines Fehlers |
 
 ---
 
@@ -709,6 +710,16 @@ PRO-PER-SAVE-001
 PRO-INF-FILE-001
 ```
 
+Hinweis
+
+Technische Ursachen (CauseCodes) verwenden bewusst ein separates Schema, z. B.
+
+database.read.failed
+network.timeout
+serialization.failed
+
+CauseCodes sind keine ErrorCodes und dienen ausschließlich der internen technischen Diagnose.
+
 ## Regeln
 
 Ein Code:
@@ -746,6 +757,22 @@ technical.profile.saveFailed
 
 ---
 
+## Architekturregel
+
+Ein Message Key besitzt keine fachliche Identität und darf nicht zur
+Steuerung von Fachlogik verwendet werden.
+
+Business Rules, Domainlogik, Verzweigungen und automatisierte Tests dürfen
+nicht auf Message Keys basieren.
+
+Für die stabile fachliche Identifikation einer Meldung ist ausschließlich
+der Error Code maßgeblich.
+
+Message Keys dienen ausschließlich der Lokalisierung und dürfen geändert
+werden, ohne die fachliche Bedeutung des zugehörigen Error Codes zu verändern.
+
+---
+
 # ConstraintType
 
 ## Zweck
@@ -756,6 +783,7 @@ Beispiele:
 
 ```text
 required
+blank
 minimum
 maximum
 range
@@ -1114,13 +1142,14 @@ Solche Objekte dürfen nicht den Eindruck eines erfolgreich übernommenen Zustan
 
 Ein erfolgreiches Ergebnis darf einen Wert enthalten.
 
-Für Operationen ohne fachlichen Rückgabewert wird verwendet:
+### Projektregel
+
+Für Operationen ohne fachlichen Rückgabewert wird projektweit ausschließlich
 
 ```text
-DomainResult<void>
+DomainResult<void> 
 ```
-
-beziehungsweise die projektweit festgelegte Dart-Repräsentation.
+verwendet.
 
 ---
 
@@ -1869,7 +1898,7 @@ Beispiel:
 DomainResult<Profile>
 ├── error:
 │   ├── category: PERSISTENCE
-│   ├── code: repository.profile.loadFailed
+│   ├── code: PRO-PER-LOAD-001
 │   └── causeCode: database.read.failed
 ```
 
@@ -1964,7 +1993,7 @@ Die projektweite Entscheidung muss im Application-Layer-Dokument verbindlich fes
   "warnings": [],
   "information": [
     {
-      "code": "profile.noChange",
+      "code": "PRO-BUS-NOCHANGE-001",
       "messageKey": "information.profile.noChange",
       "severity": "INFORMATION",
       "category": "BUSINESS",
@@ -2153,7 +2182,7 @@ Besser:
 
 ```text
 DomainError(
-  code: repository.profile.saveFailed,
+  code: PRO-PER-SAVE-001;
   ...
 )
 ```
@@ -2772,7 +2801,7 @@ ProfileRepositoryAdapter
 
 ↓
 
-repository.profile.loadFailed
+PRO-PER-LOAD-001
 
 ↓
 
@@ -2792,7 +2821,7 @@ ImageStorageAdapter
 
 ↓
 
-image.storage.failed
+PRO-INF-IMAGE-001
 ```
 
 ---
@@ -2806,7 +2835,7 @@ ImportAdapter
 
 ↓
 
-import.connection.failed
+PRO-INF-IMPORT-001
 ```
 
 ---
@@ -2905,7 +2934,7 @@ ImageStorageAdapter
 DomainError
 
 code:
-image.storage.failed
+PRO-INF-IMAGE-001
 
 causeCode:
 io.file.read.failed
@@ -7033,7 +7062,7 @@ business.profile.archived
 
 security.authentication.failed
 
-repository.profile.loadFailed
+PRO-PER-LOAD-001
 
 event.dispatch.failed
 

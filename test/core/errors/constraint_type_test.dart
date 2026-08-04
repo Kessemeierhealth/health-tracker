@@ -7,6 +7,7 @@ void main() {
       ConstraintType.values,
       <ConstraintType>[
         ConstraintType.required,
+        ConstraintType.blank,
         ConstraintType.minimum,
         ConstraintType.maximum,
         ConstraintType.range,
@@ -17,7 +18,7 @@ void main() {
         ConstraintType.transition,
         ConstraintType.ownership,
         ConstraintType.authentication,
-        ConstraintType.atomic,
+        ConstraintType.atomic
       ],
     );
     expect(ConstraintType.required.toString(), 'ConstraintType.required');
