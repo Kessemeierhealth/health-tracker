@@ -246,6 +246,34 @@ Daher gilt:
 
 ---
 
+## Error Codes
+
+### Grundsatz
+
+Jeder fachliche Validierungsfehler besitzt genau einen stabilen Error Code.
+
+Der Error Code wird ausschließlich in den Validation Rules des jeweiligen Moduls definiert.
+
+Der Error Handling Guide übernimmt diesen Error Code unverändert und beschreibt ausschließlich seine technische Verarbeitung.
+
+Error Codes werden nach ihrer Einführung niemals geändert oder wiederverwendet.
+
+### Message Keys
+
+Message Keys dienen ausschließlich der Lokalisierung.
+
+Sie sind keine Error Codes.
+
+Beispiel
+
+| Error Code | Message Key |
+|------------|-------------|
+| PRO-VAL-NAME-001 | validation.profile.name.required |
+| PRO-VAL-BIRTHYEAR-003 | validation.profile.birthYear.minimum |
+| PRO-VAL-HEIGHT-002 | validation.profile.height.maximum |
+
+---
+
 ## ERR-007 – Strukturierte Parameter
 
 Dynamische Werte werden als strukturierte Parameter übertragen.
@@ -665,24 +693,21 @@ Eine Information verändert den Erfolgsstatus nicht.
 
 `ErrorCode` kapselt einen stabilen, sprachneutralen Meldungscode.
 
-## Formate
+## Format
 
-Bereits definierte modulbezogene Codes bleiben gültig, beispielsweise:
+Alle fachlichen und technischen Error Codes verwenden das stabile
+projektweite ID-Schema gemäß `00_ARCHITECTURE_CONVENTIONS.md`.
+
+Beispiele:
 
 ```text
 PRO-VAL-HEIGHT-003
-PRO-VAL-IMPORT-006
+PRO-VAL-NAME-001
+PRO-BUS-PROFILE-001
+PRO-SEC-AUTH-001
+PRO-PER-SAVE-001
+PRO-INF-FILE-001
 ```
-
-Neue projektweite Codes dürfen ein hierarchisches Schema verwenden, beispielsweise:
-
-```text
-security.authentication.failed
-repository.profile.saveFailed
-event.publish.failed
-```
-
-Innerhalb eines Fehlerkatalogs muss genau ein Schema verbindlich verwendet werden.
 
 ## Regeln
 
@@ -1862,7 +1887,7 @@ Die projektweite Entscheidung muss im Application-Layer-Dokument verbindlich fes
 {
   "isSuccess": true,
   "value": {
-    "centimeters": 180.0
+    "centimeters": 180
   },
   "errors": [],
   "warnings": [],
@@ -6721,13 +6746,6 @@ Application Layer
 Infrastructure
 ```
 
----
-
-
----
-
-### Änderung 3 – Single Source of Truth
-**Position:** Nach der Architekturhierarchie.
 
 ```markdown
 # Single Source of Truth
@@ -7499,8 +7517,6 @@ zu verwenden.
 
 ---
 
-### Änderung 5 – Kapitelübersicht
-**Position:** Im Inhaltsüberblick von Kapitel 5.
 
 ```markdown
 ## Kapitelübersicht
@@ -7520,7 +7536,7 @@ zu verwenden.
 | Thema | Führendes Dokument |
 |--------|--------------------|
 | Domain Model | `05_DOMAIN_MODEL.md` |
-| Business Rules | `04_BUSINESS_RULES.md` |
+| Business Rules | `03_BUSINESS_RULES.md` |
 | Error Handling | `06_ERROR_HANDLING_GUIDE.md` |
 | Application Architecture | `07_APPLICATION_ARCHITECTURE.md` |
 | API | `08_API_GUIDE.md` |
@@ -7932,24 +7948,39 @@ Dadurch bleiben sie eindeutig, lesbar und langfristig wartbar.
 
 ### Schema
 
-```text
-validation.<context>.<rule>
-```
+Validation Error Codes folgen der projektweiten Error-Code-Konvention gemäß
+`00_ARCHITECTURE_CONVENTIONS.md`.
+
+Beispiel:
+
+PRO-VAL-NAME-001
+PRO-VAL-HEIGHT-003
+PRO-VAL-ID-001
+
+Message Keys verwenden die hierarchische Punktnotation:
+
+validation.profile.name.required
+validation.profile.height.minimum
+validation.profile.id.invalidFormat
 
 ---
 
 ### Beispiele
 
+**Error Codes**
+
+```text
+PRO-VAL-NAME-001
+PRO-VAL-HEIGHT-003
+PRO-VAL-ID-001
+```
+
+**Message Keys**
+
 ```text
 validation.profile.name.required
-
-validation.height.minimum
-
-validation.weight.maximum
-
-validation.measurement.timestamp.invalid
-
-validation.dashboard.configuration.invalid
+validation.profile.height.minimum
+validation.profile.id.invalidFormat
 ```
 
 ---
@@ -7966,7 +7997,9 @@ validation.dashboard.configuration.invalid
 
 ### Architekturregel
 
-Die Namenskonvention gilt projektweit für sämtliche Validation Error Codes.
+Die Error-Code-Konvention gilt projektweit für sämtliche Validation Error Codes.
+
+Die Message-Key-Konvention gilt projektweit für sämtliche Message Keys.
 
 ---
 
@@ -8759,7 +8792,11 @@ werden ausschließlich in deren jeweiligen Abschnitten dokumentiert.
 | validation.profile.required | validation.profile.required |
 | validation.profile.invalid | validation.profile.invalid |
 | validation.profile.duplicate | validation.profile.duplicate |
-| validation.profile.aggregate.invalid | validation.profile.aggregate.invalid |
+
+> Hinweis:
+> Aggregatbezogene Validierungsfehler werden zentral im Abschnitt
+> **5B-1b-2 Aggregate Validation Errors** definiert.
+> `validation.profile.aggregate.invalid` ist dort die führende Definition.
 
 ---
 
@@ -8790,7 +8827,7 @@ definiert.
 Die fachlichen Regeln werden ausschließlich im Dokument
 
 ```text
-04_BUSINESS_RULES.md
+03_BUSINESS_RULES.md
 ```
 
 beschrieben.
@@ -9155,9 +9192,8 @@ in Kapitel **5B-1a** definiert.
 
 | ErrorCode | MessageKey |
 |------------|------------|
-| validation.profileName.required | validation.profileName.required |
-| validation.profileName.blank | validation.profileName.blank |
-| validation.profileName.maximumLength | validation.profileName.maximumLength |
+| PRO-VAL-NAME-001 | validation.profile.name.required |
+| PRO-VAL-NAME-002 | validation.profile.name.blank |
 
 ---
 
@@ -9173,8 +9209,10 @@ in Kapitel **5B-1a** definiert.
 
 | ErrorCode | MessageKey |
 |------------|------------|
-| validation.birthYear.required | validation.birthYear.required |
-| validation.birthYear.invalid | validation.birthYear.invalid |
+| PRO-VAL-BIRTHYEAR-001 | validation.profile.birthYear.required |
+| PRO-VAL-BIRTHYEAR-002 | validation.profile.birthYear.format |
+| PRO-VAL-BIRTHYEAR-003 | validation.profile.birthYear.minimum |
+| PRO-VAL-BIRTHYEAR-004 | validation.profile.birthYear.future |
 
 ---
 
@@ -9190,8 +9228,25 @@ in Kapitel **5B-1a** definiert.
 
 | ErrorCode | MessageKey |
 |------------|------------|
-| validation.height.required | validation.height.required |
-| validation.height.invalid | validation.height.invalid |
+| PRO-VAL-HEIGHT-001 | validation.profile.height.required |
+| PRO-VAL-HEIGHT-002 | validation.profile.height.maximum |
+| PRO-VAL-HEIGHT-003 | validation.profile.height.minimum |
+
+---
+
+# Gender
+
+### Zugeordneter Domänentyp
+
+**Enumeration**
+
+- Gender
+
+## Error Codes
+
+| ErrorCode | MessageKey |
+|------------|------------|
+| PRO-VAL-GENDER-001 | validation.profile.gender.invalid |
 
 ---
 
@@ -9207,8 +9262,27 @@ in Kapitel **5B-1a** definiert.
 
 | ErrorCode | MessageKey |
 |------------|------------|
-| validation.profileColor.required | validation.profileColor.required |
-| validation.profileColor.invalid | validation.profileColor.invalid |
+| PRO-VAL-COLOR-001 | validation.profile.color.required |
+| PRO-VAL-COLOR-002 | validation.profile.color.invalid |
+
+---
+
+# ProfileId
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- ProfileId
+
+## Error Codes
+
+| ErrorCode | MessageKey |
+|------------|------------|
+| PRO-VAL-ID-001 | validation.profile.id.required |
+| PRO-VAL-ID-002 | validation.profile.id.invalidFormat |
+| PRO-VAL-ID-003 | validation.profile.id.modified |
+| PRO-VAL-ID-004 | validation.profile.id.duplicate |
 
 ---
 

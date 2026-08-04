@@ -289,6 +289,64 @@ Moduldokumente unter `docs/modules/<module>/`.
 
 Identische Dokumentnummern in unterschiedlichen Verzeichnissen stellen
 daher keinen Namens- oder Versionskonflikt dar.
+
+---
+
+## Fehlercode-Konventionen
+
+### Grundsatz
+
+Jeder fachliche Fehler besitzt genau einen stabilen Error Code.
+
+Der Error Code dient der fachlichen Identifikation eines Fehlers und darf sich nach seiner Einführung nicht mehr ändern.
+
+Jeder Error Code ist eindeutig und genau einem fachlichen Fehler zugeordnet.
+
+### Format
+
+Error Codes verwenden das folgende Schema:
+
+```text
+<MODUL>-<KATEGORIE>-<OBJEKT>-<NUMMER>
+```
+
+Beispiel:
+
+```text
+PRO-VAL-NAME-001
+PRO-VAL-BIRTHYEAR-003
+PRO-VAL-HEIGHT-002
+PRO-VAL-COLOR-001
+PRO-VAL-ID-001
+```
+
+### Message Keys
+
+Message Keys dienen ausschließlich der Lokalisierung von Fehlermeldungen.
+
+Sie sind keine Error Codes.
+
+Beispiele:
+
+```text
+validation.profile.name.required
+validation.profile.birthYear.minimum
+validation.profile.height.maximum
+validation.profile.color.invalid
+```
+
+### Verantwortlichkeiten
+
+Die fachlichen Error Codes werden in den Validation Rules definiert.
+
+Der Error Handling Guide beschreibt deren technische Repräsentation, Severity, Category und Logging-Verhalten.
+
+### Änderungsregel
+
+Neue Fehler erhalten einen neuen Error Code.
+
+Vorhandene Error Codes werden niemals umbenannt oder wiederverwendet.
+
 ---
 
 # 7. Single Source of Truth

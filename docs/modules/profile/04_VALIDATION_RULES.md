@@ -497,29 +497,28 @@ Pflichtfeld
 
 ### Beschreibung
 
-Jedes Profil besitzt einen sichtbaren Namen.
+Jedes Profil besitzt einen frei wählbaren sichtbaren Namen.
 
-Der Profilname dient ausschließlich der Anzeige und Identifikation durch den Benutzer. Die fachliche Identität eines Profils wird ausschließlich durch die Profil-ID bestimmt.
+Der Profilname dient der Anzeige und der Unterscheidung durch den Benutzer. Die fachliche Identität eines Profils wird ausschließlich durch die Profil-ID bestimmt.
 
 ### Fachliche Regeln
 
 Der Profilname
 
 - MUSS vorhanden sein.
-- DARF nicht leer sein.
-- DARF nicht ausschließlich aus Leerzeichen bestehen.
-- MUSS nach der Normalisierung mindestens einen sichtbaren Buchstaben oder ein sichtbares Zeichen enthalten.
-- DARF maximal 100 Zeichen enthalten.
+- DARF nach der Normalisierung nicht leer sein.
+- DARF nach der Normalisierung nicht ausschließlich aus Leerzeichen bestehen.
+
+Eine maximale Zeichenlänge ist derzeit fachlich nicht festgelegt.
 
 ### Normalisierung
 
-Vor der Validierung wird
+Vor der Validierung werden
 
-- führender Leerraum entfernt,
-- nachfolgender Leerraum entfernt,
-- mehrfacher zusammenhängender Leerraum innerhalb des Namens auf genau ein Leerzeichen reduziert.
+- führende Leerzeichen entfernt,
+- nachfolgende Leerzeichen entfernt.
 
-Die Groß-/Kleinschreibung bleibt erhalten.
+Leerzeichen innerhalb des Namens und die Groß-/Kleinschreibung bleiben unverändert erhalten.
 
 ### Fehlercodes
 
@@ -527,25 +526,30 @@ Die Groß-/Kleinschreibung bleibt erhalten.
 |------------|-------------|------------|-----------|
 | PRO-VAL-NAME-001 | `validation.profile.name.required` | required | – |
 | PRO-VAL-NAME-002 | `validation.profile.name.blank` | blank | – |
-| PRO-VAL-NAME-003 | `validation.profile.name.maximum` | maximum | `{"maximum":100,"unit":"characters"}` |
 
 ### Traceability
 
 **Requirements**
 
-- PRO-FR-002
+- PRO-FR-011
+- PRO-FR-021
+- PRO-FR-022
 
 **Use Cases**
 
-- PRO-UC-001
+- PRO-UC-011
+- PRO-UC-021
+- PRO-UC-022
 
 **Business Rules**
 
-- PRO-BR-002
+- PRO-BR-010
 
 **Testfälle**
 
-- PRO-TC-001
+- PRO-TC-011
+- PRO-TC-021
+- PRO-TC-022
 
 
 # PRO-VR-002
@@ -560,39 +564,56 @@ Pflichtfeld
 
 ### Beschreibung
 
-Für jedes Profil wird ausschließlich das Geburtsjahr gespeichert.
+Für jedes Profil wird ausschließlich das Geburtsjahr als vierstellige Jahreszahl gespeichert.
 
 ### Fachliche Regeln
 
 Das Geburtsjahr
 
 - MUSS vorhanden sein.
+- MUSS eine vierstellige Jahreszahl sein.
+- MUSS mindestens 1900 betragen.
 - DARF nicht in der Zukunft liegen.
+
+Die Obergrenze entspricht dynamisch dem aktuellen Kalenderjahr.
+
+### Noch festzulegender fachlicher Parameter
+
+Die konkrete Untergrenze des zulässigen Geburtsjahres ist in den Requirements noch nicht numerisch definiert.
+
+Bis zur Festlegung dieses Wertes ist die Minimumprüfung nicht implementierungsbereit.
+
+### Fehlercodes
 
 ### Fehlercodes
 
 | Fehlercode | Message Key | Constraint | Parameter |
 |------------|-------------|------------|-----------|
 | PRO-VAL-BIRTHYEAR-001 | `validation.profile.birthYear.required` | required | – |
-| PRO-VAL-BIRTHYEAR-002 | `validation.profile.birthYear.future` | maximum | `{"maximum":"currentYear"}` |
+| PRO-VAL-BIRTHYEAR-002 | `validation.profile.birthYear.format` | format | `{"expectedFormat":"YYYY"}` |
+| PRO-VAL-BIRTHYEAR-003 | `validation.profile.birthYear.minimum` | minimum | `{"minimum":1900}` |
+| PRO-VAL-BIRTHYEAR-004 | `validation.profile.birthYear.future` | maximum | `{"maximum":"currentYear"}` |
+
 
 ### Traceability
 
 **Requirements**
 
-- PRO-FR-010
+- PRO-FR-012
+- PRO-FR-021
+- PRO-FR-022
 
 **Use Cases**
 
-- PRO-UC-010
-
-**Business Rules**
-
-- PRO-BR-011
+- PRO-UC-012
+- PRO-UC-021
+- PRO-UC-022
 
 **Testfälle**
 
-- PRO-TC-010
+- PRO-TC-012
+- PRO-TC-021
+- PRO-TC-022
 
 
 # PRO-VR-003
@@ -614,8 +635,10 @@ Die Körpergröße wird in Zentimetern gespeichert.
 Die Körpergröße
 
 - MUSS vorhanden sein.
+- MUSS in Zentimetern angegeben werden.
 - MUSS mindestens 20 cm betragen.
 - DARF höchstens 300 cm betragen.
+
 
 ### Fehlercodes
 
@@ -624,24 +647,27 @@ Die Körpergröße
 | PRO-VAL-HEIGHT-001 | `validation.profile.height.required` | required | – |
 | PRO-VAL-HEIGHT-002 | `validation.profile.height.maximum` | maximum | `{"maximum":300,"unit":"cm"}` |
 | PRO-VAL-HEIGHT-003 | `validation.profile.height.minimum` | minimum | `{"minimum":20,"unit":"cm"}` |
+| PRO-VAL-HEIGHT-004 | `validation.profile.height.precision` | scale | `{"maximumFractionDigits":1}` |
 
 ### Traceability
 
 **Requirements**
 
-- PRO-FR-011
+- PRO-FR-013
+- PRO-FR-021
+- PRO-FR-022
 
 **Use Cases**
 
-- PRO-UC-011
-
-**Business Rules**
-
-- PRO-BR-013
+- PRO-UC-013
+- PRO-UC-021
+- PRO-UC-022
 
 **Testfälle**
 
-- PRO-TC-011
+- PRO-TC-013
+- PRO-TC-021
+- PRO-TC-022
 
 
 # PRO-VR-004
@@ -676,19 +702,18 @@ Nicht angegebene Werte werden fachlich als **unspecified** behandelt.
 
 **Requirements**
 
-- PRO-FR-012
+- PRO-FR-014
+- PRO-FR-021
 
 **Use Cases**
 
-- PRO-UC-012
-
-**Business Rules**
-
-- PRO-BR-015
+- PRO-UC-014
+- PRO-UC-021
 
 **Testfälle**
 
-- PRO-TC-012
+- PRO-TC-014
+- PRO-TC-021
 
 
 # PRO-VR-005
@@ -703,41 +728,50 @@ Pflichtfeld
 
 ### Beschreibung
 
-Jedes Profil besitzt genau eine Profilfarbe.
+Jedes Profil besitzt eine individuelle Profilfarbe.
 
-Profilfarben dienen ausschließlich der visuellen Zuordnung eines Profils und dürfen nicht zur Darstellung fachlicher Zustände verwendet werden.
+Die Profilfarbe dient ausschließlich der visuellen Zuordnung eines Profils. Sie darf nicht zur Darstellung fachlicher Bewertungen, Warnungen oder Statuswerte verwendet werden.
+
+### Fachliche Regeln
 
 ### Fachliche Regeln
 
 Die Profilfarbe
 
 - MUSS vorhanden sein.
-- MUSS einer unterstützten Profilfarbe entsprechen.
+- MUSS einen gültigen Farbwert repräsentieren.
+- MUSS dauerhaft gespeichert werden können.
+- DARF jederzeit geändert werden.
+- DARF die systemweiten Bereichs- und Statusfarben nicht verändern.
+
+Die Domain definiert keine feste Liste zulässiger Profilfarben.
 
 ### Fehlercodes
 
 | Fehlercode | Message Key | Constraint | Parameter |
 |------------|-------------|------------|-----------|
 | PRO-VAL-COLOR-001 | `validation.profile.color.required` | required | – |
-| PRO-VAL-COLOR-002 | `validation.profile.color.invalid` | enum | `{"allowedValues":["green","black"]}` |
+| PRO-VAL-COLOR-002 | `validation.profile.color.invalid` | format | – |
 
 ### Traceability
 
 **Requirements**
 
-- PRO-FR-013
+- PRO-FR-016
+- PRO-FR-021
+- PRO-FR-022
 
 **Use Cases**
 
-- PRO-UC-013
-
-**Business Rules**
-
-- PRO-BR-016
+- PRO-UC-016
+- PRO-UC-021
+- PRO-UC-022
 
 **Testfälle**
 
-- PRO-TC-013
+- PRO-TC-016
+- PRO-TC-021
+- PRO-TC-022
 
 
 - PRO-VR-006 – Passwort

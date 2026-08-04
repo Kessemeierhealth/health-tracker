@@ -2676,7 +2676,6 @@ fromCentimeters(...)
 
 fromMeters(...)
 
-generate()
 ```
 
 Factory-Methoden erzeugen ausschließlich gültige Value Objects.
@@ -2794,21 +2793,16 @@ UUID
 
 ## Factory
 
-Neue IDs
-
-```text
-DomainResult<ProfileId>
-
-generate()
-```
-
 Vorhandene IDs
 
-```text
 DomainResult<ProfileId>
 
 fromString(value)
-```
+
+Die Erzeugung neuer Profil-IDs erfolgt außerhalb des Value Objects über
+eine definierte Abstraktion.
+
+`ProfileId` validiert und kapselt ausschließlich eine bereits erzeugte UUIDv7.
 
 ---
 
@@ -2887,10 +2881,12 @@ create(value)
 
 Der Name
 
-- besitzt mindestens ein sichtbares Zeichen,
-- besitzt höchstens 80 Zeichen,
-- enthält keine Steuerzeichen,
-- besteht nicht ausschließlich aus Leerzeichen.
+- muss vorhanden sein,
+- darf nach der Normalisierung nicht leer sein,
+- darf nach der Normalisierung nicht ausschließlich aus Leerzeichen bestehen.
+
+Die vollständigen Validierungsregeln werden in `PRO-VR-001` des Dokuments
+`04_VALIDATION_RULES.md` definiert.
 
 ---
 
@@ -2899,10 +2895,13 @@ Der Name
 Vor der Validierung werden
 
 - führende Leerzeichen entfernt,
-- nachfolgende Leerzeichen entfernt,
-- mehrere Leerzeichen innerhalb des Namens vereinheitlicht.
+- nachfolgende Leerzeichen entfernt.
 
-Die Normalisierung verändert niemals die fachliche Bedeutung.
+Leerzeichen innerhalb des Namens und die Groß-/Kleinschreibung bleiben
+unverändert erhalten.
+
+Die vollständigen Normalisierungsregeln werden in `PRO-VR-001` des Dokuments
+`04_VALIDATION_RULES.md` definiert.
 
 ---
 
@@ -3148,7 +3147,6 @@ Eine gültige Körpergröße
 
 - beträgt mindestens 20 cm,
 - beträgt höchstens 300 cm,
-- besitzt höchstens eine fachlich relevante Nachkommastelle,
 - wird intern immer in Zentimetern gespeichert.
 
 ---
@@ -3515,8 +3513,6 @@ Alle Value Objects verwenden dieselben Factory-Konventionen.
 
 ```text
 create(...)
-
-generate()
 
 fromString(...)
 

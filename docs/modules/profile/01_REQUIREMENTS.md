@@ -590,9 +590,10 @@ Das Geburtsjahr wird dauerhaft gespeichert.
 
 ### Akzeptanzkriterien
 
-- Vierstellige Jahreszahl.
-- Kein zukünftiges Jahr.
-- Untergrenze wird zentral definiert.
+- Das Geburtsjahr ist eine vierstellige Jahreszahl.
+- Das Geburtsjahr beträgt mindestens 1900.
+- Das Geburtsjahr darf nicht in der Zukunft liegen.
+- Die Untergrenze wird zentral in den Validierungsregeln des Profilmoduls definiert.
 
 ### Traceability
 
