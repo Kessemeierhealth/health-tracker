@@ -4795,11 +4795,112 @@ DomainResult<LocalizationSettings> create(
 
 ---
 
+# Enumeration: DashboardLayout
+
+## Werte
+
+```text
+standard
+compact
+comfortable
+```
+
+## Regeln
+
+- `standard` ist das reguläre Dashboardlayout.
+- `compact` verwendet eine platzsparende Anordnung.
+- `comfortable` verwendet eine großzügigere Anordnung.
+- Die Enumeration beschreibt ausschließlich die fachliche Präferenz.
+- Konkrete Größen, Abstände und Flutter-Layouts gehören nicht zur Domäne.
+
+---
+
+# Value Object: DashboardWidgetSelection
+
+## Zweck
+
+`DashboardWidgetSelection` beschreibt die sichtbaren Dashboard-Inhalte und
+deren fachliche Reihenfolge.
+
+## Interner Wert
+
+```text
+Ordered immutable List<String>
+```
+
+Jeder String ist ein stabiler, technologieunabhängiger Widget-Schlüssel.
+
+## Factory
+
+```text
+DomainResult<DashboardWidgetSelection> create(
+  List<String> widgetKeys
+)
+```
+
+## Regeln
+
+- Die Liste darf leer sein.
+- Jeder Widget-Schlüssel muss nach dem Trimmen nicht leer sein.
+- Führende und nachfolgende Leerzeichen werden entfernt.
+- Doppelte Widget-Schlüssel sind unzulässig.
+- Die Reihenfolge ist fachlich relevant.
+- Die interne Liste ist unveränderlich.
+- Flutter-Klassennamen und Laufzeitobjekte sind unzulässig.
+
+## Equality
+
+Zwei `DashboardWidgetSelection` sind gleich, wenn ihre normalisierten
+Widget-Schlüssel in derselben Reihenfolge identisch sind.
+
+---
+
+# Value Object: DashboardConfigurationVersion
+
+## Zweck
+
+`DashboardConfigurationVersion` beschreibt die Version der gespeicherten
+Dashboardkonfiguration.
+
+## Interner Wert
+
+```text
+PositiveInteger
+```
+
+## Factory
+
+```text
+DomainResult<DashboardConfigurationVersion> create(
+  int value
+)
+```
+
+## Initialwert
+
+```text
+1
+```
+
+## Regeln
+
+- Der Wert muss mindestens `1` betragen.
+- Der Wert ist unveränderlich.
+- Die Version dient der Kompatibilitäts- und Migrationsprüfung.
+- Sie ist nicht mit der `AggregateVersion` identisch.
+
+## Equality
+
+Zwei Instanzen sind gleich, wenn ihr Versionswert identisch ist.
+
+---
+
 # Value Object: DashboardSettings
 
 ## Zweck
 
-`DashboardSettings` beschreibt die fachliche Auswahl und Anordnung profilbezogener Dashboard-Inhalte.
+`DashboardSettings` beschreibt die fachliche Auswahl und Anordnung
+profilbezogener Dashboard-Inhalte.
 
 ## Attribute
 
@@ -4812,16 +4913,52 @@ DomainResult<LocalizationSettings> create(
 ## Factory
 
 ```text
-DomainResult<DashboardSettings> create(...)
+DomainResult<DashboardSettings> create(
+  DashboardLayout layout,
+  DashboardWidgetSelection visibleWidgets,
+  DashboardConfigurationVersion configurationVersion
+)
 ```
+
+## Preconditions
+
+- `layout` ist ein unterstützter Wert.
+- `visibleWidgets` ist gültig.
+- `configurationVersion` ist gültig.
+
+## Postconditions
+
+Bei Erfolg:
+
+- wurde ein vollständiges und unveränderliches `DashboardSettings` erzeugt,
+- sind Layout, Widgetauswahl und Konfigurationsversion vorhanden,
+- wurden keine technischen Seiteneffekte ausgelöst.
+
+Bei Fehler:
+
+- wird kein `DashboardSettings` erzeugt,
+- enthält `DomainResult<DashboardSettings>` mindestens einen strukturierten
+  Fehler.
 
 ## Regeln
 
-- Das Layout muss gültig sein.
-- Widget-Referenzen müssen unterstützt werden.
-- Doppelte Widget-Referenzen sind unzulässig.
-- Die Konfiguration muss mit ihrer Version kompatibel sein.
+- Das Layout muss unterstützt werden.
+- Widget-Schlüssel müssen gültig sein.
+- Doppelte Widget-Schlüssel sind unzulässig.
+- Die Reihenfolge der Widget-Schlüssel ist fachlich relevant.
+- Die Konfigurationsversion muss mit den enthaltenen Einstellungen kompatibel
+  sein.
 - Flutter-Widgettypen gehören nicht in die Domäne.
+
+## Equality
+
+Zwei `DashboardSettings` sind gleich, wenn
+
+- `layout`,
+- `visibleWidgets`,
+- `configurationVersion`
+
+fachlich gleich sind.
 
 ---
 
@@ -4841,15 +4978,49 @@ DomainResult<DashboardSettings> create(...)
 ## Factory
 
 ```text
-DomainResult<AppearanceSettings> create(...)
+DomainResult<AppearanceSettings> create(
+  ThemePreference themePreference,
+  TextScalePreference? textScalePreference
+)
 ```
+
+## Preconditions
+
+- `themePreference` ist ein unterstützter Wert.
+- `textScalePreference` ist entweder nicht vorhanden oder ein unterstützter
+  Wert.
+
+## Postconditions
+
+Bei Erfolg:
+
+- wurde ein vollständiges und unveränderliches `AppearanceSettings` erzeugt,
+- ist die Theme-Präferenz vorhanden,
+- wurde keine technische Darstellung ausgelöst.
+
+Bei Fehler:
+
+- wird kein `AppearanceSettings` erzeugt,
+- enthält `DomainResult<AppearanceSettings>` mindestens einen strukturierten
+  Fehler.
 
 ## Regeln
 
 - Nur unterstützte Werte sind zulässig.
+- Eine fehlende `textScalePreference` bedeutet, dass die systemweite
+  Textskalierung verwendet wird.
 - Barrierefreiheitsanforderungen dürfen nicht außer Kraft gesetzt werden.
 - Flutter- oder Plattformtypen sind unzulässig.
 - Eine Änderung ersetzt das vollständige Value Object.
+
+## Equality
+
+Zwei `AppearanceSettings` sind gleich, wenn
+
+- `themePreference`,
+- `textScalePreference`
+
+fachlich gleich sind.
 
 ---
 
@@ -4976,6 +5147,28 @@ dark
 - Die Enumeration beschreibt ausschließlich die Präferenz.
 - Plattform- oder Barrierefreiheitsanforderungen können die Darstellung übersteuern.
 - Flutter-spezifische Theme-Werte gehören nicht in die Domäne.
+
+---
+
+# Enumeration: TextScalePreference
+
+## Werte
+
+```text
+system
+small
+standard
+large
+```
+
+## Regeln
+
+- `system` übernimmt die systemweite beziehungsweise barrierefreie Vorgabe.
+- `small`, `standard` und `large` beschreiben ausschließlich eine
+  profilbezogene Präferenz.
+- Die Präferenz darf systemweite Barrierefreiheitsvorgaben nicht
+  unterschreiten oder außer Kraft setzen.
+- Konkrete Skalierungsfaktoren und Flutter-Typen gehören nicht zur Domäne.
 
 ---
 
@@ -5123,14 +5316,6 @@ fachlich gleich sind.
 Die folgenden Typen werden in eigenen Modul- oder UI-Spezifikationen konkretisiert:
 
 ```text
-DashboardLayout
-
-DashboardWidgetSelection
-
-DashboardConfigurationVersion
-
-TextScalePreference
-
 PlainPassword
 ```
 
