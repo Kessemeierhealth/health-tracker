@@ -744,7 +744,7 @@ Operationen, die die Invarianten des Aggregats wahren.
 ## Profilerstellung
 
 ```text
-DomainResult<Profile> create(...)
+DomainResult<Profile> ProfileFactory.createNew(...)
 ```
 
 Erfolg:
@@ -797,9 +797,14 @@ DomainResult<Profile> archive()
 
 DomainResult<Profile> restore()
 
-DomainResult<Profile> lock()
+DomainResult<Profile> lock(
+  Timestamp now
+)
 
-DomainResult<Profile> unlock()
+DomainResult<Profile> unlock(
+  AuthenticationProof proof,
+  Timestamp now
+)
 ```
 
 Statusoperationen prüfen:
@@ -822,12 +827,12 @@ DomainResult<Profile> changeMeasurementSystem(
   MeasurementSystem measurementSystem
 )
 
-DomainResult<Profile> changeDashboardLayout(
+DomainResult<Profile> changeDashboardSettings(
   DashboardSettings dashboardSettings
 )
 
-DomainResult<Profile> changeThemePreference(
-  ThemePreference themePreference
+DomainResult<Profile> changeAppearanceSettings(
+  AppearanceSettings appearanceSettings
 )
 ```
 
@@ -962,7 +967,7 @@ mit fachlichen Fehlern und ohne Zustandsänderung.
 
 # Postconditions
 
-Nach einer erfolgreichen fachlichen Operation gilt:
+Nach einer erfolgreichen fachlichen Operation mit Zustandsänderung gilt:
 
 - Das Aggregate ist konsistent.
 - Alle Aggregate-Invarianten sind erfüllt.
@@ -971,6 +976,15 @@ Nach einer erfolgreichen fachlichen Operation gilt:
 - `AggregateVersion` wurde genau einmal erhöht.
 - Passende Domain Events wurden im Aggregate gesammelt.
 - Das Ergebnis enthält keine Fehler mit Schweregrad `ERROR`.
+
+Nach einer erfolgreichen fachlichen Operation ohne Zustandsänderung gilt:
+
+- Das Aggregate bleibt unverändert konsistent.
+- `updatedAt` bleibt unverändert.
+- `AggregateVersion` bleibt unverändert.
+- Es werden keine Änderungs-Domain-Events erzeugt.
+- Das Ergebnis enthält keine Fehler mit Schweregrad `ERROR`.
+- Das Ergebnis kann die Information `noChange` enthalten.
 
 Nach einer fehlgeschlagenen Operation gilt:
 
@@ -1118,7 +1132,13 @@ Zusätzliche Regeln:
 | active | activate | active | Keine Änderung |
 | inactive | deactivate | inactive | Keine Änderung |
 | archived | archive | archived | Keine Änderung oder Information |
-| jeder Zustand | delete | gelöscht | Bei erfüllten Preconditions |
+| jeder Zustand | requestDeletion | unverändert | Ja, bei erfüllten Preconditions |
+
+`requestDeletion()` prüft ausschließlich die fachliche Zulässigkeit und
+liefert eine `ProfileDeletionDecision`.
+
+Die endgültige technische Löschung ist kein Zustandsübergang innerhalb des
+`Profile`-Aggregats.
 
 Ungültige Übergänge liefern ein fehlerhaftes `DomainResult<T>`.
 
@@ -1159,9 +1179,9 @@ ProfileLanguageChanged
 
 ProfileMeasurementSystemChanged
 
-ProfileDashboardLayoutChanged
+ProfileDashboardSettingsChanged
 
-ProfileThemePreferenceChanged
+ProfileAppearanceSettingsChanged
 
 ProfilePasswordProtectionEnabled
 
@@ -1469,7 +1489,7 @@ Ein neu erzeugtes Profil besitzt:
 - keine oder eine gültige `ProfileImage`,
 - initiale `AuditInformation`,
 - den Status `inactive`,
-- `DefaultProfileFlag.disabled()`.
+- DefaultProfileFlag.createDisabled().
 
 Die profilübergreifende Aktivierung des ersten Profils erfolgt anschließend durch den zuständigen Application Service und Domain Coordinator.
 
@@ -6124,9 +6144,9 @@ Ein neu erzeugtes Aggregate besitzt
 ```text
 ProfileStatus.inactive
 
-DefaultProfileFlag.disabled()
+DefaultProfileFlag.createDisabled()
 
-AggregateVersion.initial()
+AggregateVersion.createInitial()
 
 AuditInformation.createInitial(now)
 ```
@@ -10607,9 +10627,9 @@ Infrastructure
 
 ---
 
-# Vollständigkeit des Domain Models
+# Vollständigkeit der Teile 1 bis 5D
 
-Mit diesem Dokument sind vollständig beschrieben:
+Mit den Teilen 1 bis 5D sind bis zu diesem Stand beschrieben:
 
 ## Aggregate
 
@@ -10707,9 +10727,9 @@ PRO-CINV-006
 
 ---
 
-# Qualitätsziele
+# Qualitätsziele der Teile 1 bis 5D
 
-Das Domain Model erfüllt
+Die bisher beschriebenen Teile des Domain Models erfüllen
 
 - Domain-Driven Design
 - Clean Architecture
@@ -10855,7 +10875,7 @@ Zulässig:
 ```text
 ProfileCreated
 ProfileDeleted
-PasswordChanged
+ProfilePasswordChanged
 ```
 
 Nicht zulässig:
@@ -11014,7 +11034,7 @@ ProfileArchived
 
 ProfileActivated
 
-PasswordChanged
+ProfilePasswordChanged
 
 ProfileImageReplaced
 ```
@@ -11361,15 +11381,15 @@ in Erzeugungsreihenfolge gespeichert.
 
 # Erzeugung von Events
 
-Ein Event entsteht
-
-ausschließlich
-
-durch
-
-eine erfolgreiche
-
+Ein Domain Event entsteht grundsätzlich durch eine erfolgreiche
 Aggregate-Operation.
+
+Ausnahme:
+
+`ProfileDeleted` wird nach erfolgreicher vollständiger Löschung durch den
+zuständigen Application Service als fachliches Abschlussereignis erzeugt.
+
+Diese Ausnahme ist im Abschnitt `requestDeletion()` verbindlich definiert.
 
 ---
 
@@ -11518,7 +11538,7 @@ ProfileActivated
 ```text
 eventType
 
-PasswordChanged
+ProfilePasswordChanged
 ```
 
 ---
@@ -11585,7 +11605,9 @@ Domain Events
 - besitzen keine Seiteneffekte,
 - kennen keine Infrastruktur,
 - sind vollständig immutable,
-- werden ausschließlich durch Aggregate erzeugt,
+- werden grundsätzlich durch Aggregate erzeugt,
+- dürfen ausschließlich in der ausdrücklich dokumentierten Ausnahme
+  `ProfileDeleted` durch den zuständigen Application Service erzeugt werden,
 - werden erst nach erfolgreichem Commit veröffentlicht.
 
 ---
@@ -12141,7 +12163,7 @@ ProfileArchived
 
 ProfileDeleted
 
-PasswordChanged
+ProfilePasswordChanged
 
 ProfileImageReplaced
 ```
@@ -12359,9 +12381,12 @@ verarbeitet.
 
 ## Aggregate
 
-erzeugen
+erzeugen grundsätzlich Domain Events.
 
-Events.
+Die ausdrücklich dokumentierte Ausnahme ist `ProfileDeleted`.
+
+Dieses Abschlussereignis wird nach erfolgreicher vollständiger Löschung durch
+den zuständigen Application Service erzeugt.
 
 ---
 
@@ -12530,35 +12555,36 @@ durchgesetzt.
 
 ---
 
-# Abschluss
+# Status von Teil 5D
 
-Mit Teil **5E-2** ist das Dokument
+Mit Teil **5D-2** ist Teil 5 vollständig beschrieben.
 
-```text
-05_DOMAIN_MODEL.md
-```
+Definiert sind damit:
 
-vollständig abgeschlossen.
-
-Es definiert die vollständige fachliche Struktur des Profilmoduls einschließlich:
-
-- Aggregaten,
-- Entities,
-- Value Objects,
 - Domain Services,
-- Factory,
+- ProfileFactory,
 - Repository Interfaces,
+- UnitOfWork,
 - Domain Ports,
 - Specifications,
 - Domain Policies,
-- Domain Events,
-- Event Publishing,
-- Event Processing,
-- Aggregate-übergreifenden Invarianten,
+- Aggregate-übergreifende Invarianten,
 - Architekturprinzipien,
+- Verantwortungsgrenzen,
 - Traceability.
 
-Dieses Dokument bildet die verbindliche fachliche Grundlage für alle weiteren Architektur- und Implementierungsdokumente.
+Das vollständige Domain Model ist an dieser Stelle noch nicht abgeschlossen.
+
+Die folgenden Teile **5E-1** und **5E-2** definieren zusätzlich:
+
+- Domain Events,
+- Event-Metadaten,
+- Event-Erzeugung,
+- Event Publishing,
+- Transactional Outbox,
+- Event Ordering,
+- Event Replay,
+- Event Handler.
 
 ---
 
