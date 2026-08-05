@@ -843,3 +843,130 @@ sein.
 
 Kann eine Feststellung nicht anhand der aktuellen Version belegt werden, darf
 sie nicht als Review-Ergebnis aufgenommen werden.
+
+## 16. Dokumentations- und Implementierungsstrategie
+
+### Ziel
+
+Die Dokumentation dient der eindeutigen fachlichen Spezifikation der
+Anwendung.
+
+Sie ist kein Selbstzweck.
+
+Ziel des Projekts ist die schrittweise Implementierung einer
+vollständig funktionsfähigen Anwendung.
+
+---
+
+### Führende Dokumente
+
+Die fachliche Ableitung erfolgt ausschließlich in folgender Reihenfolge:
+
+1. Domain Model
+2. Business Rules
+3. Validation Rules
+4. Error Handling Guide
+5. Implementierung
+
+Nachgelagerte Dokumente dürfen keine zusätzlichen fachlichen Regeln
+einführen.
+
+---
+
+### Blockerorientierte Entwicklung
+
+Die Entwicklung erfolgt grundsätzlich blockerorientiert.
+
+Ein Blocker ist ausschließlich eine fehlende oder widersprüchliche
+Spezifikation, die die Implementierung eines konkreten
+Implementierungsauftrags verhindert.
+
+Dokumentationsänderungen erfolgen nur zur Beseitigung eines
+konkreten Blockers.
+
+---
+
+### Dokumentation folgt der Implementierung
+
+Nach Abschluss eines Dokumentationsblockers wird die Implementierung
+unmittelbar fortgesetzt.
+
+Es erfolgt keine vollständige Vorab-Perfektionierung der gesamten
+Dokumentation.
+
+---
+
+### Codex-Arbeitsweise
+
+Codex erhält grundsätzlich einen konkreten
+Implementierungsauftrag.
+
+Codex soll
+
+- implementieren,
+- Tests ergänzen,
+- notwendige Dokumentreferenzen berücksichtigen.
+
+Codex soll nur dann abbrechen, wenn eine eindeutige fachliche
+Entscheidung fehlt.
+
+Allgemeine Dokumentreviews sind zu vermeiden.
+
+---
+
+### Codex-Blocker
+
+Ein von Codex gemeldeter Blocker wird zunächst analysiert.
+
+Es wird ausschließlich der erste echte Implementierungsblocker bearbeitet.
+
+Weitere gemeldete Punkte werden erst nach erfolgreicher Implementierung
+und einem erneuten Codex-Lauf betrachtet.
+
+Dadurch werden Folgekorrekturen auf bereits behobene Probleme vermieden.
+
+Ein Blocker gilt erst dann als abgeschlossen, wenn
+
+- die führende Spezifikation angepasst wurde,
+- alle abhängigen Dokumente synchronisiert wurden,
+- die Änderungen committet wurden und
+- ein erneuter Codex-Lauf keinen Zusammenhang mit diesem Blocker mehr meldet.
+
+---
+
+### Bearbeitung von Blockern
+
+Für jeden Blocker gilt dieselbe Reihenfolge:
+
+1. Blocker analysieren.
+2. Führendes Dokument bestimmen.
+3. Führendes Dokument ergänzen oder korrigieren.
+4. Abhängige Dokumente synchronisieren.
+5. Implementierung fortsetzen.
+6. Commit erstellen.
+7. Nächsten Blocker bearbeiten.
+
+Es wird immer nur ein Blocker vollständig abgeschlossen.
+
+---
+
+### Dokumentationsumfang
+
+Neue Dokumentation wird nur erstellt, wenn sie
+
+- eine Implementierung ermöglicht,
+- einen bestehenden Widerspruch beseitigt,
+- eine fachliche Entscheidung dauerhaft dokumentiert.
+
+Dokumentation wird nicht erweitert, um hypothetische zukünftige
+Anforderungen vorwegzunehmen.
+
+---
+
+### Entwicklungsziel
+
+Der Projekterfolg wird primär an der fortschreitenden
+Implementierung und der Anzahl erfolgreich abgeschlossener
+Funktionsblöcke gemessen.
+
+Die Dokumentation unterstützt dieses Ziel und ersetzt es nicht.
