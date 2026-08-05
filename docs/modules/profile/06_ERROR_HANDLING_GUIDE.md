@@ -7555,6 +7555,7 @@ zu verwenden.
 | 5B-1 | Validation Errors |
 | 5B-1b-2 | Aggregate Validation |
 | 5B-2 | Business Rule Errors |
+| 5B-3 | Domain Information Codes |
 | 5C | Security, Infrastructure, Persistence und Integration Errors |
 | 5D | Governance und Lebenszyklus des Fehlerkatalogs |
 
@@ -8886,6 +8887,824 @@ auf Invarianten,
 
 die das vollständige Aggregate betreffen.
 
+---
+
+# ProfileStatus
+
+### Zugeordneter Domänentyp
+
+**Enumeration**
+
+- ProfileStatus
+
+## Zweck
+
+Dieser Abschnitt definiert die Validation Error Codes für den fachlichen
+Lebenszyklusstatus eines Profils.
+
+`ProfileStatus` beschreibt ausschließlich den Lebenszyklus eines Profils.
+
+Zulässige Werte sind:
+
+```text
+inactive
+active
+archived
+```
+
+Der Sperrzustand wird getrennt durch `LockState` und
+`ProfileLockStatus` modelliert.
+
+Die Werte
+
+```text
+locked
+unlocked
+```
+
+sind keine Werte von `ProfileStatus`.
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-STATUS-001 | validation.profile.status.required | ERROR | VALIDATION | status | required | – |
+| PRO-VAL-STATUS-002 | validation.profile.status.invalid | ERROR | VALIDATION | status | enum | allowedValues |
+| PRO-VAL-STATUS-003 | validation.profile.status.transition | ERROR | VALIDATION | status | transition | – |
+
+### Parameter
+
+#### PRO-VAL-STATUS-002
+
+```json
+{
+  "allowedValues": [
+    "inactive",
+    "active",
+    "archived"
+  ]
+}
+```
+
+### Herkunft
+
+Diese Error Codes werden ausschließlich aus folgender Validation Rule
+übernommen:
+
+- PRO-VR-012
+
+Neue fachliche Validierungsregeln werden in diesem Dokument nicht definiert.
+
+---
+
+## Fehlerverhalten
+
+### Fehlender Profilstatus
+
+Ist kein Profilstatus vorhanden, wird ausschließlich
+
+```text
+PRO-VAL-STATUS-001
+```
+
+erzeugt.
+
+Weitere Statusprüfungen werden in diesem Fall nicht durchgeführt.
+
+### Ungültiger Profilstatus
+
+Entspricht der vorhandene Wert keinem zulässigen `ProfileStatus`, wird
+
+```text
+PRO-VAL-STATUS-002
+```
+
+erzeugt.
+
+Die zulässigen Statuswerte werden über den Parameter `allowedValues`
+übertragen.
+
+### Ungültiger Lebenszyklusübergang
+
+Ist der aktuelle Status gültig, der angeforderte Lebenszyklusübergang aber
+fachlich nicht zulässig, wird
+
+```text
+PRO-VAL-STATUS-003
+```
+
+erzeugt.
+
+Dieser Code beschreibt ausschließlich ungültige Übergänge zwischen den
+Lebenszyklusstatus:
+
+```text
+inactive
+active
+archived
+```
+
+Sperr-, Credential- und Authentifizierungsfehler werden nicht unter diesem
+Code zusammengefasst.
+
+---
+
+## Validierungsreihenfolge
+
+Die Validierung erfolgt in dieser Reihenfolge:
+
+1. Vorhandensein des Status,
+2. zulässiger Enum-Wert,
+3. zulässiger Lebenszyklusübergang.
+
+Ein fehlender Status erzeugt keinen zusätzlichen Enum- oder
+Transition-Fehler.
+
+Ein ungültiger Enum-Wert erzeugt keinen zusätzlichen Transition-Fehler.
+
+---
+
+## No-Change-Abgrenzung
+
+Die folgenden Situationen sind keine Validation Errors:
+
+- `activate()` bei bereits aktivem Profil,
+- `deactivate()` bei bereits inaktivem Profil,
+- `archive()` bei bereits archiviertem Profil.
+
+Diese Situationen können als erfolgreiche No-Change-Ergebnisse behandelt
+werden.
+
+No-Change-Ergebnisse werden getrennt als `DomainInformation` dokumentiert.
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Abschnitts sind:
+
+- `LockState`,
+- `ProfileLockStatus`,
+- Passwortschutz,
+- Authentifizierung,
+- Credential-Prüfung,
+- profilübergreifende Auswahl des aktiven Profils,
+- Business Errors.
+
+Das Zusammenspiel zwischen Lebenszyklusstatus und Sperrzustand wird durch
+das `Profile`-Aggregate sowie die zuständigen Business Rules,
+Specifications und Domain Services geschützt.
+
+---
+
+# DefaultProfile
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- DefaultProfileFlag
+
+## Zweck
+
+Dieser Abschnitt definiert die Validation Error Codes für den
+Standardprofilstatus.
+
+Der Standardprofilstatus wird durch das Value Object
+`DefaultProfileFlag` beschrieben.
+
+Die profilübergreifende Invariante wird durch den
+`DefaultProfileCoordinator` geschützt.
+
+Es darf höchstens ein Standardprofil existieren.
+
+Ein Zustand ohne Standardprofil ist fachlich zulässig.
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters | Status |
+|------------|------------|----------|----------|-------|------------|------------|--------|
+| PRO-VAL-DEFAULT-001 | validation.profile.default.notFound | ERROR | VALIDATION | defaultProfile | required | – | reserviert |
+| PRO-VAL-DEFAULT-002 | validation.profile.default.multiple | ERROR | VALIDATION | defaultProfile | unique | maximum | aktiv |
+| PRO-VAL-DEFAULT-003 | validation.profile.default.invalidStatus | ERROR | VALIDATION | defaultProfile | status | disallowedStatuses | aktiv |
+
+### Parameter
+
+#### PRO-VAL-DEFAULT-002
+
+```json
+{
+  "maximum": 1
+}
+```
+
+#### PRO-VAL-DEFAULT-003
+
+```json
+{
+  "disallowedStatuses": [
+    "archived"
+  ]
+}
+```
+
+### Herkunft
+
+Diese Error Codes werden ausschließlich aus folgender Validation Rule
+übernommen:
+
+- PRO-VR-013
+
+Neue fachliche Validierungsregeln werden in diesem Dokument nicht definiert.
+
+---
+
+## Reservierter Error Code
+
+### PRO-VAL-DEFAULT-001
+
+Der Error Code
+
+```text
+PRO-VAL-DEFAULT-001
+```
+
+bleibt ausschließlich aus Gründen der Stabilität des
+Fehlerkatalogs reserviert.
+
+Ein Zustand ohne Standardprofil stellt keinen Validation Error dar.
+
+Der Code darf
+
+- nicht erneut vergeben,
+- nicht für einen anderen Sachverhalt verwendet,
+- nicht als allgemeiner Pflichtfehler erzeugt
+
+werden.
+
+---
+
+## Fehlerverhalten
+
+### Mehrere Standardprofile
+
+Sind mehrere Profile gleichzeitig als Standardprofil markiert,
+
+wird
+
+```text
+PRO-VAL-DEFAULT-002
+```
+
+erzeugt.
+
+Die Prüfung erfolgt profilübergreifend.
+
+---
+
+### Ungültiger Profilstatus
+
+Ist ein als Standardprofil markiertes Profil archiviert,
+
+wird
+
+```text
+PRO-VAL-DEFAULT-003
+```
+
+erzeugt.
+
+Ein gesperrtes Profil erzeugt diesen Fehler ausdrücklich nicht.
+
+---
+
+## Validierungsreihenfolge
+
+Die Validierung erfolgt in dieser Reihenfolge:
+
+1. Vorhandensein referenzierter Profile.
+2. Lebenszyklusstatus prüfen.
+3. Anzahl der Standardprofile prüfen.
+4. Profilübergreifende Invariante prüfen.
+
+Ein Zustand ohne Standardprofil erzeugt keinen Validation Error.
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Abschnitts sind
+
+- Aktivierung eines Profils,
+- Authentifizierung,
+- Passwortschutz,
+- Sperrlogik,
+- Auswahl des zuletzt verwendeten Profils,
+- technische Persistenz.
+
+Die Auswahl eines bevorzugten Startprofils wird ausschließlich
+durch den `DefaultProfileCoordinator`
+und die zugehörigen Business Rules gesteuert.
+
+---
+
+# ProfileImport
+
+### Zugeordneter fachlicher Prozess
+
+**Importoperation**
+
+- ProfileImport
+
+## Zweck
+
+Dieser Abschnitt definiert die Validation Error Codes für den fachlichen
+Import eines Profile-Aggregates.
+
+Vor der Übernahme eines importierten Profils muss der vollständige
+Importdatensatz erfolgreich validiert und rekonstruiert werden.
+
+Ein Import darf niemals zu einem teilweise übernommenen Aggregate führen.
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-IMPORT-001 | validation.profile.import.invalidFormat | ERROR | VALIDATION | import | format | supportedFormats |
+| PRO-VAL-IMPORT-002 | validation.profile.import.invalidVersion | ERROR | VALIDATION | import | version | supportedVersions |
+| PRO-VAL-IMPORT-003 | validation.profile.import.corrupted | ERROR | VALIDATION | import | integrity | – |
+| PRO-VAL-IMPORT-004 | validation.profile.import.missingRequiredData | ERROR | VALIDATION | import | required | – |
+| PRO-VAL-IMPORT-005 | validation.profile.import.duplicateId | ERROR | VALIDATION | import | duplicate | identityType |
+| PRO-VAL-IMPORT-006 | validation.profile.import.rollback | ERROR | VALIDATION | import | atomic | – |
+
+### Parameter
+
+#### PRO-VAL-IMPORT-001
+
+```json
+{
+  "supportedFormats": [
+    "json"
+  ]
+}
+```
+
+#### PRO-VAL-IMPORT-002
+
+```json
+{
+  "supportedVersions": [
+    "1.0"
+  ]
+}
+```
+
+#### PRO-VAL-IMPORT-005
+
+```json
+{
+  "identityType": "<identityType>"
+}
+```
+
+Zulässige Werte sind:
+
+```text
+ProfileId
+ProfileSettingsId
+ProfileSecurityId
+```
+
+---
+
+## Herkunft
+
+Diese Error Codes werden ausschließlich aus folgender Validation Rule
+übernommen:
+
+- PRO-VR-015
+
+Neue fachliche Importregeln werden in diesem Dokument nicht definiert.
+
+---
+
+## Fehlerverhalten
+
+### Ungültiges Dateiformat
+
+Ist das Importformat nicht unterstützt,
+
+wird
+
+```text
+PRO-VAL-IMPORT-001
+```
+
+erzeugt.
+
+---
+
+### Nicht unterstützte Datenversion
+
+Ist die Datenversion unbekannt oder nicht unterstützt,
+
+wird
+
+```text
+PRO-VAL-IMPORT-002
+```
+
+erzeugt.
+
+---
+
+### Beschädigte Importdaten
+
+Kann der Importdatensatz nicht vollständig gelesen oder rekonstruiert
+werden,
+
+wird
+
+```text
+PRO-VAL-IMPORT-003
+```
+
+erzeugt.
+
+---
+
+### Fehlende Pflichtdaten
+
+Fehlen für die Rekonstruktion erforderliche Daten,
+
+wird
+
+```text
+PRO-VAL-IMPORT-004
+```
+
+erzeugt.
+
+---
+
+### Doppelte fachliche Identitäten
+
+Verletzt der Import die Eindeutigkeit fachlicher Identitäten,
+
+wird
+
+```text
+PRO-VAL-IMPORT-005
+```
+
+erzeugt.
+
+Hierzu gehören insbesondere
+
+- ProfileId
+- ProfileSettingsId
+- ProfileSecurityId
+
+---
+
+### Atomarer Rollback
+
+Kann der Import aufgrund eines oder mehrerer Validation Errors
+nicht erfolgreich abgeschlossen werden,
+
+wird
+
+```text
+PRO-VAL-IMPORT-006
+```
+
+dokumentiert.
+
+Dieser Code beschreibt ausschließlich den vollständigen Rollback
+der Importoperation.
+
+Er ersetzt nicht den ursprünglichen Validation Error.
+
+---
+
+## Rekonstruktionsvalidierung
+
+Vor der Übernahme des importierten Aggregates müssen erfolgreich
+validiert werden:
+
+- Aggregate-Invarianten,
+- Entity-Invarianten,
+- Value-Object-Invarianten.
+
+Erst danach darf das rekonstruierte Profile-Aggregate übernommen werden.
+
+---
+
+## Atomare Ausführung
+
+Der Profilimport ist vollständig atomar.
+
+Bei jedem Validation Error gilt:
+
+- keine teilweise Übernahme,
+- kein teilweise rekonstruiertes Aggregate,
+- vollständiger Rollback,
+- unveränderter ursprünglicher Datenbestand.
+
+---
+
+## Validierungsreihenfolge
+
+Die Validierung erfolgt in dieser Reihenfolge:
+
+1. Dateiformat
+2. Datenversion
+3. Datenintegrität
+4. Pflichtdaten
+5. Rekonstruktion
+6. Aggregate-Invarianten
+7. Entity-Invarianten
+8. Value-Object-Invarianten
+9. Atomare Übernahme
+
+Ein früher Fehler verhindert nachgelagerte Validierungen.
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Abschnitts sind
+
+- technische Dateisystemfehler,
+- Netzwerkfehler,
+- Verschlüsselung,
+- Kompression,
+- Datenbanktransaktionen,
+- Persistenzfehler.
+
+Diese werden in den technischen Fehlerkatalogen dokumentiert.
+
+---
+
+# ProfileExport
+
+### Zugeordneter fachlicher Prozess
+
+**Exportoperation**
+
+- ProfileExport
+
+## Zweck
+
+Dieser Abschnitt definiert die Validation Error Codes für die fachliche
+Validierung eines `ProfileExportModel`.
+
+Die Validierung erfolgt vor der technischen Serialisierung und
+Dateierzeugung.
+
+Es wird ausschließlich das fachliche Exportmodell validiert.
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-EXPORT-001 | validation.profile.export.versionMissing | ERROR | VALIDATION | version | required | field |
+| PRO-VAL-EXPORT-002 | validation.profile.export.foreignProfile | ERROR | VALIDATION | profileData | ownership | expectedProfileId, detectedProfileIds |
+| PRO-VAL-EXPORT-003 | validation.profile.export.securityData | ERROR | VALIDATION | profileData | forbidden | detectedDataTypes |
+| PRO-VAL-EXPORT-004 | validation.profile.export.incomplete | ERROR | VALIDATION | exportModel | completeness | missingFields |
+
+### Parameter
+
+#### PRO-VAL-EXPORT-001
+
+```json
+{
+  "field": "version"
+}
+```
+
+---
+
+#### PRO-VAL-EXPORT-002
+
+```json
+{
+  "expectedProfileId": "<profileId>",
+  "detectedProfileIds": [
+    "<foreignProfileId>"
+  ]
+}
+```
+
+---
+
+#### PRO-VAL-EXPORT-003
+
+```json
+{
+  "detectedDataTypes": [
+    "PasswordCredential",
+    "PasswordHash"
+  ]
+}
+```
+
+Es werden ausschließlich Typbezeichnungen übertragen.
+
+Geheime Inhalte dürfen niemals Bestandteil eines Validation Errors sein.
+
+---
+
+#### PRO-VAL-EXPORT-004
+
+```json
+{
+  "missingFields": [
+    "exportedAt",
+    "profileId",
+    "profileData"
+  ]
+}
+```
+
+---
+
+## Herkunft
+
+Diese Error Codes werden ausschließlich aus
+
+```text
+PRO-VR-016
+```
+
+übernommen.
+
+Neue fachliche Regeln werden in diesem Dokument nicht definiert.
+
+---
+
+## Fehlerverhalten
+
+### Fehlende Exportversion
+
+Fehlt die Exportversion,
+
+wird
+
+```text
+PRO-VAL-EXPORT-001
+```
+
+erzeugt.
+
+---
+
+### Fremde Profildaten
+
+Enthält das Exportmodell Daten,
+die nicht eindeutig der exportierten
+
+```text
+ProfileId
+```
+
+zugeordnet sind,
+
+wird
+
+```text
+PRO-VAL-EXPORT-002
+```
+
+erzeugt.
+
+Hierzu gehören insbesondere
+
+- fremde Stammdaten,
+- fremde Einstellungen,
+- fremde Bildreferenzen,
+- vermischte Daten mehrerer Profile.
+
+---
+
+### Verbotene Sicherheitsdaten
+
+Enthält das Exportmodell mindestens einen verbotenen
+Sicherheitsdatentyp,
+
+wird
+
+```text
+PRO-VAL-EXPORT-003
+```
+
+erzeugt.
+
+Der Fehlerparameter enthält ausschließlich die Typbezeichnungen der
+festgestellten Daten.
+
+Passwortwerte, Hashes, Credentials,
+AuthenticationProofs oder kryptographische Schlüssel dürfen niemals
+Bestandteil eines Validation Errors sein.
+
+---
+
+### Unvollständiges Exportmodell
+
+Fehlen erforderliche Bestandteile des Exportmodells,
+
+wird
+
+```text
+PRO-VAL-EXPORT-004
+```
+
+erzeugt.
+
+Hierzu gehören insbesondere
+
+- exportedAt,
+- profileId,
+- profileData,
+- angeforderte freigegebene Exportbereiche.
+
+---
+
+## Vollständigkeit
+
+Ein vollständiges Exportmodell enthält mindestens
+
+```text
+version
+exportedAt
+profileId
+profileData
+```
+
+Zusätzlich müssen sämtliche ausdrücklich freigegebenen
+Exportbereiche vollständig enthalten sein.
+
+---
+
+## Validierungsreihenfolge
+
+Die Validierung erfolgt in dieser Reihenfolge:
+
+1. Exportversion.
+2. Exportzeitpunkt.
+3. ProfileId.
+4. Vollständigkeit.
+5. Profilzuordnung.
+6. Sicherheitsdaten.
+7. Vollständiges Exportmodell.
+
+Ein früher Validation Error verhindert nachgelagerte
+fachliche Prüfungen, soweit diese auf den fehlenden
+Informationen aufbauen.
+
+---
+
+## Erfolgsverhalten
+
+Nach erfolgreicher Validierung gilt:
+
+- das Exportmodell ist fachlich vollständig,
+- sämtliche Daten gehören zum exportierten Profil,
+- keine verbotenen Sicherheitsdaten sind enthalten,
+- keine technischen Exportartefakte wurden erzeugt,
+- das Profile-Aggregate bleibt unverändert,
+- Auditinformationen bleiben unverändert,
+- die Aggregate-Version bleibt unverändert.
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Abschnitts sind
+
+- technische Serialisierung,
+- JSON-Erzeugung,
+- Dateierzeugung,
+- Kompression,
+- Verschlüsselung,
+- Download,
+- Dateisystemzugriffe,
+- Netzwerkübertragung,
+- technische Speicherfehler.
+
+Diese Verantwortlichkeiten werden ausschließlich in den technischen
+Fehlerkatalogen dokumentiert.
+
+---
+
 # 06_ERROR_HANDLING_GUIDE.md
 
 # Teil 5B-1b-1b – Core Validation Codes (ProfileSettings und ProfileSecurity)
@@ -8932,11 +9751,38 @@ Die Validierung betrifft ausschließlich die fachliche Konsistenz der Profileins
 
 ## Error Codes
 
-| ErrorCode | MessageKey |
-|------------|------------|
-| validation.profileSettings.required | validation.profileSettings.required |
-| validation.profileSettings.invalid | validation.profileSettings.invalid |
-| validation.profileSettings.duplicate | validation.profileSettings.duplicate |
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-PSET-001 | validation.profileSettings.settingsId.required | ERROR | VALIDATION | settingsId | required | – |
+| PRO-VAL-PSET-002 | validation.profileSettings.settingsId.invalid | ERROR | VALIDATION | settingsId | invalid | – |
+| PRO-VAL-PSET-003 | validation.profileSettings.localization.required | ERROR | VALIDATION | localization | required | – |
+| PRO-VAL-PSET-004 | validation.profileSettings.dashboard.required | ERROR | VALIDATION | dashboard | required | – |
+| PRO-VAL-PSET-005 | validation.profileSettings.appearance.required | ERROR | VALIDATION | appearance | required | – |
+| PRO-VAL-PSET-006 | validation.profileSettings.incomplete | ERROR | VALIDATION | profileSettings | completeness | requiredFields |
+
+### Herkunft
+
+Diese Error Codes werden ausschließlich aus folgenden Validation Rules
+abgeleitet:
+
+- PRO-VR-017
+- PRO-VR-018
+- PRO-VR-021
+- PRO-VR-022
+- PRO-VR-023
+
+Neue fachliche Regeln werden in diesem Dokument nicht definiert.
+
+### Hinweise
+
+Validation Errors der enthaltenen Value Objects werden nicht als
+`ProfileSettings`-Fehler dupliziert.
+
+Die Detailvalidierung erfolgt ausschließlich in den jeweiligen
+Domänentypen.
+
+No-Change ist kein Validation Error und wird deshalb nicht in diesem
+Abschnitt dokumentiert.
 
 ---
 
@@ -8948,14 +9794,340 @@ Die Validierung betrifft ausschließlich die fachliche Konsistenz der Profileins
 
 - LocalizationSettings
 
+## Zweck
+
+Dieser Abschnitt definiert die Validation Error Codes des Value Objects
+`LocalizationSettings`.
+
+Das Value Object beschreibt die profilbezogenen Einstellungen für
+
+- Sprache,
+- Maßeinheitensystem.
+
+Land, Zeitzone und Datumsformat sind keine Attribute dieses Value Objects.
+
 ## Error Codes
 
-| ErrorCode | MessageKey |
-|------------|------------|
-| validation.localization.required | validation.localization.required |
-| validation.localization.language.invalid | validation.localization.language.invalid |
-| validation.localization.country.invalid | validation.localization.country.invalid |
-| validation.localization.timezone.invalid | validation.localization.timezone.invalid |
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-LOC-001 | validation.localization.language.required | ERROR | VALIDATION | language | required | – |
+| PRO-VAL-LOC-002 | validation.localization.language.invalid | ERROR | VALIDATION | language | enum | allowedValues |
+| PRO-VAL-LOC-003 | validation.localization.measurementSystem.required | ERROR | VALIDATION | measurementSystem | required | – |
+| PRO-VAL-LOC-004 | validation.localization.measurementSystem.invalid | ERROR | VALIDATION | measurementSystem | enum | allowedValues |
+
+### Parameter
+
+#### PRO-VAL-LOC-002
+
+```json
+{
+  "allowedValues": "supportedLanguageCodes"
+}
+```
+
+Die tatsächlich unterstützten Sprachcodes werden durch die Enumeration
+`Language` und die zugehörige Sprachkonfiguration bestimmt.
+
+#### PRO-VAL-LOC-004
+
+```json
+{
+  "allowedValues": [
+    "metric",
+    "imperial"
+  ]
+}
+```
+
+### Herkunft
+
+Diese Error Codes werden ausschließlich aus folgender Validation Rule
+übernommen:
+
+- PRO-VR-018
+
+Neue fachliche Validierungsregeln werden in diesem Dokument nicht definiert.
+
+### Fehlerverhalten
+
+Ist `language` nicht vorhanden, wird ausschließlich
+
+```text
+PRO-VAL-LOC-001
+```
+
+für dieses Feld erzeugt.
+
+Ist `language` vorhanden, entspricht aber keinem unterstützten Sprachcode,
+wird
+
+```text
+PRO-VAL-LOC-002
+```
+
+erzeugt.
+
+Ist `measurementSystem` nicht vorhanden, wird ausschließlich
+
+```text
+PRO-VAL-LOC-003
+```
+
+für dieses Feld erzeugt.
+
+Ist `measurementSystem` vorhanden, entspricht aber keinem unterstützten
+Wert, wird
+
+```text
+PRO-VAL-LOC-004
+```
+
+erzeugt.
+
+Ein fehlender Pflichtwert erzeugt für dasselbe Feld keinen zusätzlichen
+Enum-Fehler.
+
+### Abgrenzung
+
+Nicht zu `LocalizationSettings` gehören:
+
+- `country`,
+- `timezone`,
+- Datumsformate,
+- konkrete Übersetzungen,
+- UI-Locale-Typen,
+- Flutter-Typen.
+
+Dafür werden in diesem Abschnitt keine Error Codes definiert.
+
+Ein identischer neuer Wert ist kein Validation Error.
+
+Das No-Change-Verhalten wird getrennt von den Validation Errors
+dokumentiert.
+
+---
+
+# DashboardWidgetSelection
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- DashboardWidgetSelection
+
+## Zweck
+
+Dieser Abschnitt definiert die Validation Error Codes des Value Objects
+`DashboardWidgetSelection`.
+
+Das Value Object beschreibt die sichtbaren Dashboard-Widgets eines Profils
+sowie deren fachliche Reihenfolge.
+
+## Error Codes
+
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-DWSEL-001 | validation.dashboardWidgetSelection.widgetKeys.required | ERROR | VALIDATION | widgetKeys | required | – |
+| PRO-VAL-DWSEL-002 | validation.dashboardWidgetSelection.widgetKey.blank | ERROR | VALIDATION | widgetKeys | blank | index |
+| PRO-VAL-DWSEL-003 | validation.dashboardWidgetSelection.widgetKey.duplicate | ERROR | VALIDATION | widgetKeys | duplicate | widgetKey, firstIndex, duplicateIndex |
+
+### Parameter
+
+#### PRO-VAL-DWSEL-002
+
+```json
+{
+  "index": "<zeroBasedIndex>"
+}
+```
+
+#### PRO-VAL-DWSEL-003
+
+```json
+{
+  "widgetKey": "<normalizedWidgetKey>",
+  "firstIndex": "<zeroBasedIndex>",
+  "duplicateIndex": "<zeroBasedIndex>"
+}
+```
+
+### Herkunft
+
+Diese Error Codes werden ausschließlich aus folgender Validation Rule
+übernommen:
+
+- PRO-VR-019
+
+Neue fachliche Regeln werden in diesem Dokument nicht definiert.
+
+### Fehlerverhalten
+
+#### Fehlende Liste
+
+Ist `widgetKeys` nicht vorhanden, wird ausschließlich
+
+```text
+PRO-VAL-DWSEL-001
+```
+
+erzeugt.
+
+#### Leerer Widget-Schlüssel
+
+Ergibt ein Widget-Schlüssel nach der Normalisierung einen leeren Wert,
+
+wird
+
+```text
+PRO-VAL-DWSEL-002
+```
+
+erzeugt.
+
+#### Doppelter Widget-Schlüssel
+
+Kommt ein normalisierter Widget-Schlüssel mehrfach vor,
+
+wird
+
+```text
+PRO-VAL-DWSEL-003
+```
+
+erzeugt.
+
+### Hinweise
+
+Eine vorhandene leere Liste ist ausdrücklich zulässig.
+
+Für einen unbekannten Widget-Schlüssel wird derzeit kein eigener
+Error Code definiert, da das Domain Model keinen verbindlichen
+Widget-Katalog enthält.
+
+### Abgrenzung
+
+Nicht Bestandteil dieses Abschnitts sind:
+
+- Flutter-Widgets,
+- Widget-Klassen,
+- UI-Komponenten,
+- Dashboard-Inhalte,
+- Dashboard-Auswertungen,
+- Bildschirmgrößen,
+- Persistenzstrukturen.
+
+Die vollständige Validierung eines Dashboardzustands erfolgt
+ausschließlich über `DashboardSettings`.
+
+Validation Errors werden dort nicht erneut erzeugt.
+
+---
+
+# DashboardConfigurationVersion
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- DashboardConfigurationVersion
+
+## Zweck
+
+Dieser Abschnitt definiert die Validation Error Codes des Value Objects
+`DashboardConfigurationVersion`.
+
+Das Value Object beschreibt die Version einer gespeicherten
+Dashboardkonfiguration.
+
+Es dient ausschließlich der fachlichen Kompatibilitäts- und
+Migrationsprüfung von Dashboard-Einstellungen.
+
+Es ist nicht identisch mit der `AggregateVersion`.
+
+## Error Codes
+
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-DCV-001 | validation.dashboardConfigurationVersion.required | ERROR | VALIDATION | value | required | – |
+| PRO-VAL-DCV-002 | validation.dashboardConfigurationVersion.minimum | ERROR | VALIDATION | value | minimum | minimum, actual |
+
+### Parameter
+
+#### PRO-VAL-DCV-002
+
+```json
+{
+  "minimum": 1,
+  "actual": "<value>"
+}
+```
+
+### Herkunft
+
+Diese Error Codes werden ausschließlich aus folgender Validation Rule
+übernommen:
+
+- PRO-VR-020
+
+Neue fachliche Regeln werden in diesem Dokument nicht definiert.
+
+### Fehlerverhalten
+
+#### Fehlende Versionsnummer
+
+Ist keine Versionsnummer vorhanden, wird ausschließlich
+
+```text
+PRO-VAL-DCV-001
+```
+
+erzeugt.
+
+Weitere Prüfungen erfolgen nicht.
+
+#### Ungültige Versionsnummer
+
+Ist die Versionsnummer kleiner als `1`,
+
+wird
+
+```text
+PRO-VAL-DCV-002
+```
+
+erzeugt.
+
+Der tatsächlich übergebene Wert wird als Parameter übertragen.
+
+### Hinweise
+
+Die Versionsnummer beschreibt ausschließlich die fachliche Version der
+Dashboardkonfiguration.
+
+Sie ist nicht identisch mit
+
+- `AggregateVersion`,
+- Optimistic Locking,
+- Datenbankschemata,
+- Persistenzversionen.
+
+Eine Versionsnummer größer als `1` ist kein Validation Error.
+
+Ob eine Dashboardkonfiguration migriert werden muss, wird nicht durch den
+Error Handling Guide entschieden.
+
+### Abgrenzung
+
+Nicht Bestandteil dieses Abschnitts sind:
+
+- AggregateVersion,
+- Datenmigration,
+- Persistenz,
+- Datenbankschemata,
+- technische Revisionsnummern,
+- Optimistic Locking.
+
+Diese Verantwortlichkeiten werden an anderer Stelle beschrieben.
 
 ---
 
@@ -8967,14 +10139,167 @@ Die Validierung betrifft ausschließlich die fachliche Konsistenz der Profileins
 
 - DashboardSettings
 
+## Zweck
+
+Dieser Abschnitt definiert die Validation Error Codes des Value Objects
+`DashboardSettings`.
+
+Das Value Object beschreibt die vollständigen profilbezogenen
+Dashboard-Einstellungen.
+
+Es besteht aus
+
+- `DashboardLayout`,
+- `DashboardWidgetSelection`,
+- `DashboardConfigurationVersion`.
+
 ## Error Codes
 
-| ErrorCode | MessageKey |
-|------------|------------|
-| validation.dashboard.required | validation.dashboard.required |
-| validation.dashboard.invalid | validation.dashboard.invalid |
-| validation.dashboard.widget.invalid | validation.dashboard.widget.invalid |
-| validation.dashboard.layout.invalid | validation.dashboard.layout.invalid |
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-DSET-001 | validation.dashboardSettings.layout.required | ERROR | VALIDATION | layout | required | – |
+| PRO-VAL-DSET-002 | validation.dashboardSettings.layout.invalid | ERROR | VALIDATION | layout | enum | allowedValues |
+| PRO-VAL-DSET-003 | validation.dashboardSettings.visibleWidgets.required | ERROR | VALIDATION | visibleWidgets | required | – |
+| PRO-VAL-DSET-004 | validation.dashboardSettings.configurationVersion.required | ERROR | VALIDATION | configurationVersion | required | – |
+| PRO-VAL-DSET-005 | validation.dashboardSettings.incomplete | ERROR | VALIDATION | dashboardSettings | completeness | requiredFields |
+
+### Parameter
+
+#### PRO-VAL-DSET-002
+
+```json
+{
+  "allowedValues": "DashboardLayout"
+}
+```
+
+#### PRO-VAL-DSET-005
+
+```json
+{
+  "requiredFields": [
+    "layout",
+    "visibleWidgets",
+    "configurationVersion"
+  ]
+}
+```
+
+### Herkunft
+
+Diese Error Codes werden ausschließlich aus folgender Validation Rule
+übernommen:
+
+- PRO-VR-021
+
+Neue fachliche Regeln werden in diesem Dokument nicht definiert.
+
+### Fehlerverhalten
+
+#### Fehlendes Layout
+
+Ist `layout` nicht vorhanden,
+
+wird ausschließlich
+
+```text
+PRO-VAL-DSET-001
+```
+
+erzeugt.
+
+#### Ungültiges Layout
+
+Ist `layout` kein unterstützter `DashboardLayout`,
+
+wird
+
+```text
+PRO-VAL-DSET-002
+```
+
+erzeugt.
+
+#### Fehlende Widgetauswahl
+
+Ist `visibleWidgets` nicht vorhanden,
+
+wird
+
+```text
+PRO-VAL-DSET-003
+```
+
+erzeugt.
+
+#### Fehlende Konfigurationsversion
+
+Ist `configurationVersion` nicht vorhanden,
+
+wird
+
+```text
+PRO-VAL-DSET-004
+```
+
+erzeugt.
+
+#### Unvollständiger Dashboardzustand
+
+Fehlt mindestens einer der Pflichtbestandteile,
+
+kann zusätzlich
+
+```text
+PRO-VAL-DSET-005
+```
+
+erzeugt werden,
+
+sofern nicht bereits ein eindeutiger Pflichtfeldfehler den Zustand
+vollständig beschreibt.
+
+### Hinweise
+
+`DashboardSettings` validiert ausschließlich den vollständigen
+Dashboardzustand.
+
+Die Detailvalidierung erfolgt ausschließlich durch
+
+- `DashboardWidgetSelection`
+- `DashboardConfigurationVersion`
+
+sowie die Enumeration
+
+- `DashboardLayout`.
+
+Fehler dieser Domänentypen werden nicht erneut als
+`DashboardSettings`-Fehler erzeugt.
+
+Dadurch werden doppelte Fehlermeldungen vermieden.
+
+Eine vorhandene leere Widgetauswahl ist ausdrücklich zulässig.
+
+### Abgrenzung
+
+Nicht Bestandteil dieses Abschnitts sind:
+
+- Dashboard-Inhalte,
+- Dashboard-Auswertungen,
+- Widget-Daten,
+- Flutter-Widgets,
+- Bildschirmgrößen,
+- Farben,
+- UI-Komponenten,
+- Layoutberechnungen.
+
+Diese Verantwortlichkeiten gehören nicht zum fachlichen
+Dashboard-Einstellungszustand.
+
+Ein identischer neuer Wert ist kein Validation Error.
+
+Das No-Change-Verhalten wird getrennt von den Validation Errors
+dokumentiert.
 
 ---
 
@@ -8986,13 +10311,132 @@ Die Validierung betrifft ausschließlich die fachliche Konsistenz der Profileins
 
 - AppearanceSettings
 
+## Zweck
+
+Dieser Abschnitt definiert die Validation Error Codes des Value Objects
+`AppearanceSettings`.
+
+Das Value Object beschreibt die profilbezogenen Darstellungspräferenzen.
+
+Es besteht aus
+
+- `ThemePreference`,
+- optional `TextScalePreference`.
+
 ## Error Codes
 
-| ErrorCode | MessageKey |
-|------------|------------|
-| validation.appearance.required | validation.appearance.required |
-| validation.appearance.invalid | validation.appearance.invalid |
-| validation.appearance.theme.invalid | validation.appearance.theme.invalid |
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-APP-001 | validation.appearanceSettings.themePreference.required | ERROR | VALIDATION | themePreference | required | – |
+| PRO-VAL-APP-002 | validation.appearanceSettings.themePreference.invalid | ERROR | VALIDATION | themePreference | enum | allowedValues |
+| PRO-VAL-APP-003 | validation.appearanceSettings.textScalePreference.invalid | ERROR | VALIDATION | textScalePreference | enum | allowedValues |
+
+### Parameter
+
+#### PRO-VAL-APP-002
+
+```json
+{
+  "allowedValues": "ThemePreference"
+}
+```
+
+#### PRO-VAL-APP-003
+
+```json
+{
+  "allowedValues": "TextScalePreference"
+}
+```
+
+### Herkunft
+
+Diese Error Codes werden ausschließlich aus folgender Validation Rule
+übernommen:
+
+- PRO-VR-022
+
+Neue fachliche Regeln werden in diesem Dokument nicht definiert.
+
+### Fehlerverhalten
+
+#### Fehlende ThemePreference
+
+Ist `themePreference` nicht vorhanden,
+
+wird ausschließlich
+
+```text
+PRO-VAL-APP-001
+```
+
+erzeugt.
+
+Weitere Prüfungen erfolgen nicht.
+
+#### Ungültige ThemePreference
+
+Ist `themePreference` kein unterstützter Wert,
+
+wird
+
+```text
+PRO-VAL-APP-002
+```
+
+erzeugt.
+
+#### Ungültige TextScalePreference
+
+Ist `textScalePreference` vorhanden,
+
+entspricht aber keinem unterstützten Wert,
+
+wird
+
+```text
+PRO-VAL-APP-003
+```
+
+erzeugt.
+
+Eine fehlende `textScalePreference` erzeugt keinen Validation Error.
+
+### Hinweise
+
+`AppearanceSettings` validiert ausschließlich den vollständigen fachlichen
+Darstellungszustand.
+
+Die Detailvalidierung der enthaltenen Enumerationen erfolgt ausschließlich
+über
+
+- `ThemePreference`
+- `TextScalePreference`.
+
+Fehler dieser Domänentypen werden nicht erneut als
+`AppearanceSettings`-Fehler erzeugt.
+
+Dadurch werden doppelte Fehlermeldungen vermieden.
+
+### Abgrenzung
+
+Nicht Bestandteil dieses Abschnitts sind:
+
+- Flutter-Themes,
+- Material-Themes,
+- Plattformdarstellung,
+- konkrete Schriftgrößen,
+- Farbdefinitionen,
+- UI-Komponenten,
+- Accessibility-Implementierungen.
+
+Diese Verantwortlichkeiten gehören nicht zum fachlichen
+Darstellungszustand.
+
+Ein identischer neuer Wert ist kein Validation Error.
+
+Das No-Change-Verhalten wird getrennt von den Validation Errors
+dokumentiert.
 
 ---
 
@@ -9026,10 +10470,159 @@ Die Entity stellt sämtliche sicherheitsrelevanten fachlichen Invarianten des Pr
 
 ## Error Codes
 
-| ErrorCode | MessageKey |
-|------------|------------|
-| validation.profileSecurity.required | validation.profileSecurity.required |
-| validation.profileSecurity.invalid | validation.profileSecurity.invalid |
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-PSEC-001 | validation.profileSecurity.securityId.required | ERROR | VALIDATION | securityId | required | – |
+| PRO-VAL-PSEC-002 | validation.profileSecurity.securityId.invalid | ERROR | VALIDATION | securityId | invalid | – |
+| PRO-VAL-PSEC-003 | validation.profileSecurity.lockState.required | ERROR | VALIDATION | lockState | required | – |
+| PRO-VAL-PSEC-004 | validation.profileSecurity.passwordCredential.invalid | ERROR | VALIDATION | passwordCredential | invalid | – |
+| PRO-VAL-PSEC-005 | validation.profileSecurity.lockState.requiresCredential | ERROR | VALIDATION | lockState | consistency | required=passwordCredential |
+| PRO-VAL-PSEC-006 | validation.profileSecurity.incomplete | ERROR | VALIDATION | profileSecurity | completeness | requiredFields |
+
+### Parameter
+
+#### PRO-VAL-PSEC-005
+
+```json
+{
+  "required": "passwordCredential"
+}
+```
+
+#### PRO-VAL-PSEC-006
+
+```json
+{
+  "requiredFields": [
+    "securityId",
+    "lockState"
+  ]
+}
+```
+
+### Herkunft
+
+Diese Error Codes werden ausschließlich aus folgender Validation Rule
+übernommen:
+
+- PRO-VR-024
+
+Neue fachliche Regeln werden in diesem Dokument nicht definiert.
+
+### Fehlerverhalten
+
+#### Fehlende ProfileSecurityId
+
+Ist `securityId` nicht vorhanden,
+
+wird ausschließlich
+
+```text
+PRO-VAL-PSEC-001
+```
+
+erzeugt.
+
+#### Ungültige ProfileSecurityId
+
+Ist `securityId` ungültig,
+
+wird
+
+```text
+PRO-VAL-PSEC-002
+```
+
+erzeugt.
+
+#### Fehlender LockState
+
+Ist `lockState` nicht vorhanden,
+
+wird ausschließlich
+
+```text
+PRO-VAL-PSEC-003
+```
+
+erzeugt.
+
+#### Ungültiges PasswordCredential
+
+Ist ein `PasswordCredential` vorhanden, aber ungültig,
+
+wird
+
+```text
+PRO-VAL-PSEC-004
+```
+
+erzeugt.
+
+#### Gesperrter Zustand ohne Credential
+
+Ist das Profil gesperrt und gleichzeitig kein
+`PasswordCredential` vorhanden,
+
+wird
+
+```text
+PRO-VAL-PSEC-005
+```
+
+erzeugt.
+
+#### Unvollständiger Sicherheitszustand
+
+Fehlt mindestens einer der Pflichtbestandteile,
+
+kann zusätzlich
+
+```text
+PRO-VAL-PSEC-006
+```
+
+erzeugt werden,
+
+sofern nicht bereits ein eindeutiger Pflichtfeldfehler den Zustand
+vollständig beschreibt.
+
+### Hinweise
+
+`ProfileSecurity` validiert ausschließlich den vollständigen
+fachlichen Sicherheitszustand.
+
+Die Detailvalidierung erfolgt ausschließlich über
+
+- `ProfileSecurityId`
+- `PasswordCredential`
+- `LockState`
+
+sowie die zugehörigen Validation Rules.
+
+Fehler dieser Value Objects werden nicht erneut als
+`ProfileSecurity`-Fehler erzeugt.
+
+Dadurch werden doppelte Fehlermeldungen vermieden.
+
+### Abgrenzung
+
+Nicht Bestandteil dieses Abschnitts sind:
+
+- AuthenticationProof,
+- Authentifizierung,
+- Passwortprüfung,
+- Passwortstärke,
+- Kryptographie,
+- Hashverfahren,
+- technische Security Ports,
+- Business Errors,
+- No-Change-Ergebnisse.
+
+Diese Verantwortlichkeiten werden in den Business Rules und den
+zugehörigen technischen Komponenten beschrieben.
+
+Ein erfolgreicher No-Change ist kein Validation Error.
 
 ---
 
@@ -9043,19 +10636,330 @@ Die Entity stellt sämtliche sicherheitsrelevanten fachlichen Invarianten des Pr
 
 ## Zweck
 
-Dieses Value Object beschreibt ein vom Benutzer eingegebenes Passwort vor dessen kryptographischer Verarbeitung.
+Dieser Abschnitt definiert die Validation Error Codes für ein vom Benutzer
+eingegebenes Passwort vor dessen kryptographischer Verarbeitung.
+
+`PlainPassword` ist ausschließlich ein kurzlebiger fachlicher Eingabewert.
+
+Es darf weder dauerhaft gespeichert noch protokolliert oder Bestandteil
+eines Audit-Eintrags werden.
 
 ---
 
 ## Error Codes
 
-| ErrorCode | MessageKey |
-|------------|------------|
-| validation.password.required | validation.password.required |
-| validation.password.blank | validation.password.blank |
-| validation.password.minimumLength | validation.password.minimumLength |
-| validation.password.maximumLength | validation.password.maximumLength |
-| validation.password.tooWeak | validation.password.tooWeak |
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-PWD-001 | validation.profile.password.required | ERROR | VALIDATION | password | required | – |
+| PRO-VAL-PWD-002 | validation.profile.password.minLength | ERROR | VALIDATION | password | minimum | minimum, unit |
+| PRO-VAL-PWD-003 | validation.profile.password.blank | ERROR | VALIDATION | password | blank | – |
+| PRO-VAL-PWD-004 | validation.profile.password.equalsProfileName | ERROR | VALIDATION | password | forbidden | – |
+
+### Parameter
+
+#### PRO-VAL-PWD-002
+
+```json
+{
+  "minimum": 12,
+  "unit": "characters"
+}
+```
+
+### Herkunft
+
+Diese Error Codes werden ausschließlich aus folgender Validation Rule
+übernommen:
+
+- PRO-VR-006
+
+Neue fachliche Validierungsregeln werden in diesem Dokument nicht definiert.
+
+### Fehlerverhalten
+
+#### Fehlendes Passwort
+
+Ist kein Passwort vorhanden, wird
+
+```text
+PRO-VAL-PWD-001
+```
+
+erzeugt.
+
+Weitere inhaltliche Prüfungen werden in diesem Fall nicht ausgeführt.
+
+#### Mindestlänge unterschritten
+
+Enthält das Passwort weniger als zwölf Zeichen, wird
+
+```text
+PRO-VAL-PWD-002
+```
+
+erzeugt.
+
+#### Passwort besteht ausschließlich aus Leerzeichen
+
+Besteht das Passwort ausschließlich aus Leerzeichen, wird
+
+```text
+PRO-VAL-PWD-003
+```
+
+erzeugt.
+
+#### Passwort entspricht dem Profilnamen
+
+Entspricht das Passwort dem Profilnamen, wird
+
+```text
+PRO-VAL-PWD-004
+```
+
+erzeugt.
+
+### Abgrenzung
+
+Die folgenden bisherigen Katalogeinträge entfallen:
+
+```text
+validation.password.maximumLength
+validation.password.tooWeak
+```
+
+Für diese Sachverhalte existieren in der aktuellen Validation Rule
+`PRO-VR-006` keine Error Codes.
+
+Technische Anforderungen wie
+
+- Passwortkomplexität,
+- Passwort-Historie,
+- Blacklists,
+- kompromittierte Passwörter,
+- kryptographische Verarbeitung
+
+werden nicht durch diesen Abschnitt definiert.
+
+Sie gehören ausschließlich in den Security Guide beziehungsweise die
+zuständigen technischen Sicherheitskomponenten.
+
+### Datenschutz
+
+Weder der Passwortwert noch Teile des Passworts dürfen in
+
+- Parameters,
+- Logs,
+- Monitoring,
+- Audit-Daten,
+- Domain Events
+
+übertragen werden.
+
+---
+
+# PasswordConfirmation
+
+### Zugeordneter Domänentyp
+
+**Eingabewert**
+
+- PasswordConfirmation
+
+## Zweck
+
+Dieser Abschnitt definiert die Validation Error Codes für die Bestätigung
+eines neu eingegebenen Passworts.
+
+`PasswordConfirmation` dient ausschließlich der Prüfung, ob die
+Passwortbestätigung mit dem neu eingegebenen Passwort übereinstimmt.
+
+Es handelt sich nicht um ein persistiertes Value Object.
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-PWDCONF-001 | validation.profile.passwordConfirmation.required | ERROR | VALIDATION | passwordConfirmation | required | – |
+| PRO-VAL-PWDCONF-002 | validation.profile.passwordConfirmation.mismatch | ERROR | VALIDATION | passwordConfirmation | equals | referenceField |
+
+### Parameter
+
+#### PRO-VAL-PWDCONF-002
+
+```json
+{
+  "referenceField": "password"
+}
+```
+
+### Herkunft
+
+Diese Error Codes werden ausschließlich aus folgender Validation Rule
+übernommen:
+
+- PRO-VR-007
+
+Neue fachliche Validierungsregeln werden in diesem Dokument nicht definiert.
+
+### Fehlerverhalten
+
+#### Fehlende Passwortbestätigung
+
+Ist keine Passwortbestätigung vorhanden,
+
+wird
+
+```text
+PRO-VAL-PWDCONF-001
+```
+
+erzeugt.
+
+Weitere Vergleichsprüfungen erfolgen nicht.
+
+#### Passwortbestätigung stimmt nicht überein
+
+Entspricht die Passwortbestätigung nicht dem eingegebenen Passwort,
+
+wird
+
+```text
+PRO-VAL-PWDCONF-002
+```
+
+erzeugt.
+
+### Abgrenzung
+
+Dieser Abschnitt prüft ausschließlich die Übereinstimmung zwischen
+
+- Passwort
+- Passwortbestätigung.
+
+Die Qualität oder Gültigkeit des Passworts selbst wird ausschließlich durch
+
+```text
+PlainPassword
+```
+
+validiert.
+
+### Datenschutz
+
+Der Wert der Passwortbestätigung darf nicht in
+
+- Logs,
+- Audit-Daten,
+- Domain Events,
+- Parameters
+
+übernommen werden.
+
+---
+
+# CurrentPassword
+
+### Zugeordneter Domänentyp
+
+**Eingabewert**
+
+- CurrentPassword
+
+## Zweck
+
+Dieser Abschnitt definiert die Validation Error Codes für das aktuelle
+Passwort, das zur Bestätigung sicherheitsrelevanter Profiloperationen
+angegeben wird.
+
+`CurrentPassword` ist kein persistierter Domänenzustand.
+
+Der Eingabewert dient ausschließlich der Authentifizierung für Operationen
+wie
+
+- Passwort ändern,
+- Passwortschutz deaktivieren,
+- geschütztes Profil entsperren.
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-CURPWD-001 | validation.profile.currentPassword.required | ERROR | VALIDATION | currentPassword | required | – |
+| PRO-VAL-CURPWD-002 | validation.profile.currentPassword.invalid | ERROR | VALIDATION | currentPassword | valid | – |
+
+### Herkunft
+
+Diese Error Codes werden ausschließlich aus folgender Validation Rule
+übernommen:
+
+- PRO-VR-008
+
+Neue fachliche Validierungs- oder Sicherheitsregeln werden in diesem
+Dokument nicht definiert.
+
+### Fehlerverhalten
+
+#### Fehlendes aktuelles Passwort
+
+Ist kein aktuelles Passwort vorhanden, wird
+
+```text
+PRO-VAL-CURPWD-001
+```
+
+erzeugt.
+
+Eine Verifikation wird in diesem Fall nicht durchgeführt.
+
+#### Ungültiges aktuelles Passwort
+
+Kann das angegebene aktuelle Passwort nicht erfolgreich verifiziert werden,
+wird
+
+```text
+PRO-VAL-CURPWD-002
+```
+
+erzeugt.
+
+Der Fehler darf keine Informationen darüber offenlegen,
+
+- welcher Teil der Eingabe falsch war,
+- wie das gespeicherte Credential aufgebaut ist,
+- welche kryptographischen Parameter verwendet werden.
+
+### Abgrenzung
+
+Dieser Abschnitt definiert ausschließlich die strukturierten
+Validierungsergebnisse für das aktuelle Passwort.
+
+Nicht Bestandteil dieses Abschnitts sind:
+
+- technische Passwortverifikation,
+- Hashverfahren,
+- Credential-Erzeugung,
+- `AuthenticationProof`,
+- Autorisierung,
+- Lockout- oder Rate-Limiting-Regeln.
+
+Diese Verantwortlichkeiten werden durch den Security Guide und die
+zuständigen Sicherheitsports geregelt.
+
+### Datenschutz
+
+Das aktuelle Passwort darf niemals Bestandteil sein von
+
+- Parameters,
+- Logs,
+- Audit-Daten,
+- Domain Events,
+- Monitoringdaten,
+- Fehlermeldungen.
 
 ---
 
@@ -9151,12 +11055,142 @@ in Kapitel **5B-1a** definiert.
 - ImageDimensions
 - ImageChecksum
 
+## Zweck
+
+Dieser Abschnitt definiert die Validation Error Codes für die fachliche
+Validierung eines Profilbilds.
+
+Ein Profilbild ist optional.
+
+Ist ein Profilbild vorhanden, muss es vollständig den Anforderungen aus
+`PRO-VR-010` entsprechen.
+
+---
+
 ## Error Codes
 
-| ErrorCode | MessageKey |
-|------------|------------|
-| validation.profileImage.required | validation.profileImage.required |
-| validation.profileImage.invalid | validation.profileImage.invalid |
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-IMG-001 | validation.profile.image.invalidFormat | ERROR | VALIDATION | image | format | supportedFormats |
+| PRO-VAL-IMG-002 | validation.profile.image.notReadable | ERROR | VALIDATION | image | readable | – |
+| PRO-VAL-IMG-003 | validation.profile.image.tooLarge | ERROR | VALIDATION | image | maximum | maxSizeBytes |
+| PRO-VAL-IMG-004 | validation.profile.image.processingFailed | ERROR | VALIDATION | image | processing | – |
+
+### Parameter
+
+#### PRO-VAL-IMG-001
+
+```json
+{
+  "supportedFormats": [
+    "JPEG",
+    "PNG",
+    "WebP"
+  ]
+}
+```
+
+#### PRO-VAL-IMG-003
+
+```json
+{
+  "maxSizeBytes": 2097152
+}
+```
+
+### Herkunft
+
+Diese Error Codes werden ausschließlich aus folgender Validation Rule
+übernommen:
+
+- PRO-VR-010
+
+Neue fachliche Validierungsregeln werden in diesem Dokument nicht definiert.
+
+### Fehlerverhalten
+
+#### Ungültiges Bildformat
+
+Besitzt das Profilbild kein unterstütztes Format, wird
+
+```text
+PRO-VAL-IMG-001
+```
+
+erzeugt.
+
+Die unterstützten Formate werden über den Parameter `supportedFormats`
+übertragen.
+
+#### Profilbild nicht lesbar
+
+Kann das Profilbild nicht als gültige Bilddatei gelesen werden, wird
+
+```text
+PRO-VAL-IMG-002
+```
+
+erzeugt.
+
+#### Maximale Dateigröße überschritten
+
+Überschreitet das Profilbild die maximale Dateigröße von zwei Megabyte, wird
+
+```text
+PRO-VAL-IMG-003
+```
+
+erzeugt.
+
+Die maximale Dateigröße wird in Bytes über den Parameter `maxSizeBytes`
+übertragen.
+
+#### Bildverarbeitung fehlgeschlagen
+
+Kann die vorgeschriebene Verarbeitung des Profilbilds nicht erfolgreich
+abgeschlossen werden, wird
+
+```text
+PRO-VAL-IMG-004
+```
+
+erzeugt.
+
+### Datenschutz
+
+Ein Profilbild muss vor der dauerhaften Übernahme gemäß den fachlichen
+Vorgaben verarbeitet werden.
+
+Insbesondere dürfen keine
+
+- EXIF-Metadaten,
+- Standortinformationen,
+- Bildbinärdaten
+
+in Fehlerparametern, Logs oder Domain Messages enthalten sein.
+
+### Abgrenzung
+
+Das Fehlen eines Profilbilds ist kein Validation Error.
+
+Daher existiert kein Error Code für ein erforderliches Profilbild.
+
+Die bisherigen generischen Einträge
+
+```text
+validation.profileImage.required
+validation.profileImage.invalid
+```
+
+entfallen vollständig.
+
+Die Detailvalidierung der enthaltenen Value Objects
+
+- `ImageReference`,
+- `ImageDimensions`,
+- `ImageChecksum`
+
+wird nicht durch generische `ProfileImage`-Fehler dupliziert.
 
 ---
 
@@ -9654,15 +11688,63 @@ Innerhalb des Systems darf genau ein Standardprofil existieren.
 
 ## ProfileSecurity
 
-### Fachliche Regel
+### Zweck
 
-Ein gesperrtes Profil darf keine Authentifizierung durchführen.
+Dieser Abschnitt definiert die Business Errors der fachlichen Operationen
+von `ProfileSecurity`.
+
+Die Codes werden ausschließlich aus folgenden Business Rules abgeleitet:
+
+- PRO-BR-028
+- PRO-BR-029
+- PRO-BR-030
+- PRO-BR-031
+
+Neue fachliche Regeln werden in diesem Dokument nicht definiert.
 
 ### Error Codes
 
-| ErrorCode | MessageKey |
-|------------|------------|
-| business.profile.security.locked | business.profile.security.locked |
+| ErrorCode | MessageKey | Severity | Category | Operation | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-----------|-------|------------|------------|
+| PRO-BUS-PSEC-001 | business.profileSecurity.passwordProtection.alreadyEnabled | ERROR | BUSINESS | enablePasswordProtection | passwordCredential | transition | – |
+| PRO-BUS-PSEC-002 | business.profileSecurity.lock.requiresCredential | ERROR | BUSINESS | lock | passwordCredential | required | – |
+| PRO-BUS-PSEC-003 | business.profileSecurity.changePassword.requiresCredential | ERROR | BUSINESS | changePasswordCredential | passwordCredential | required | – |
+
+### PRO-BUS-PSEC-001
+
+Der Passwortschutz ist bereits aktiviert.
+
+Ein erneutes Aktivieren ist fachlich unzulässig.
+
+Der bestehende Zustand bleibt vollständig unverändert.
+
+### PRO-BUS-PSEC-002
+
+Ein Profil ohne vorhandenes `PasswordCredential` darf nicht gesperrt werden.
+
+Der bestehende Zustand bleibt vollständig unverändert.
+
+### PRO-BUS-PSEC-003
+
+Ein Passwort kann nur geändert werden, wenn bereits ein
+`PasswordCredential` vorhanden ist.
+
+Der bestehende Zustand bleibt vollständig unverändert.
+
+### Abgrenzung
+
+Die folgenden Situationen sind keine Business Errors:
+
+- Passwortschutz ist bereits deaktiviert,
+- Profil ist bereits gesperrt,
+- Profil ist bereits entsperrt,
+- Profil besitzt beim Entsperren kein Credential,
+- neues Credential entspricht dem vorhandenen Credential.
+
+Diese Situationen sind erfolgreiche No-Change-Ergebnisse und werden getrennt
+als `DomainInformation` dokumentiert.
+
+Validation Errors werden ausschließlich in Teil 5B-1 behandelt.
 
 ---
 
@@ -9753,6 +11835,188 @@ Die projektweite Fehlerklassifikation lautet:
 
 Diese Präfixe gelten projektweit
 für sämtliche Module der Health-Tracker-Anwendung.
+
+---
+
+# Teil 5B-3 – Domain Information Codes
+
+## Zweck
+
+Dieses Kapitel definiert stabile Codes für erfolgreiche fachliche
+Operationen ohne Zustandsänderung.
+
+Ein No-Change-Ergebnis
+
+- ist erfolgreich,
+- enthält keinen `DomainError`,
+- enthält mindestens eine `DomainInformation`,
+- verändert den fachlichen Zustand nicht,
+- verändert keine Auditinformationen,
+- erhöht keine Aggregate-Version,
+- erzeugt kein Änderungs-Domain-Event.
+
+Die allgemeinen Regeln für No-Change-Ergebnisse werden ausschließlich in
+Teil 2 dieses Dokuments definiert.
+
+---
+
+# ProfileSettings
+
+## Herkunft
+
+Die No-Change-Informationen werden aus den im Domain Model definierten
+Operationen von `ProfileSettings` abgeleitet.
+
+Sie gelten für:
+
+- `changeLanguage(...)`,
+- `changeMeasurementSystem(...)`,
+- `changeDashboardSettings(...)`,
+- `changeAppearanceSettings(...)`,
+- `resetToDefaults(...)`.
+
+## Information Codes
+
+| ErrorCode | MessageKey | Severity | Category | Operation | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-----------|-------|------------|------------|
+| PRO-INF-PSET-001 | information.profileSettings.noChange | INFORMATION | BUSINESS | aktuelle Operation | – | – | operation |
+
+### Parameter
+
+```json
+{
+  "operation": "<operationName>"
+}
+```
+
+Zulässige Werte für `operation` sind:
+
+```text
+changeLanguage
+changeMeasurementSystem
+changeDashboardSettings
+changeAppearanceSettings
+resetToDefaults
+```
+
+### Verhalten
+
+`PRO-INF-PSET-001` wird verwendet, wenn der angeforderte vollständige
+Zielzustand fachlich bereits dem aktuellen Zustand entspricht.
+
+Das erfolgreiche `DomainResult<ProfileSettings>` enthält den unveränderten
+gültigen Zustand.
+
+---
+
+# ProfileSecurity
+
+## Herkunft
+
+Die Information Codes werden ausschließlich aus folgenden Business Rules
+abgeleitet:
+
+- PRO-BR-028
+- PRO-BR-029
+- PRO-BR-030
+- PRO-BR-031
+
+Neue fachliche Regeln werden in diesem Dokument nicht definiert.
+
+## Information Codes
+
+| ErrorCode | MessageKey | Severity | Category | Operation | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-----------|-------|------------|------------|
+| PRO-INF-PSEC-001 | information.profileSecurity.passwordProtection.alreadyDisabled | INFORMATION | BUSINESS | disablePasswordProtection | – | – | operation |
+| PRO-INF-PSEC-002 | information.profileSecurity.credential.unchanged | INFORMATION | BUSINESS | changePasswordCredential | – | – | operation |
+| PRO-INF-PSEC-003 | information.profileSecurity.alreadyLocked | INFORMATION | BUSINESS | lock | – | – | operation |
+| PRO-INF-PSEC-004 | information.profileSecurity.alreadyUnlocked | INFORMATION | BUSINESS | unlock | – | – | operation |
+
+### Parameter
+
+Alle Information Codes dieses Abschnitts verwenden:
+
+```json
+{
+  "operation": "<operationName>"
+}
+```
+
+---
+
+## PRO-INF-PSEC-001
+
+Der Passwortschutz ist bereits deaktiviert.
+
+`disablePasswordProtection(...)` liefert einen erfolgreichen No Change.
+
+Der bestehende Zustand bleibt vollständig unverändert.
+
+---
+
+## PRO-INF-PSEC-002
+
+Das neue `PasswordCredential` entspricht fachlich bereits dem vorhandenen
+Credential.
+
+`changePasswordCredential(...)` liefert einen erfolgreichen No Change.
+
+Der bestehende Zustand bleibt vollständig unverändert.
+
+---
+
+## PRO-INF-PSEC-003
+
+Das Profil ist bereits gesperrt.
+
+`lock(...)` liefert einen erfolgreichen No Change.
+
+Der bestehende Zustand bleibt vollständig unverändert.
+
+---
+
+## PRO-INF-PSEC-004
+
+Das Profil ist fachlich bereits entsperrt.
+
+Dieser Code wird verwendet, wenn
+
+- das Profil bereits entsperrt ist,
+- oder kein `PasswordCredential` vorhanden ist und das Profil deshalb
+  fachlich nicht gesperrt sein kann.
+
+`unlock(...)` liefert einen erfolgreichen No Change.
+
+Der bestehende Zustand bleibt vollständig unverändert.
+
+---
+
+# Gemeinsame Regeln
+
+Für sämtliche Information Codes dieses Kapitels gilt:
+
+- Severity ist `INFORMATION`.
+- Category ist `BUSINESS`.
+- Es ist kein Feld von einem Fehler betroffen.
+- Es liegt keine Constraint-Verletzung vor.
+- Das Ergebnis bleibt erfolgreich.
+- Der aktuelle gültige Zustand wird unverändert zurückgegeben.
+- Es werden keine Auditinformationen aktualisiert.
+- Die Aggregate-Version wird nicht erhöht.
+- Es wird kein Änderungs-Domain-Event erzeugt.
+- Information Codes dürfen nicht als Business Errors behandelt werden.
+- Message Keys dürfen nicht zur Steuerung der Fachlogik verwendet werden.
+
+---
+
+# Status dieses Abschnitts
+
+Mit Teil **5B-3** sind die No-Change-Informationen für
+
+- `ProfileSettings`,
+- `ProfileSecurity`
+
+vollständig definiert.
 
 # 06_ERROR_HANDLING_GUIDE.md
 

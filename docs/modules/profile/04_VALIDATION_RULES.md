@@ -100,13 +100,17 @@ Es beschreibt Validierungsregeln für
 
 Nicht Bestandteil dieses Dokuments sind
 
-- Dashboard
+- fachliche Dashboard-Inhalte und Dashboard-Auswertungen anderer Module
 - Ernährung
 - Messwerte
 - Medikamente
 - Geräte
 - Auswertungen
 - Empfehlungen
+
+Profilbezogene Dashboard-Präferenzen wie Auswahl, Sichtbarkeit und Anordnung
+sind Bestandteil des `Profile`-Aggregates und werden in diesem Dokument
+validiert.
 
 ---
 
@@ -1213,37 +1217,214 @@ Systemvalidierung
 
 ### Beschreibung
 
-Der Profilstatus beschreibt den fachlichen Lebenszyklus eines Profils.
+Der Profilstatus beschreibt ausschließlich den fachlichen Lebenszyklus eines
+Profils.
+
+Der Lebenszyklusstatus wird durch die Enumeration
+
+```text
+ProfileStatus
+```
+
+repräsentiert.
+
+Der Sperrzustand eines Profils wird getrennt davon durch
+
+```text
+LockState
+```
+
+beziehungsweise
+
+```text
+ProfileLockStatus
+```
+
+modelliert.
+
+Lebenszyklusstatus und Sperrzustand dürfen nicht miteinander vermischt
+werden.
 
 ### Zulässige Status
 
-- active
-- inactive
-- archived
-- locked
+```text
+inactive
+active
+archived
+```
 
 ### Fachliche Regeln
 
 Der Profilstatus
 
 - MUSS vorhanden sein.
-- MUSS einem definierten Status entsprechen.
-- DARF niemals mehrere Status gleichzeitig besitzen.
+- MUSS einem definierten Wert der Enumeration `ProfileStatus` entsprechen.
+- DARF niemals mehrere Lebenszyklusstatus gleichzeitig besitzen.
+- DARF keinen Sperrstatus repräsentieren.
 
-### Konsistenzregeln
+Die Werte
 
-- Ein archiviertes Profil DARF nicht aktiv sein.
-- Ein gesperrtes Profil DARF nicht aktiv sein.
-- Ein archiviertes Profil DARF nicht entsperrt werden.
-- Ein gesperrtes Profil MUSS vor einer Aktivierung entsperrt werden.
+```text
+locked
+unlocked
+```
+
+sind keine Werte von `ProfileStatus`.
+
+Sie gehören ausschließlich zum fachlichen Sperrzustand.
+
+### Statusübergänge
+
+Für den Lebenszyklus gelten insbesondere folgende Übergänge:
+
+| Ausgangszustand | Operation | Zielzustand |
+|-----------------|-----------|-------------|
+| inactive | activate | active |
+| active | deactivate | inactive |
+| inactive | archive | archived |
+| active | archive | archived |
+| archived | restore | inactive |
+
+Ein Übergang ist ungültig, wenn er durch das Domain Model nicht zugelassen
+ist.
+
+Beispiele:
+
+- Ein archiviertes Profil darf nicht direkt aktiviert werden.
+- Ein nicht archiviertes Profil darf nicht wiederhergestellt werden.
+- Ein nicht zulässiger Zielstatus darf nicht übernommen werden.
+
+### No-Change-Abgrenzung
+
+Die folgenden Situationen sind keine Validierungsfehler:
+
+- `activate()` bei bereits aktivem Profil,
+- `deactivate()` bei bereits inaktivem Profil,
+- `archive()` bei bereits archiviertem Profil.
+
+Diese Fälle können entsprechend dem Domain Model als erfolgreicher
+No-Change behandelt werden.
+
+No-Change-Ergebnisse werden getrennt von Validation Errors dokumentiert.
+
+### Cross-Field- und Aggregate-Regeln
+
+Das Zusammenspiel zwischen Lebenszyklusstatus und Sperrzustand wird nicht
+durch die Enumeration `ProfileStatus` allein validiert.
+
+Insbesondere gelten auf Aggregate-Ebene:
+
+- Ein gesperrtes Profil darf nicht aktiv sein.
+- Ein gesperrtes Profil muss vor einer Aktivierung entsperrt werden.
+- Ein archiviertes Profil darf nicht aktiviert werden.
+- Ein archiviertes Profil darf nicht durch eine reguläre
+  Aktivierungsoperation reaktiviert werden.
+
+Diese Regeln werden durch
+
+- das `Profile`-Aggregate,
+- `ProfileSecurity`,
+- `LockState`,
+- zuständige Business Rules,
+- Specifications und Domain Services
+
+geschützt.
+
+Sie erzeugen nicht automatisch einen zusätzlichen
+`ProfileStatus`-Enum-Fehler.
 
 ### Fehlercodes
 
-| Fehlercode | Message Key | Constraint | Parameter |
-|------------|-------------|------------|-----------|
-| PRO-VAL-STATUS-001 | `validation.profile.status.required` | required | – |
-| PRO-VAL-STATUS-002 | `validation.profile.status.invalid` | enum | `{"allowedValues":["active","inactive","archived","locked"]}` |
-| PRO-VAL-STATUS-003 | `validation.profile.status.transition` | transition | – |
+| Fehlercode | Message Key | Severity | Feld | Constraint | Parameter |
+|------------|-------------|----------|------|------------|-----------|
+| PRO-VAL-STATUS-001 | `validation.profile.status.required` | ERROR | status | required | – |
+| PRO-VAL-STATUS-002 | `validation.profile.status.invalid` | ERROR | status | enum | `{"allowedValues":["inactive","active","archived"]}` |
+| PRO-VAL-STATUS-003 | `validation.profile.status.transition` | ERROR | status | transition | – |
+
+### Fehlerverhalten
+
+#### Fehlender Profilstatus
+
+Ist kein Profilstatus vorhanden, wird ausschließlich
+
+```text
+PRO-VAL-STATUS-001
+```
+
+erzeugt.
+
+Weitere Statusprüfungen erfolgen in diesem Fall nicht.
+
+#### Ungültiger Profilstatus
+
+Entspricht der vorhandene Wert keinem zulässigen `ProfileStatus`, wird
+
+```text
+PRO-VAL-STATUS-002
+```
+
+erzeugt.
+
+Als Parameter werden die zulässigen Werte übertragen:
+
+```json
+{
+  "allowedValues": [
+    "inactive",
+    "active",
+    "archived"
+  ]
+}
+```
+
+#### Ungültiger Statusübergang
+
+Ist der aktuelle Status gültig, der angeforderte Lebenszyklusübergang jedoch
+fachlich nicht zulässig, wird
+
+```text
+PRO-VAL-STATUS-003
+```
+
+erzeugt.
+
+Der Fehler beschreibt ausschließlich einen ungültigen
+Lebenszyklusübergang.
+
+Sperr- und Authentifizierungsfehler werden nicht unter diesem Code
+zusammengefasst.
+
+### Validierungsreihenfolge
+
+Die Validierung erfolgt in dieser Reihenfolge:
+
+1. Vorhandensein des Status prüfen.
+2. Zulässigen Enum-Wert prüfen.
+3. Angeforderten Lebenszyklusübergang prüfen.
+4. Aggregate- und Cross-Field-Invarianten prüfen.
+
+Ein fehlender Status erzeugt keinen zusätzlichen Enum- oder
+Transition-Fehler.
+
+Ein ungültiger Enum-Wert erzeugt keinen zusätzlichen Transition-Fehler.
+
+Dadurch werden Folgefehler vermieden.
+
+### Abgrenzung
+
+Nicht Bestandteil dieser Validation Rule sind:
+
+- Passwortschutz,
+- Authentifizierung,
+- Credential-Prüfung,
+- `AuthenticationProof`,
+- technische Sperrmechanismen,
+- Lockout- oder Rate-Limiting-Regeln,
+- profilübergreifende Auswahl des aktiven Profils.
+
+Die profilübergreifende Regel, dass höchstens ein Profil aktiv sein darf,
+wird durch den zuständigen Domain Service beziehungsweise Coordinator
+geschützt.
 
 ### Traceability
 
@@ -1264,6 +1445,28 @@ Der Profilstatus
 - PRO-BR-008
 - PRO-BR-010
 
+**Domain Model**
+
+- `Profile.status`
+- `ProfileStatus`
+- `Profile.activate()`
+- `Profile.deactivate()`
+- `Profile.archive()`
+- `Profile.restore()`
+- `LockState`
+- `ProfileLockStatus`
+- AG-INV-003
+- AG-INV-010
+- AG-INV-011
+
+**Validation Principles**
+
+- PRO-VP-001
+- PRO-VP-002
+- PRO-VP-003
+- PRO-VP-004
+- PRO-VP-009
+
 ---
 
 # PRO-VR-013
@@ -1274,26 +1477,192 @@ Standardprofil validieren
 
 ### Typ
 
-Systemvalidierung
+Profilübergreifende Systemvalidierung
 
 ### Beschreibung
 
-Das Standardprofil wird beim Start der Anwendung automatisch geöffnet.
+Das Standardprofil bezeichnet das Profil, das bei der Ermittlung eines
+bevorzugten Startprofils berücksichtigt wird.
+
+Der Standardprofilstatus eines einzelnen Profils wird durch
+
+```text
+DefaultProfileFlag
+```
+
+beschrieben.
+
+Die profilübergreifende Invariante wird durch den
+
+```text
+DefaultProfileCoordinator
+```
+
+geschützt.
+
+Es darf höchstens ein Standardprofil existieren.
+
+Ein Zustand ohne Standardprofil ist fachlich zulässig.
 
 ### Fachliche Regeln
 
+Für den Standardprofilstatus gilt:
+
 - Es DARF höchstens ein Standardprofil existieren.
-- Das Standardprofil MUSS vorhanden sein.
+- Es DARF auch kein Standardprofil existieren.
+- Ein als Standardprofil ausgewähltes Profil MUSS vorhanden sein.
 - Ein archiviertes Profil DARF kein Standardprofil sein.
-- Ein gesperrtes Profil DARF kein Standardprofil sein.
+- Ein gelöschtes Profil DARF nicht als Standardprofil referenziert werden.
+- Ein gesperrtes Profil DARF Standardprofil sein.
+- Der Sperrzustand allein macht ein Profil nicht ungeeignet als
+  Standardprofil.
+
+Die Prüfung, ob mehrere Profile gleichzeitig als Standardprofil markiert
+sind, kann nicht durch ein einzelnes `DefaultProfileFlag` durchgeführt
+werden.
+
+Diese profilübergreifende Prüfung erfolgt ausschließlich durch den
+`DefaultProfileCoordinator` beziehungsweise die zuständige
+Application-Layer-Koordination.
+
+### Zulässige Profilzustände
+
+Ein Standardprofil darf den Lebenszyklusstatus
+
+```text
+inactive
+active
+```
+
+besitzen.
+
+Ein gesperrtes Profil darf ebenfalls Standardprofil sein, da der
+Sperrzustand getrennt vom Lebenszyklusstatus modelliert wird.
+
+Nicht zulässig ist der Lebenszyklusstatus
+
+```text
+archived
+```
+
+### No-Change-Abgrenzung
+
+Ist ein Profil bereits Standardprofil und wird erneut als Standardprofil
+markiert, liegt kein Validation Error vor.
+
+Die Operation kann ein erfolgreiches No-Change-Ergebnis liefern.
+
+No-Change-Ergebnisse werden getrennt von Validation Errors dokumentiert.
 
 ### Fehlercodes
 
-| Fehlercode | Message Key | Constraint | Parameter |
-|------------|-------------|------------|-----------|
-| PRO-VAL-DEFAULT-001 | `validation.profile.default.notFound` | required | – |
-| PRO-VAL-DEFAULT-002 | `validation.profile.default.multiple` | unique | `{"maximum":1}` |
-| PRO-VAL-DEFAULT-003 | `validation.profile.default.invalidStatus` | status | – |
+| Fehlercode | Message Key | Severity | Feld | Constraint | Parameter | Status |
+|------------|-------------|----------|------|------------|-----------|--------|
+| PRO-VAL-DEFAULT-001 | `validation.profile.default.notFound` | ERROR | defaultProfile | required | – | reserviert |
+| PRO-VAL-DEFAULT-002 | `validation.profile.default.multiple` | ERROR | defaultProfile | unique | `{"maximum":1}` | aktiv |
+| PRO-VAL-DEFAULT-003 | `validation.profile.default.invalidStatus` | ERROR | defaultProfile | status | `{"disallowedStatuses":["archived"]}` | aktiv |
+
+### Reservierter Error Code
+
+#### PRO-VAL-DEFAULT-001
+
+Der Error Code
+
+```text
+PRO-VAL-DEFAULT-001
+```
+
+wurde ursprünglich für die allgemeine Aussage verwendet, dass ein
+Standardprofil vorhanden sein müsse.
+
+Diese Aussage gilt nicht mehr als allgemeine fachliche Invariante.
+
+Ein Zustand ohne Standardprofil ist zulässig.
+
+Der Error Code bleibt gemäß `PRO-VP-007` dauerhaft reserviert und darf
+
+- nicht neu vergeben,
+- nicht für einen anderen Sachverhalt verwendet,
+- nicht als allgemeiner Pflichtfeldfehler erzeugt
+
+werden.
+
+Die Prüfung einer ungültigen Referenz auf ein nicht vorhandenes Profil muss
+im konkreten Aufrufkontext durch den zuständigen Coordinator,
+Application Service oder Repository-Port behandelt werden.
+
+### Fehlerverhalten
+
+#### Mehrere Standardprofile
+
+Sind mehrere Profile gleichzeitig als Standardprofil markiert, wird
+
+```text
+PRO-VAL-DEFAULT-002
+```
+
+erzeugt.
+
+Der Fehlerparameter lautet:
+
+```json
+{
+  "maximum": 1
+}
+```
+
+Die Prüfung erfolgt profilübergreifend.
+
+#### Ungültiger Lebenszyklusstatus
+
+Ist ein als Standardprofil markiertes Profil archiviert, wird
+
+```text
+PRO-VAL-DEFAULT-003
+```
+
+erzeugt.
+
+Der Fehlerparameter lautet:
+
+```json
+{
+  "disallowedStatuses": [
+    "archived"
+  ]
+}
+```
+
+Ein gesperrtes Profil erzeugt diesen Fehler nicht.
+
+### Validierungsreihenfolge
+
+Die Validierung erfolgt in dieser Reihenfolge:
+
+1. Vorhandensein referenzierter Profile prüfen.
+2. Lebenszyklusstatus des ausgewählten Profils prüfen.
+3. Anzahl der als Standardprofil markierten Profile prüfen.
+4. Profilübergreifende Invariante durch den
+   `DefaultProfileCoordinator` bestätigen.
+
+Ein Zustand ohne Standardprofil erzeugt keinen Validation Error.
+
+### Abgrenzung
+
+Nicht Bestandteil dieser Validation Rule sind:
+
+- Aktivierung des Standardprofils,
+- automatische Entsperrung,
+- Authentifizierung,
+- Auswahl des zuletzt verwendeten Profils,
+- technische Persistenz von Profilreferenzen,
+- Startnavigation der Benutzeroberfläche.
+
+Ein gesperrtes Standardprofil darf als bevorzugtes Startprofil identifiziert
+werden.
+
+Es darf jedoch nicht automatisch aktiviert werden, bevor die erforderliche
+Authentifizierung erfolgreich abgeschlossen wurde.
 
 ### Traceability
 
@@ -1309,13 +1678,33 @@ Das Standardprofil wird beim Start der Anwendung automatisch geöffnet.
 
 - PRO-BR-012
 
+**Domain Model**
+
+- `Profile.defaultFlag`
+- `DefaultProfileFlag`
+- `Profile.markAsDefault()`
+- `Profile.removeDefault()`
+- `DefaultProfileCoordinator`
+- `DefaultProfileSelectionPolicy`
+- PRO-CINV-001
+- PRO-CINV-002
+
+**Validation Principles**
+
+- PRO-VP-001
+- PRO-VP-002
+- PRO-VP-003
+- PRO-VP-004
+- PRO-VP-007
+- PRO-VP-009
+
 ---
 
 # PRO-VR-014
 
 ## Titel
 
-Zeitstempel validieren
+Audit-Zeitstempel validieren
 
 ### Typ
 
@@ -1323,30 +1712,281 @@ Systemvalidierung
 
 ### Beschreibung
 
-Zeitinformationen dienen der Nachvollziehbarkeit aller Profiländerungen.
+Zeitinformationen dienen der fachlichen Nachvollziehbarkeit der Erstellung
+und Änderung eines Profilaggregats.
+
+Die Audit-Zeitstempel werden durch
+
+```text
+AuditInformation
+```
+
+verwaltet.
+
+Jedes Profil besitzt:
+
+- `createdAt`,
+- `updatedAt`.
+
+Beide Werte verwenden gültige `Timestamp`-Instanzen und repräsentieren
+UTC-Zeitpunkte.
+
+Diese Validation Rule beschreibt die chronologische Konsistenz der
+Auditinformationen.
+
+Sie ist nicht die allgemeine Factory-Validierung jedes beliebigen
+`Timestamp`-Value-Objects.
 
 ### Fachliche Regeln
 
-Jedes Profil besitzt
+Für die Audit-Zeitstempel gilt:
 
-- createdAt
-- updatedAt
+- `createdAt` MUSS vorhanden sein.
+- `updatedAt` MUSS vorhanden sein.
+- `updatedAt` DARF niemals vor `createdAt` liegen.
+- Bei der initialen Erzeugung MUSS `updatedAt` gleich `createdAt` sein.
+- Bei einer erfolgreichen fachlichen Änderung MUSS der neue
+  Änderungszeitpunkt `now` verwendet werden.
+- `now` DARF nicht vor `createdAt` liegen.
+- `now` DARF nicht vor dem bisherigen `updatedAt` liegen.
+- Eine erfolgreiche fachliche Änderung MUSS `updatedAt` aktualisieren.
+- `createdAt` DARF nach der Erzeugung nicht verändert werden.
+- Reine Lesezugriffe verändern keine Audit-Zeitstempel.
+- Fehlgeschlagene Operationen verändern keine Audit-Zeitstempel.
+- Erfolgreiche No-Change-Operationen verändern keine Audit-Zeitstempel.
 
-Es gilt
+### Initialzustand
 
-- createdAt MUSS vorhanden sein.
-- updatedAt MUSS vorhanden sein.
-- updatedAt DARF niemals vor createdAt liegen.
-- Jede fachliche Änderung MUSS updatedAt aktualisieren.
-- Reine Lesezugriffe verändern updatedAt nicht.
+Bei
+
+```text
+AuditInformation.createInitial(now)
+```
+
+gilt:
+
+```text
+createdAt = now
+updatedAt = now
+```
+
+Der übergebene Zeitpunkt muss ein gültiger `Timestamp` sein.
+
+### Änderung
+
+Bei
+
+```text
+AuditInformation.touchAndIncrement(now)
+```
+
+gilt:
+
+```text
+now >= createdAt
+```
+
+und:
+
+```text
+now >= bisheriges updatedAt
+```
+
+Ist eine dieser Bedingungen verletzt, darf keine neue
+`AuditInformation`-Instanz erzeugt werden.
 
 ### Fehlercodes
 
-| Fehlercode | Message Key | Constraint | Parameter |
-|------------|-------------|------------|-----------|
-| PRO-VAL-TIME-001 | `validation.profile.timestamp.createdMissing` | required | `{"field":"createdAt"}` |
-| PRO-VAL-TIME-002 | `validation.profile.timestamp.updatedMissing` | required | `{"field":"updatedAt"}` |
-| PRO-VAL-TIME-003 | `validation.profile.timestamp.invalidOrder` | chronological | – |
+| Fehlercode | Message Key | Severity | Feld | Constraint | Parameter |
+|------------|-------------|----------|------|------------|-----------|
+| PRO-VAL-TIME-001 | `validation.profile.timestamp.createdMissing` | ERROR | createdAt | required | `{"field":"createdAt"}` |
+| PRO-VAL-TIME-002 | `validation.profile.timestamp.updatedMissing` | ERROR | updatedAt | required | `{"field":"updatedAt"}` |
+| PRO-VAL-TIME-003 | `validation.profile.timestamp.invalidOrder` | ERROR | auditInformation | chronological | `{"comparison":"<comparison>","createdAt":"<createdAt>","previousUpdatedAt":"<previousUpdatedAt>","requestedUpdatedAt":"<requestedUpdatedAt>"}` |
+
+### Parameter
+
+#### PRO-VAL-TIME-001
+
+```json
+{
+  "field": "createdAt"
+}
+```
+
+#### PRO-VAL-TIME-002
+
+```json
+{
+  "field": "updatedAt"
+}
+```
+
+#### PRO-VAL-TIME-003
+
+Der Parameter `comparison` beschreibt die verletzte chronologische Regel.
+
+Zulässige Werte sind:
+
+```text
+updatedAtBeforeCreatedAt
+requestedUpdatedAtBeforeCreatedAt
+requestedUpdatedAtBeforePreviousUpdatedAt
+```
+
+Beispiel:
+
+```json
+{
+  "comparison": "requestedUpdatedAtBeforePreviousUpdatedAt",
+  "createdAt": "2026-08-01T08:00:00Z",
+  "previousUpdatedAt": "2026-08-05T10:00:00Z",
+  "requestedUpdatedAt": "2026-08-04T10:00:00Z"
+}
+```
+
+Nicht benötigte Zeitwerte dürfen im konkreten Fehlerparameter entfallen.
+
+Zeitwerte werden ausschließlich im ISO-8601-Format und in UTC übertragen.
+
+### Fehlerverhalten
+
+#### Fehlender Erstellungszeitpunkt
+
+Ist `createdAt` nicht vorhanden, wird
+
+```text
+PRO-VAL-TIME-001
+```
+
+erzeugt.
+
+Chronologische Prüfungen, die `createdAt` benötigen, werden in diesem Fall
+nicht durchgeführt.
+
+#### Fehlender Änderungszeitpunkt
+
+Ist `updatedAt` nicht vorhanden, wird
+
+```text
+PRO-VAL-TIME-002
+```
+
+erzeugt.
+
+Chronologische Prüfungen, die `updatedAt` benötigen, werden in diesem Fall
+nicht durchgeführt.
+
+#### Änderungszeitpunkt vor Erstellungszeitpunkt
+
+Liegt `updatedAt` vor `createdAt`, wird
+
+```text
+PRO-VAL-TIME-003
+```
+
+mit folgendem Vergleich erzeugt:
+
+```text
+updatedAtBeforeCreatedAt
+```
+
+#### Neuer Änderungszeitpunkt vor Erstellungszeitpunkt
+
+Liegt der für eine Änderung übergebene Zeitpunkt `now` vor `createdAt`, wird
+
+```text
+PRO-VAL-TIME-003
+```
+
+mit folgendem Vergleich erzeugt:
+
+```text
+requestedUpdatedAtBeforeCreatedAt
+```
+
+#### Neuer Änderungszeitpunkt vor bisherigem Änderungszeitpunkt
+
+Liegt der für eine Änderung übergebene Zeitpunkt `now` vor dem bisherigen
+`updatedAt`, wird
+
+```text
+PRO-VAL-TIME-003
+```
+
+mit folgendem Vergleich erzeugt:
+
+```text
+requestedUpdatedAtBeforePreviousUpdatedAt
+```
+
+### Validierungsreihenfolge
+
+Die Validierung erfolgt in dieser Reihenfolge:
+
+1. Vorhandensein von `createdAt` prüfen.
+2. Vorhandensein von `updatedAt` prüfen.
+3. Gültigkeit der enthaltenen `Timestamp`-Instanzen sicherstellen.
+4. `updatedAt` mit `createdAt` vergleichen.
+5. Bei einer Änderung `now` mit `createdAt` vergleichen.
+6. Bei einer Änderung `now` mit dem bisherigen `updatedAt` vergleichen.
+
+Fehlt ein für einen Vergleich benötigter Pflichtwert, wird für denselben
+Sachverhalt kein zusätzlicher Chronologiefehler erzeugt.
+
+Dadurch werden Folgefehler vermieden.
+
+### Verhalten nach Operationen
+
+#### Erfolgreiche fachliche Änderung
+
+Nach einer erfolgreichen fachlichen Änderung gilt:
+
+- `createdAt` bleibt unverändert.
+- `updatedAt` entspricht dem gültigen Änderungszeitpunkt.
+- Die zugehörige `AggregateVersion` wird genau einmal erhöht.
+
+#### Fehlgeschlagene Operation
+
+Nach einer fehlgeschlagenen Operation gilt:
+
+- `createdAt` bleibt unverändert.
+- `updatedAt` bleibt unverändert.
+- Die `AggregateVersion` bleibt unverändert.
+
+#### Erfolgreicher No Change
+
+Nach einer erfolgreichen Operation ohne Zustandsänderung gilt:
+
+- `createdAt` bleibt unverändert.
+- `updatedAt` bleibt unverändert.
+- Die `AggregateVersion` bleibt unverändert.
+- Es entsteht kein Änderungs-Domain-Event.
+
+No-Change ist kein Validation Error.
+
+### Abgrenzung
+
+Nicht Bestandteil dieser Validation Rule sind:
+
+- die technische Ermittlung der Systemzeit,
+- lokale Zeitzonen,
+- Darstellung und Formatierung von Zeitwerten,
+- allgemeine Parsing-Fehler beliebiger Zeitstempel,
+- Persistenzzeitstempel,
+- Datenbankzeitstempel,
+- technische Audit Trails,
+- Event-Publishing.
+
+Die aktuelle Zeit wird ausschließlich über den abstrahierten
+
+```text
+Clock
+```
+
+-Port bereitgestellt.
+
+Die allgemeine Gültigkeit eines einzelnen `Timestamp` wird durch dessen
+eigene kontrollierte Erzeugung geschützt.
 
 ### Traceability
 
@@ -1363,6 +2003,27 @@ Es gilt
 **Business Rules**
 
 - PRO-BR-007
+
+**Domain Model**
+
+- `AuditInformation`
+- `AuditInformation.createInitial(...)`
+- `AuditInformation.touchAndIncrement(...)`
+- `Timestamp`
+- `AggregateVersion`
+- `Clock`
+- AG-INV-007
+- AG-INV-008
+- AG-INV-014
+
+**Validation Principles**
+
+- PRO-VP-001
+- PRO-VP-002
+- PRO-VP-003
+- PRO-VP-004
+- PRO-VP-008
+- PRO-VP-009
 
 ---
 
@@ -1390,6 +2051,19 @@ Der Import
 - MUSS sämtliche Pflichtfelder enthalten.
 - MUSS sämtliche Validierungsregeln dieses Dokuments erfüllen.
 
+Nach erfolgreicher Rekonstruktion MÜSSEN zusätzlich sämtliche
+
+- Aggregate-Invarianten,
+- Entity-Invarianten,
+- Value-Object-Invarianten
+
+erfüllt sein.
+
+Kann eine dieser Invarianten nicht hergestellt werden,
+
+- MUSS der Import vollständig abgebrochen werden.
+- DARF kein teilweise rekonstruiertes Aggregate übernommen werden.
+
 ### Atomare Ausführung
 
 Der Profilimport ist eine mehrstufige Fachoperation.
@@ -1414,6 +2088,36 @@ Tritt während des Imports ein Fehler auf,
 | PRO-VAL-IMPORT-004 | `validation.profile.import.missingRequiredData` | required | – |
 | PRO-VAL-IMPORT-005 | `validation.profile.import.duplicateId` | duplicate | – |
 | PRO-VAL-IMPORT-006 | `validation.profile.import.rollback` | atomic | – |
+
+### Erläuterungen zu den Fehlercodes
+
+#### PRO-VAL-IMPORT-005
+
+`DuplicateId` bezeichnet jede Verletzung der
+Eindeutigkeit fachlicher Identitäten innerhalb
+des zu importierenden Aggregates.
+
+Hierzu gehören insbesondere
+
+- ProfileId
+- ProfileSettingsId
+- ProfileSecurityId
+
+Andere Identitäten werden durch ihre jeweils
+zuständigen Aggregate oder Module validiert.
+
+#### PRO-VAL-IMPORT-006
+
+`PRO-VAL-IMPORT-006` beschreibt nicht die
+eigentliche Ursache eines Importfehlers.
+
+Der Code kennzeichnet ausschließlich,
+dass der atomare Import infolge mindestens
+eines vorher aufgetretenen Validation Errors
+vollständig zurückgerollt wurde.
+
+Der ursprüngliche Datenbestand bleibt dabei
+vollständig unverändert erhalten.
 
 ### Traceability
 
@@ -1444,28 +2148,339 @@ Exportvalidierung
 
 ### Beschreibung
 
-Ein Export darf ausschließlich zulässige Profildaten enthalten.
+Diese Validation Rule validiert das fachliche Exportmodell eines Profils.
+
+Das fachliche Exportmodell wird durch
+
+```text
+ProfileExportModel
+```
+
+repräsentiert.
+
+Es wird vor der technischen Serialisierung und Dateierzeugung durch den
+
+```text
+ProfileExportDomainService
+```
+
+vorbereitet.
+
+Diese Validation Rule validiert nicht
+
+- eine konkrete Exportdatei,
+- ein JSON-Dokument,
+- einen Dateipfad,
+- einen Download,
+- ein technisches Archivformat.
+
+Technische Dateierzeugung und Serialisierung erfolgen ausschließlich
+außerhalb der Domäne.
 
 ### Fachliche Regeln
 
-Der Export
+Ein fachlich vollständiges Exportmodell
 
-- MUSS eine Versionskennung enthalten.
-- MUSS den Exportzeitpunkt enthalten.
-- MUSS die Profil-ID enthalten.
-- DARF keine Passwörter enthalten.
-- DARF keine Passwort-Hashes enthalten.
-- DARF keine kryptographischen Schlüssel enthalten.
+- MUSS eine Exportversion enthalten.
+- MUSS einen Exportzeitpunkt enthalten.
+- MUSS die `ProfileId` des exportierten Profils enthalten.
+- MUSS die freigegebenen Profildaten enthalten.
+- MUSS ausschließlich ausdrücklich ausgewählte und freigegebene
+  Datenbereiche enthalten.
 - DARF keine Daten anderer Profile enthalten.
+- DARF keine fremden Bildreferenzen enthalten.
+- DARF keine vermischten Datenbestände mehrerer Profile enthalten.
+- DARF keine Klartextpasswörter enthalten.
+- DARF keine `PlainPassword`-Werte enthalten.
+- DARF keine `PasswordCredential`-Werte enthalten.
+- DARF keine `PasswordHash`-Werte enthalten.
+- DARF keine `PasswordHashParameters` enthalten.
+- DARF keine internen `AuthenticationProof`-Werte enthalten.
+- DARF keine kryptographischen Schlüssel enthalten.
+- DARF keine sicherheitsrelevanten technischen Parameter enthalten.
+
+Nicht angeforderte Datenbereiche dürfen nicht in das Exportmodell
+aufgenommen werden.
+
+### Mindestbestandteile
+
+Ein vollständiges `ProfileExportModel` enthält mindestens:
+
+```text
+version
+exportedAt
+profileId
+profileData
+```
+
+Zusätzlich müssen alle ausdrücklich angeforderten und freigegebenen
+Exportbereiche vollständig enthalten sein.
+
+Ein Exportmodell ist unvollständig, wenn
+
+- ein Mindestbestandteil fehlt,
+- ein angeforderter freigegebener Datenbereich fehlt,
+- ein enthaltenes fachliches Teilmodell unvollständig ist.
+
+### Profilzuordnung
+
+Alle im Exportmodell enthaltenen profilbezogenen Daten müssen eindeutig
+derselben
+
+```text
+ProfileId
+```
+
+zugeordnet sein.
+
+Als fremde Profildaten gelten insbesondere:
+
+- Stammdaten eines anderen Profils,
+- Einstellungen eines anderen Profils,
+- Bildreferenzen eines anderen Profils,
+- Datenbereiche eines anderen Profils,
+- vermischte Daten mehrerer Profile,
+- Daten ohne eindeutige Zuordnung zum exportierten Profil.
+
+### Verbotene Sicherheitsdaten
+
+Verbotene Sicherheitsdaten sind insbesondere:
+
+```text
+PlainPassword
+PasswordCredential
+PasswordHash
+PasswordHashParameters
+AuthenticationProof
+kryptographische Schlüssel
+sicherheitsrelevante technische Parameter
+```
+
+Es dürfen ausschließlich die Typbezeichnungen festgestellter verbotener
+Daten als Fehlerparameter übertragen werden.
+
+Konkrete Werte, Hashes, Credentials, Proofs oder Schlüssel dürfen niemals
+Bestandteil eines Validation Errors sein.
 
 ### Fehlercodes
 
-| Fehlercode | Message Key | Constraint | Parameter |
-|------------|-------------|------------|-----------|
-| PRO-VAL-EXPORT-001 | `validation.profile.export.versionMissing` | required | `{"field":"version"}` |
-| PRO-VAL-EXPORT-002 | `validation.profile.export.foreignProfile` | ownership | – |
-| PRO-VAL-EXPORT-003 | `validation.profile.export.securityData` | forbidden | – |
-| PRO-VAL-EXPORT-004 | `validation.profile.export.incomplete` | completeness | – |
+| Fehlercode | Message Key | Severity | Feld | Constraint | Parameter |
+|------------|-------------|----------|------|------------|-----------|
+| PRO-VAL-EXPORT-001 | `validation.profile.export.versionMissing` | ERROR | version | required | `{"field":"version"}` |
+| PRO-VAL-EXPORT-002 | `validation.profile.export.foreignProfile` | ERROR | profileData | ownership | `{"expectedProfileId":"<profileId>","detectedProfileIds":["<profileId>"]}` |
+| PRO-VAL-EXPORT-003 | `validation.profile.export.securityData` | ERROR | profileData | forbidden | `{"detectedDataTypes":["<dataType>"]}` |
+| PRO-VAL-EXPORT-004 | `validation.profile.export.incomplete` | ERROR | exportModel | completeness | `{"missingFields":["<field>"]}` |
+
+### Parameter
+
+#### PRO-VAL-EXPORT-001
+
+```json
+{
+  "field": "version"
+}
+```
+
+Dieser Error Code wird ausschließlich verwendet, wenn die Exportversion
+fehlt.
+
+Er wird nicht für andere fehlende Pflichtbestandteile verwendet.
+
+#### PRO-VAL-EXPORT-002
+
+```json
+{
+  "expectedProfileId": "<profileId>",
+  "detectedProfileIds": [
+    "<foreignProfileId>"
+  ]
+}
+```
+
+`detectedProfileIds` enthält ausschließlich fachliche Identitäten.
+
+Es werden keine weiteren Daten der betroffenen Profile übertragen.
+
+#### PRO-VAL-EXPORT-003
+
+```json
+{
+  "detectedDataTypes": [
+    "PasswordCredential",
+    "PasswordHash"
+  ]
+}
+```
+
+Zulässige Werte für `detectedDataTypes` sind ausschließlich sichere
+Typbezeichnungen, insbesondere:
+
+```text
+PlainPassword
+PasswordCredential
+PasswordHash
+PasswordHashParameters
+AuthenticationProof
+CryptographicKey
+SecurityParameter
+```
+
+Die tatsächlichen sensiblen Werte dürfen niemals übertragen werden.
+
+#### PRO-VAL-EXPORT-004
+
+```json
+{
+  "missingFields": [
+    "exportedAt",
+    "profileId",
+    "profileData"
+  ]
+}
+```
+
+Der Parameter enthält ausschließlich die Namen fehlender fachlicher
+Bestandteile.
+
+### Fehlerverhalten
+
+#### Fehlende Exportversion
+
+Fehlt die Exportversion, wird
+
+```text
+PRO-VAL-EXPORT-001
+```
+
+erzeugt.
+
+Die Prüfung weiterer Bestandteile darf fortgesetzt werden, sofern dies ohne
+technische oder fachliche Folgefehler möglich ist.
+
+#### Fremde Profildaten
+
+Enthält das Exportmodell Daten, die nicht eindeutig der exportierten
+`ProfileId` zugeordnet sind, wird
+
+```text
+PRO-VAL-EXPORT-002
+```
+
+erzeugt.
+
+Der Fehler gilt auch für
+
+- fremde Bildreferenzen,
+- fremde profilbezogene Datenbereiche,
+- vermischte Daten mehrerer Profile.
+
+#### Verbotene Sicherheitsdaten
+
+Enthält das Exportmodell mindestens einen verbotenen Sicherheitsdatentyp,
+wird
+
+```text
+PRO-VAL-EXPORT-003
+```
+
+erzeugt.
+
+Der Parameter nennt ausschließlich die festgestellten Datentypen.
+
+Es werden keine sensiblen Werte in den Fehler übernommen.
+
+#### Unvollständiges Exportmodell
+
+Fehlt mindestens einer der erforderlichen Bestandteile, wird
+
+```text
+PRO-VAL-EXPORT-004
+```
+
+erzeugt.
+
+Dieser Code wird insbesondere verwendet für fehlende:
+
+- `exportedAt`,
+- `profileId`,
+- `profileData`,
+- angeforderte freigegebene Exportbereiche.
+
+Eine fehlende Version wird weiterhin zusätzlich durch den spezielleren Code
+
+```text
+PRO-VAL-EXPORT-001
+```
+
+beschrieben.
+
+### Validierungsreihenfolge
+
+Die Validierung erfolgt in dieser Reihenfolge:
+
+1. Exportversion prüfen.
+2. Exportzeitpunkt prüfen.
+3. `ProfileId` prüfen.
+4. Vollständigkeit der Profildaten prüfen.
+5. Vollständigkeit angeforderter Exportbereiche prüfen.
+6. eindeutige Profilzuordnung sämtlicher Daten prüfen.
+7. verbotene Sicherheitsdaten erkennen.
+8. fachliche Vollständigkeit des Gesamtmodells bestätigen.
+
+Fehlende Pflichtbestandteile dürfen keine technischen Folgefehler auslösen.
+
+Sicherheitsdaten werden unabhängig von anderen Fehlern erkannt und niemals
+in Fehlerparametern offengelegt.
+
+### Erfolgsverhalten
+
+Bei erfolgreicher Validierung gilt:
+
+- Das Exportmodell ist fachlich vollständig.
+- Sämtliche enthaltenen Daten gehören zum angeforderten Profil.
+- Nur angeforderte und freigegebene Datenbereiche sind enthalten.
+- Es sind keine verbotenen Sicherheitsdaten enthalten.
+- Das Profilaggregat wurde nicht verändert.
+- Es wurden keine Auditinformationen verändert.
+- Die Aggregate-Version wurde nicht erhöht.
+- Es wurde keine Datei erzeugt.
+- Es erfolgte keine technische Serialisierung.
+
+### Atomarität
+
+Die Vorbereitung des fachlichen Exportmodells ist eine lesende Operation.
+
+Ein unvollständiges oder ungültiges Exportmodell darf nicht an die
+technische Exporterzeugung übergeben werden.
+
+Es darf kein fachlich nur teilweise freigegebenes Exportmodell als Erfolg
+zurückgegeben werden.
+
+### Abgrenzung
+
+Nicht Bestandteil dieser Validation Rule sind:
+
+- technische Serialisierung,
+- JSON-Erzeugung,
+- Dateierzeugung,
+- Kompression,
+- Verschlüsselung,
+- Download,
+- Dateisystemzugriffe,
+- Netzwerkübertragung,
+- technische Speicherfehler,
+- Event-Publishing.
+
+Diese Verantwortlichkeiten liegen außerhalb der Domäne.
+
+Das Ereignis
+
+```text
+ProfileExported
+```
+
+darf erst nach erfolgreicher technischer Exporterzeugung und erfolgreichem
+Abschluss des Use Cases veröffentlicht werden.
 
 ### Traceability
 
@@ -1480,6 +2495,1397 @@ Der Export
 **Business Rules**
 
 - PRO-BR-021
+
+**Domain Model**
+
+- `ProfileExportDomainService`
+- `ProfileExportDomainService.prepareExport(...)`
+- `ProfileExportModel`
+- `ProfileDataQueryPort`
+- `ProfileExportSectionSelection`
+- `ProfileId`
+- `PasswordCredential`
+- `PasswordHash`
+- `PasswordHashParameters`
+- `AuthenticationProof`
+
+**Validation Principles**
+
+- PRO-VP-001
+- PRO-VP-002
+- PRO-VP-003
+- PRO-VP-004
+- PRO-VP-008
+- PRO-VP-009
+
+---
+
+# PRO-VR-017
+
+## Titel
+
+ProfileSettings validieren
+
+### Typ
+
+Entity-Validierung
+
+### Beschreibung
+
+`ProfileSettings` beschreibt den vollständigen profilbezogenen
+Einstellungszustand eines Profils.
+
+Die Entity besteht aus
+
+- einer unveränderlichen `ProfileSettingsId`,
+- gültigen `LocalizationSettings`,
+- gültigen `DashboardSettings`,
+- gültigen `AppearanceSettings`.
+
+Eine `ProfileSettings`-Entity darf ausschließlich als vollständiger und
+konsistenter Zustand erzeugt oder rekonstruiert werden.
+
+### Fachliche Regeln
+
+Für `ProfileSettings` gilt:
+
+- `settingsId` MUSS vorhanden und gültig sein.
+- `settingsId` DARF nach der Erzeugung nicht verändert werden.
+- `localization` MUSS vorhanden und gültig sein.
+- `dashboard` MUSS vorhanden und gültig sein.
+- `appearance` MUSS vorhanden und gültig sein.
+- Alle Einstellungsbereiche MÜSSEN gemeinsam einen vollständigen Zustand
+  bilden.
+- Eine teilweise erzeugte oder teilweise geänderte Entity ist unzulässig.
+- Eine fehlgeschlagene Operation DARF den bestehenden Zustand nicht
+  verändern.
+
+Die Gültigkeit der enthaltenen Value Objects wird ausschließlich durch deren
+jeweilige Validation Rules bestimmt.
+
+### Fehlercodes
+
+| Fehlercode | Message Key | Severity | Feld | Constraint | Parameter |
+|------------|-------------|----------|------|------------|-----------|
+| PRO-VAL-PSET-001 | `validation.profileSettings.settingsId.required` | ERROR | settingsId | required | – |
+| PRO-VAL-PSET-002 | `validation.profileSettings.settingsId.invalid` | ERROR | settingsId | invalid | – |
+| PRO-VAL-PSET-003 | `validation.profileSettings.localization.required` | ERROR | localization | required | – |
+| PRO-VAL-PSET-004 | `validation.profileSettings.dashboard.required` | ERROR | dashboard | required | – |
+| PRO-VAL-PSET-005 | `validation.profileSettings.appearance.required` | ERROR | appearance | required | – |
+| PRO-VAL-PSET-006 | `validation.profileSettings.incomplete` | ERROR | profileSettings | completeness | `{"requiredFields":["settingsId","localization","dashboard","appearance"]}` |
+
+### Abgrenzung
+
+Die folgenden Fehler werden nicht erneut als `ProfileSettings`-Fehler
+erzeugt:
+
+- ungültige Sprache,
+- ungültiges Maßeinheitensystem,
+- ungültiges Dashboardlayout,
+- ungültige Widgetauswahl,
+- ungültige Dashboard-Konfigurationsversion,
+- ungültige Darstellungspräferenz.
+
+Diese Fehler gehören ausschließlich zu den jeweiligen Value Objects.
+
+Dadurch werden doppelte Fehlermeldungen und Folgefehler vermieden.
+
+### Verhalten bei fachlichen Operationen
+
+Die Operationen
+
+```text
+changeLanguage(...)
+
+changeMeasurementSystem(...)
+
+changeDashboardSettings(...)
+
+changeAppearanceSettings(...)
+
+resetToDefaults(...)
+```
+
+dürfen ausschließlich vollständige und gültige Zielzustände erzeugen.
+
+Erhält eine Operation bereits ein gültiges Value Object, wird dessen interne
+Validierung nicht als generischer `ProfileSettings`-Fehler dupliziert.
+
+Ein identischer neuer Wert ist kein Validierungsfehler.
+
+Das No-Change-Verhalten wird getrennt von den Validation Errors
+spezifiziert.
+
+### Traceability
+
+**Domain Model**
+
+- `ProfileSettings`
+- `ProfileSettings.create(...)`
+- `ProfileSettings.changeLanguage(...)`
+- `ProfileSettings.changeMeasurementSystem(...)`
+- `ProfileSettings.changeDashboardSettings(...)`
+- `ProfileSettings.changeAppearanceSettings(...)`
+- `ProfileSettings.resetToDefaults(...)`
+
+**Business Rules**
+
+- PRO-BR-007
+- PRO-BR-026
+- PRO-BR-027
+
+**Validation Principles**
+
+- PRO-VP-001
+- PRO-VP-002
+- PRO-VP-003
+- PRO-VP-004
+- PRO-VP-008
+- PRO-VP-009
+
+---
+
+# PRO-VR-018
+
+## Titel
+
+LocalizationSettings validieren
+
+### Typ
+
+Value-Object-Validierung
+
+### Beschreibung
+
+`LocalizationSettings` beschreibt die profilbezogenen Präferenzen für
+
+- Sprache,
+- Maßeinheitensystem.
+
+Das Value Object ist vollständig und unveränderlich.
+
+Beide Attribute müssen bei der kontrollierten Erzeugung vorhanden und
+fachlich unterstützt sein.
+
+### Fachliche Regeln
+
+Für `LocalizationSettings` gilt:
+
+- `language` MUSS vorhanden sein.
+- `language` MUSS einem unterstützten Sprachcode entsprechen.
+- `measurementSystem` MUSS vorhanden sein.
+- `measurementSystem` MUSS einem unterstützten Maßeinheitensystem entsprechen.
+- Beide Werte MÜSSEN gemeinsam einen vollständigen Zustand bilden.
+- Eine Änderung erzeugt eine neue gültige `LocalizationSettings`-Instanz.
+- Der Wechsel des Maßeinheitensystems DARF keine kanonisch gespeicherten
+  Gesundheitswerte verändern.
+
+### Unterstützte Werte
+
+#### Language
+
+Unterstützte Sprachcodes werden durch die Enumeration `Language` bestimmt.
+
+Aktuell dokumentierte Beispielwerte sind:
+
+```text
+de
+en
+```
+
+Die Liste der dauerhaft unterstützten Sprachen wird durch das Domain Model
+und die zugehörige Sprachkonfiguration bestimmt.
+
+#### MeasurementSystem
+
+Zulässige Werte sind:
+
+```text
+metric
+imperial
+```
+
+### Fehlercodes
+
+| Fehlercode | Message Key | Severity | Feld | Constraint | Parameter |
+|------------|-------------|----------|------|------------|-----------|
+| PRO-VAL-LOC-001 | `validation.localization.language.required` | ERROR | language | required | – |
+| PRO-VAL-LOC-002 | `validation.localization.language.invalid` | ERROR | language | enum | `{"allowedValues":"supportedLanguageCodes"}` |
+| PRO-VAL-LOC-003 | `validation.localization.measurementSystem.required` | ERROR | measurementSystem | required | – |
+| PRO-VAL-LOC-004 | `validation.localization.measurementSystem.invalid` | ERROR | measurementSystem | enum | `{"allowedValues":["metric","imperial"]}` |
+
+### Validierungsreihenfolge
+
+Die Validierung erfolgt in dieser Reihenfolge:
+
+1. Vorhandensein von `language`,
+2. unterstützter Wert von `language`,
+3. Vorhandensein von `measurementSystem`,
+4. unterstützter Wert von `measurementSystem`.
+
+Ist ein Pflichtwert nicht vorhanden, wird für dieses Feld kein zusätzlicher
+Enum-Fehler erzeugt.
+
+Dadurch werden Folgefehler vermieden.
+
+### Abgrenzung
+
+Nicht Bestandteil dieser Validation Rule sind:
+
+- Landeseinstellungen,
+- Zeitzonen,
+- Datumsformate,
+- konkrete Übersetzungen,
+- UI-Locale-Typen,
+- Flutter-Typen,
+- Konvertierung gespeicherter Gesundheitswerte.
+
+`country` und `timezone` sind keine Attribute von `LocalizationSettings` und
+erzeugen daher keine Fehlercodes dieses Value Objects.
+
+### Verhalten bei Änderungen
+
+Die Operationen
+
+```text
+ProfileSettings.changeLanguage(...)
+
+ProfileSettings.changeMeasurementSystem(...)
+```
+
+erzeugen intern einen vollständigen neuen `LocalizationSettings`-Zustand.
+
+Dabei gilt:
+
+- Bei einer Sprachänderung bleibt `measurementSystem` unverändert.
+- Bei einer Änderung des Maßeinheitensystems bleibt `language` unverändert.
+- Ein identischer neuer Wert ist kein Validierungsfehler.
+- Das No-Change-Verhalten wird getrennt von den Validation Errors
+  spezifiziert.
+
+### Traceability
+
+**Domain Model**
+
+- `LocalizationSettings`
+- `LocalizationSettings.create(...)`
+- `Language`
+- `MeasurementSystem`
+- `ProfileSettings.changeLanguage(...)`
+- `ProfileSettings.changeMeasurementSystem(...)`
+
+**Business Rules**
+
+- PRO-BR-007
+- PRO-BR-027
+
+**Validation Principles**
+
+- PRO-VP-001
+- PRO-VP-002
+- PRO-VP-003
+- PRO-VP-004
+- PRO-VP-009
+
+---
+
+# PRO-VR-019
+
+## Titel
+
+DashboardWidgetSelection validieren
+
+### Typ
+
+Value-Object-Validierung
+
+### Beschreibung
+
+`DashboardWidgetSelection` beschreibt die sichtbaren profilbezogenen
+Dashboard-Inhalte und deren fachliche Reihenfolge.
+
+Das Value Object speichert eine geordnete und unveränderliche Liste stabiler,
+technologieunabhängiger Widget-Schlüssel.
+
+Die Reihenfolge der Schlüssel ist Bestandteil des fachlichen Wertes.
+
+### Interner Wert
+
+```text
+Ordered immutable List<String>
+```
+
+### Fachliche Regeln
+
+Für `DashboardWidgetSelection` gilt:
+
+- `widgetKeys` MUSS vorhanden sein.
+- Die Liste DARF leer sein.
+- Jeder enthaltene Widget-Schlüssel MUSS nach der Normalisierung einen
+  nicht leeren Wert besitzen.
+- Führende und nachfolgende Leerzeichen eines Widget-Schlüssels werden
+  entfernt.
+- Doppelte normalisierte Widget-Schlüssel sind unzulässig.
+- Die Reihenfolge der Widget-Schlüssel ist fachlich relevant.
+- Die interne Liste MUSS unveränderlich sein.
+- Änderungen der ursprünglichen Eingabeliste DÜRFEN den erzeugten
+  Domänenwert nicht nachträglich verändern.
+- Flutter-Klassennamen, Flutter-Objekte und technische Laufzeitobjekte
+  DÜRFEN nicht als fachliche Widget-Referenzen verwendet werden.
+
+Eine leere Liste bedeutet, dass aktuell keine Dashboard-Widgets ausgewählt
+sind. Sie ist kein Validierungsfehler.
+
+### Normalisierung
+
+Jeder Widget-Schlüssel wird vor der Validierung normalisiert.
+
+Dabei werden ausschließlich
+
+- führende Leerzeichen,
+- nachfolgende Leerzeichen
+
+entfernt.
+
+Beispiel:
+
+```text
+"  weight  "
+
+↓
+
+"weight"
+```
+
+Die Groß- und Kleinschreibung wird nicht verändert.
+
+Die Prüfung auf Dubletten erfolgt nach der Normalisierung.
+
+Beispiel:
+
+```text
+"weight"
+
+" weight "
+```
+
+Diese beiden Eingaben ergeben denselben normalisierten Widget-Schlüssel und
+sind deshalb gemeinsam unzulässig.
+
+### Fehlercodes
+
+| Fehlercode | Message Key | Severity | Category | Feld | Constraint | Parameter |
+|------------|-------------|----------|----------|------|------------|-----------|
+| PRO-VAL-DWSEL-001 | `validation.dashboardWidgetSelection.widgetKeys.required` | ERROR | VALIDATION | widgetKeys | required | – |
+| PRO-VAL-DWSEL-002 | `validation.dashboardWidgetSelection.widgetKey.blank` | ERROR | VALIDATION | widgetKeys | blank | `{"index":"<zeroBasedIndex>"}` |
+| PRO-VAL-DWSEL-003 | `validation.dashboardWidgetSelection.widgetKey.duplicate` | ERROR | VALIDATION | widgetKeys | duplicate | `{"widgetKey":"<normalizedWidgetKey>","firstIndex":"<zeroBasedIndex>","duplicateIndex":"<zeroBasedIndex>"}` |
+
+### Fehlerverhalten
+
+#### Fehlende Liste
+
+Ist `widgetKeys` nicht vorhanden, wird ausschließlich folgender Fehler
+erzeugt:
+
+```text
+PRO-VAL-DWSEL-001
+```
+
+Weitere Prüfungen der enthaltenen Schlüssel werden in diesem Fall nicht
+ausgeführt.
+
+#### Leerer Widget-Schlüssel
+
+Ergibt ein Widget-Schlüssel nach der Normalisierung einen leeren Wert, wird
+für seine Position folgender Fehler erzeugt:
+
+```text
+PRO-VAL-DWSEL-002
+```
+
+Der Parameter `index` enthält die nullbasierte Position des ungültigen
+Eintrags.
+
+Der ursprüngliche Schlüsselwert wird nicht als Fehlerparameter übertragen.
+
+#### Doppelter Widget-Schlüssel
+
+Kommt ein normalisierter Widget-Schlüssel mehrfach vor, wird für jedes
+zusätzliche Vorkommen folgender Fehler erzeugt:
+
+```text
+PRO-VAL-DWSEL-003
+```
+
+Die Parameter enthalten:
+
+- den normalisierten Widget-Schlüssel,
+- die Position seines ersten Vorkommens,
+- die Position des doppelten Vorkommens.
+
+### Validierungsreihenfolge
+
+Die Validierung erfolgt in dieser Reihenfolge:
+
+1. Vorhandensein von `widgetKeys`,
+2. Normalisierung der enthaltenen Schlüssel,
+3. Prüfung auf leere normalisierte Schlüssel,
+4. Prüfung auf doppelte normalisierte Schlüssel,
+5. Erzeugung einer unveränderlichen geordneten Liste.
+
+Ein leerer Schlüssel nimmt nicht an der Dublettenprüfung teil.
+
+Dadurch werden Folgefehler vermieden.
+
+### Nicht als Fehler definiert
+
+Die folgenden Situationen sind keine Validierungsfehler:
+
+- `widgetKeys` ist eine vorhandene leere Liste,
+- die Reihenfolge der Schlüssel wurde bewusst verändert,
+- die Widgetauswahl enthält weniger Einträge als zuvor,
+- die Widgetauswahl enthält mehr Einträge als zuvor.
+
+Ob ein Widget-Schlüssel zu einem fachlich verfügbaren Dashboard-Inhalt
+gehört, kann erst geprüft werden, wenn ein verbindlicher Katalog
+unterstützter Widget-Schlüssel spezifiziert ist.
+
+Bis dahin darf für einen unbekannten, aber nicht leeren und nicht doppelten
+String kein zusätzlicher Error Code erfunden werden.
+
+### Abgrenzung
+
+Nicht Bestandteil dieser Validation Rule sind:
+
+- konkrete Flutter-Widgets,
+- Widget-Klassen,
+- Bildschirmkomponenten,
+- Layoutgrößen,
+- Farben,
+- Abstände,
+- Dashboard-Auswertungen,
+- fachliche Inhalte anderer Module,
+- Persistenz- oder DTO-Strukturen.
+
+Die Gültigkeit des vollständigen `DashboardSettings`-Zustands wird durch die
+zugehörige eigene Validation Rule geprüft.
+
+### Equality
+
+Zwei `DashboardWidgetSelection`-Instanzen sind fachlich gleich, wenn ihre
+normalisierten Widget-Schlüssel
+
+- dieselben Werte besitzen,
+- in derselben Reihenfolge vorliegen.
+
+Eine unterschiedliche Reihenfolge bedeutet einen unterschiedlichen
+fachlichen Wert.
+
+### Traceability
+
+**Domain Model**
+
+- `DashboardWidgetSelection`
+- `DashboardWidgetSelection.create(...)`
+- `DashboardSettings`
+- `ProfileSettings.changeDashboardSettings(...)`
+
+**Business Rules**
+
+- PRO-BR-005
+- PRO-BR-026
+- PRO-BR-027
+
+**Validation Principles**
+
+- PRO-VP-001
+- PRO-VP-002
+- PRO-VP-003
+- PRO-VP-004
+- PRO-VP-009
+
+---
+
+# PRO-VR-020
+
+## Titel
+
+DashboardConfigurationVersion validieren
+
+### Typ
+
+Value-Object-Validierung
+
+### Beschreibung
+
+`DashboardConfigurationVersion` beschreibt die Version einer
+gespeicherten Dashboardkonfiguration.
+
+Sie dient ausschließlich der fachlichen Kompatibilitäts- und
+Migrationsprüfung von Dashboard-Einstellungen.
+
+Sie ist nicht identisch mit der `AggregateVersion`.
+
+Das Value Object ist unveränderlich.
+
+### Interner Wert
+
+```text
+PositiveInteger
+```
+
+### Fachliche Regeln
+
+Für `DashboardConfigurationVersion` gilt:
+
+- `value` MUSS vorhanden sein.
+- `value` MUSS größer oder gleich `1` sein.
+- `1` ist der initiale Versionswert.
+- Die Versionsnummer DARF niemals `0` oder negativ sein.
+- Die Versionsnummer DARF keine Aggregate-Version repräsentieren.
+- Die Versionsnummer DARF ausschließlich die Dashboardkonfiguration
+  beschreiben.
+- Das Value Object ist unveränderlich.
+
+### Fehlercodes
+
+| Fehlercode | Message Key | Severity | Category | Feld | Constraint | Parameter |
+|------------|-------------|----------|----------|------|------------|-----------|
+| PRO-VAL-DCV-001 | `validation.dashboardConfigurationVersion.required` | ERROR | VALIDATION | value | required | – |
+| PRO-VAL-DCV-002 | `validation.dashboardConfigurationVersion.minimum` | ERROR | VALIDATION | value | minimum | `{"minimum":1,"actual":"<value>"}` |
+
+### Fehlerverhalten
+
+#### Fehlender Wert
+
+Ist keine Versionsnummer vorhanden, wird ausschließlich
+
+```text
+PRO-VAL-DCV-001
+```
+
+erzeugt.
+
+Weitere Prüfungen erfolgen nicht.
+
+#### Ungültige Versionsnummer
+
+Ist der Wert kleiner als `1`, wird
+
+```text
+PRO-VAL-DCV-002
+```
+
+erzeugt.
+
+Der tatsächliche Wert wird als Parameter übertragen.
+
+### Validierungsreihenfolge
+
+Die Validierung erfolgt in dieser Reihenfolge:
+
+1. Vorhandensein von `value`,
+2. Mindestwert prüfen,
+3. Value Object erzeugen.
+
+Ein fehlender Wert erzeugt keinen zusätzlichen Mindestwertfehler.
+
+Dadurch werden Folgefehler vermieden.
+
+### Nicht als Fehler definiert
+
+Die folgenden Situationen sind keine Validierungsfehler:
+
+- Versionsnummer `1`,
+- eine höhere Versionsnummer,
+- unterschiedliche Versionsnummern verschiedener Dashboardkonfigurationen.
+
+Ob eine bestimmte Versionsnummer fachlich migriert werden muss, ist keine
+Aufgabe der Validierung.
+
+### Abgrenzung
+
+Nicht Bestandteil dieser Validation Rule sind:
+
+- AggregateVersion,
+- Datenmigration,
+- Persistenzversionen,
+- Datenbankschemata,
+- technische Revisionsnummern,
+- Optimistic Locking.
+
+### Equality
+
+Zwei `DashboardConfigurationVersion`-Instanzen sind fachlich gleich,
+wenn ihr Versionswert identisch ist.
+
+### Traceability
+
+**Domain Model**
+
+- `DashboardConfigurationVersion`
+- `DashboardConfigurationVersion.create(...)`
+- `DashboardSettings`
+
+**Business Rules**
+
+- PRO-BR-026
+- PRO-BR-027
+
+**Validation Principles**
+
+- PRO-VP-001
+- PRO-VP-002
+- PRO-VP-003
+- PRO-VP-004
+- PRO-VP-009
+
+---
+
+# PRO-VR-021
+
+## Titel
+
+DashboardSettings validieren
+
+### Typ
+
+Value-Object-Validierung
+
+### Beschreibung
+
+`DashboardSettings` beschreibt die profilbezogenen Dashboard-Einstellungen.
+
+Das Value Object besteht vollständig aus
+
+- `DashboardLayout`,
+- `DashboardWidgetSelection`,
+- `DashboardConfigurationVersion`.
+
+Es darf ausschließlich als vollständiger und konsistenter Zustand erzeugt
+werden.
+
+### Fachliche Regeln
+
+Für `DashboardSettings` gilt:
+
+- `layout` MUSS vorhanden sein.
+- `layout` MUSS ein unterstützter `DashboardLayout` sein.
+- `visibleWidgets` MUSS vorhanden und gültig sein.
+- `configurationVersion` MUSS vorhanden und gültig sein.
+- Alle drei Bestandteile MÜSSEN gemeinsam einen vollständigen
+  Dashboardzustand bilden.
+- Das Value Object ist vollständig unveränderlich.
+- Änderungen erzeugen ausschließlich einen neuen vollständigen Zustand.
+
+Die enthaltenen Value Objects werden ausschließlich durch ihre eigenen
+Validation Rules validiert.
+
+### Fehlercodes
+
+| Fehlercode | Message Key | Severity | Category | Feld | Constraint | Parameter |
+|------------|-------------|----------|----------|------|------------|-----------|
+| PRO-VAL-DSET-001 | `validation.dashboardSettings.layout.required` | ERROR | VALIDATION | layout | required | – |
+| PRO-VAL-DSET-002 | `validation.dashboardSettings.layout.invalid` | ERROR | VALIDATION | layout | enum | `{"allowedValues":"DashboardLayout"}` |
+| PRO-VAL-DSET-003 | `validation.dashboardSettings.visibleWidgets.required` | ERROR | VALIDATION | visibleWidgets | required | – |
+| PRO-VAL-DSET-004 | `validation.dashboardSettings.configurationVersion.required` | ERROR | VALIDATION | configurationVersion | required | – |
+| PRO-VAL-DSET-005 | `validation.dashboardSettings.incomplete` | ERROR | VALIDATION | dashboardSettings | completeness | `{"requiredFields":["layout","visibleWidgets","configurationVersion"]}` |
+
+### Fehlerverhalten
+
+#### Fehlendes Layout
+
+Ist kein `layout` vorhanden, wird ausschließlich
+
+```text
+PRO-VAL-DSET-001
+```
+
+erzeugt.
+
+#### Ungültiges Layout
+
+Ist der Wert kein unterstützter `DashboardLayout`, wird
+
+```text
+PRO-VAL-DSET-002
+```
+
+erzeugt.
+
+#### Fehlende Widgetauswahl
+
+Ist `visibleWidgets` nicht vorhanden, wird
+
+```text
+PRO-VAL-DSET-003
+```
+
+erzeugt.
+
+#### Fehlende Konfigurationsversion
+
+Ist `configurationVersion` nicht vorhanden, wird
+
+```text
+PRO-VAL-DSET-004
+```
+
+erzeugt.
+
+#### Unvollständiger Dashboardzustand
+
+Fehlt mindestens einer der drei Pflichtbestandteile, kann zusätzlich
+
+```text
+PRO-VAL-DSET-005
+```
+
+erzeugt werden, sofern nicht bereits ein vollständiger Pflichtfeldfehler
+den Zustand eindeutig beschreibt.
+
+### Validierungsreihenfolge
+
+Die Validierung erfolgt in dieser Reihenfolge:
+
+1. `layout`
+2. `visibleWidgets`
+3. `configurationVersion`
+4. Vollständigkeit des Gesamtzustands
+
+Die interne Validierung der enthaltenen Value Objects erfolgt ausschließlich
+durch deren jeweilige Validation Rule.
+
+Es werden keine Fehler dieser Value Objects erneut als
+`DashboardSettings`-Fehler erzeugt.
+
+Dadurch werden doppelte Fehlermeldungen vermieden.
+
+### Nicht als Fehler definiert
+
+Die folgenden Situationen sind keine Validierungsfehler:
+
+- eine leere Widgetauswahl,
+- eine andere Reihenfolge der Widget-Schlüssel,
+- eine höhere Konfigurationsversion,
+- eine andere unterstützte Layoutvariante.
+
+### Abgrenzung
+
+Nicht Bestandteil dieser Validation Rule sind:
+
+- Dashboard-Inhalte,
+- Dashboard-Auswertungen,
+- Widgetdaten,
+- Flutter-Widgets,
+- Bildschirmgrößen,
+- Farben,
+- UI-Komponenten,
+- Layoutberechnungen.
+
+Diese Validation Rule prüft ausschließlich den vollständigen fachlichen
+Dashboard-Einstellungszustand.
+
+### Verhalten bei Änderungen
+
+Die Operation
+
+```text
+ProfileSettings.changeDashboardSettings(...)
+```
+
+erzeugt ausschließlich einen neuen vollständigen und gültigen
+`DashboardSettings`-Zustand.
+
+Ein identischer neuer Wert ist kein Validierungsfehler.
+
+Das No-Change-Verhalten wird getrennt von den Validation Errors
+spezifiziert.
+
+### Traceability
+
+**Domain Model**
+
+- `DashboardSettings`
+- `DashboardSettings.create(...)`
+- `DashboardLayout`
+- `DashboardWidgetSelection`
+- `DashboardConfigurationVersion`
+- `ProfileSettings.changeDashboardSettings(...)`
+
+**Business Rules**
+
+- PRO-BR-026
+- PRO-BR-027
+
+**Validation Principles**
+
+- PRO-VP-001
+- PRO-VP-002
+- PRO-VP-003
+- PRO-VP-004
+- PRO-VP-009
+
+---
+
+# PRO-VR-022
+
+## Titel
+
+AppearanceSettings validieren
+
+### Typ
+
+Value-Object-Validierung
+
+### Beschreibung
+
+`AppearanceSettings` beschreibt die profilbezogenen
+Darstellungspräferenzen.
+
+Das Value Object besteht aus
+
+- `ThemePreference`,
+- optional `TextScalePreference`.
+
+Es ist vollständig unveränderlich.
+
+### Fachliche Regeln
+
+Für `AppearanceSettings` gilt:
+
+- `themePreference` MUSS vorhanden sein.
+- `themePreference` MUSS ein unterstützter `ThemePreference` sein.
+- `textScalePreference` DARF fehlen.
+- Ist `textScalePreference` vorhanden, MUSS der Wert einem unterstützten
+  `TextScalePreference` entsprechen.
+- Eine fehlende `textScalePreference` bedeutet, dass die systemweite
+  Textskalierung verwendet wird.
+- Das Value Object ist vollständig unveränderlich.
+- Änderungen erzeugen ausschließlich einen neuen vollständigen Zustand.
+
+### Fehlercodes
+
+| Fehlercode | Message Key | Severity | Category | Feld | Constraint | Parameter |
+|------------|-------------|----------|----------|------|------------|-----------|
+| PRO-VAL-APP-001 | `validation.appearanceSettings.themePreference.required` | ERROR | VALIDATION | themePreference | required | – |
+| PRO-VAL-APP-002 | `validation.appearanceSettings.themePreference.invalid` | ERROR | VALIDATION | themePreference | enum | `{"allowedValues":"ThemePreference"}` |
+| PRO-VAL-APP-003 | `validation.appearanceSettings.textScalePreference.invalid` | ERROR | VALIDATION | textScalePreference | enum | `{"allowedValues":"TextScalePreference"}` |
+
+### Fehlerverhalten
+
+#### Fehlende ThemePreference
+
+Ist keine `themePreference` vorhanden, wird ausschließlich
+
+```text
+PRO-VAL-APP-001
+```
+
+erzeugt.
+
+Weitere Prüfungen erfolgen nicht.
+
+#### Ungültige ThemePreference
+
+Ist der Wert kein unterstützter `ThemePreference`, wird
+
+```text
+PRO-VAL-APP-002
+```
+
+erzeugt.
+
+#### Ungültige TextScalePreference
+
+Ist `textScalePreference` vorhanden und kein unterstützter
+`TextScalePreference`, wird
+
+```text
+PRO-VAL-APP-003
+```
+
+erzeugt.
+
+### Validierungsreihenfolge
+
+Die Validierung erfolgt in dieser Reihenfolge:
+
+1. Vorhandensein von `themePreference`,
+2. unterstützter Wert von `themePreference`,
+3. Prüfung von `textScalePreference`, sofern vorhanden.
+
+Eine fehlende `textScalePreference` erzeugt keinen Fehler.
+
+Dadurch werden Folgefehler vermieden.
+
+### Nicht als Fehler definiert
+
+Die folgenden Situationen sind keine Validierungsfehler:
+
+- fehlende `textScalePreference`,
+- Wechsel zwischen unterstützten Theme-Präferenzen,
+- Wechsel zwischen unterstützten Textskalierungspräferenzen,
+- Verwendung der Systemvorgabe.
+
+### Abgrenzung
+
+Nicht Bestandteil dieser Validation Rule sind:
+
+- Flutter-Themes,
+- Material-Themes,
+- Plattformdarstellung,
+- konkrete Schriftgrößen,
+- Farbdefinitionen,
+- UI-Komponenten,
+- Accessibility-Implementierungen.
+
+Diese Validation Rule beschreibt ausschließlich die fachliche
+Darstellungspräferenz.
+
+### Verhalten bei Änderungen
+
+Die Operation
+
+```text
+ProfileSettings.changeAppearanceSettings(...)
+```
+
+erzeugt ausschließlich einen neuen vollständigen und gültigen
+`AppearanceSettings`-Zustand.
+
+Ein identischer neuer Wert ist kein Validierungsfehler.
+
+Das No-Change-Verhalten wird getrennt von den Validation Errors
+spezifiziert.
+
+### Traceability
+
+**Domain Model**
+
+- `AppearanceSettings`
+- `AppearanceSettings.create(...)`
+- `ThemePreference`
+- `TextScalePreference`
+- `ProfileSettings.changeAppearanceSettings(...)`
+
+**Business Rules**
+
+- PRO-BR-026
+- PRO-BR-027
+
+**Validation Principles**
+
+- PRO-VP-001
+- PRO-VP-002
+- PRO-VP-003
+- PRO-VP-004
+- PRO-VP-009
+
+---
+
+# PRO-VR-023
+
+## Titel
+
+ProfileSettingsDefaults validieren
+
+### Typ
+
+Value-Object-Validierung
+
+### Beschreibung
+
+`ProfileSettingsDefaults` beschreibt einen vollständigen fachlichen
+Standardzustand der Profileinstellungen.
+
+Das Value Object wird ausschließlich für
+
+```text
+ProfileSettings.resetToDefaults(...)
+```
+
+verwendet.
+
+Es besitzt keine Identität und ist vollständig unveränderlich.
+
+### Fachliche Regeln
+
+Für `ProfileSettingsDefaults` gilt:
+
+- `localization` MUSS vorhanden sein.
+- `dashboard` MUSS vorhanden sein.
+- `appearance` MUSS vorhanden sein.
+- Alle drei enthaltenen Value Objects MÜSSEN gültig sein.
+- Das Value Object MUSS immer einen vollständigen Standardzustand
+  repräsentieren.
+- Änderungen erzeugen ausschließlich einen neuen vollständigen Zustand.
+
+Die Validierung der enthaltenen Value Objects erfolgt ausschließlich durch
+deren jeweilige Validation Rules.
+
+### Fehlercodes
+
+| Fehlercode | Message Key | Severity | Category | Feld | Constraint | Parameter |
+|------------|-------------|----------|----------|------|------------|-----------|
+| PRO-VAL-PDEF-001 | `validation.profileSettingsDefaults.localization.required` | ERROR | VALIDATION | localization | required | – |
+| PRO-VAL-PDEF-002 | `validation.profileSettingsDefaults.dashboard.required` | ERROR | VALIDATION | dashboard | required | – |
+| PRO-VAL-PDEF-003 | `validation.profileSettingsDefaults.appearance.required` | ERROR | VALIDATION | appearance | required | – |
+| PRO-VAL-PDEF-004 | `validation.profileSettingsDefaults.incomplete` | ERROR | VALIDATION | profileSettingsDefaults | completeness | `{"requiredFields":["localization","dashboard","appearance"]}` |
+
+### Fehlerverhalten
+
+#### Fehlende LocalizationSettings
+
+Ist `localization` nicht vorhanden, wird ausschließlich
+
+```text
+PRO-VAL-PDEF-001
+```
+
+erzeugt.
+
+#### Fehlende DashboardSettings
+
+Ist `dashboard` nicht vorhanden, wird ausschließlich
+
+```text
+PRO-VAL-PDEF-002
+```
+
+erzeugt.
+
+#### Fehlende AppearanceSettings
+
+Ist `appearance` nicht vorhanden, wird ausschließlich
+
+```text
+PRO-VAL-PDEF-003
+```
+
+erzeugt.
+
+#### Unvollständiger Standardzustand
+
+Fehlt mindestens einer der drei Pflichtbestandteile, kann zusätzlich
+
+```text
+PRO-VAL-PDEF-004
+```
+
+erzeugt werden, sofern nicht bereits ein eindeutiger Pflichtfeldfehler den
+Zustand vollständig beschreibt.
+
+### Validierungsreihenfolge
+
+Die Validierung erfolgt in dieser Reihenfolge:
+
+1. `localization`
+2. `dashboard`
+3. `appearance`
+4. Vollständigkeit des Gesamtzustands
+
+Die enthaltenen Value Objects werden ausschließlich durch ihre eigenen
+Validation Rules geprüft.
+
+Fehler dieser Value Objects werden nicht erneut als
+`ProfileSettingsDefaults`-Fehler erzeugt.
+
+Dadurch werden doppelte Fehlermeldungen vermieden.
+
+### Nicht als Fehler definiert
+
+Die folgenden Situationen sind keine Validierungsfehler:
+
+- ein anderer vollständiger Standardzustand,
+- geänderte Dashboard-Konfiguration,
+- geänderte Sprache,
+- geänderte Darstellungspräferenz.
+
+Solange alle enthaltenen Value Objects gültig sind, ist jeder vollständige
+Standardzustand zulässig.
+
+### Abgrenzung
+
+Nicht Bestandteil dieser Validation Rule sind:
+
+- ProfileSettingsId,
+- AuditInformation,
+- AggregateVersion,
+- Persistenz,
+- Benutzerprofile,
+- UI-Komponenten.
+
+Diese Validation Rule beschreibt ausschließlich den vollständigen fachlichen
+Standardzustand der Profileinstellungen.
+
+### Verhalten bei fachlichen Operationen
+
+Die Operation
+
+```text
+ProfileSettings.resetToDefaults(...)
+```
+
+darf ausschließlich einen vollständigen und gültigen
+`ProfileSettingsDefaults`-Zustand übernehmen.
+
+Ein bereits identischer Standardzustand ist kein Validierungsfehler.
+
+Das No-Change-Verhalten wird getrennt von den Validation Errors
+spezifiziert.
+
+### Equality
+
+Zwei `ProfileSettingsDefaults` sind fachlich gleich, wenn
+
+- `localization`,
+- `dashboard`,
+- `appearance`
+
+fachlich gleich sind.
+
+### Traceability
+
+**Domain Model**
+
+- `ProfileSettingsDefaults`
+- `ProfileSettingsDefaults.create(...)`
+- `ProfileSettings.resetToDefaults(...)`
+
+**Business Rules**
+
+- PRO-BR-026
+- PRO-BR-027
+
+**Validation Principles**
+
+- PRO-VP-001
+- PRO-VP-002
+- PRO-VP-003
+- PRO-VP-004
+- PRO-VP-009
+
+---
+
+# PRO-VR-024
+
+## Titel
+
+ProfileSecurity validieren
+
+### Typ
+
+Entity-Validierung
+
+### Beschreibung
+
+`ProfileSecurity` beschreibt den sicherheitsrelevanten Zustand eines Profils.
+
+Die Entity besteht aus
+
+- einer unveränderlichen `ProfileSecurityId`,
+- optional einem `PasswordCredential`,
+- einem gültigen `LockState`.
+
+Sie darf ausschließlich als vollständiger und konsistenter Zustand erzeugt
+oder rekonstruiert werden.
+
+### Fachliche Regeln
+
+Für `ProfileSecurity` gilt:
+
+- `securityId` MUSS vorhanden und gültig sein.
+- `securityId` DARF nach der Erzeugung nicht verändert werden.
+- `lockState` MUSS vorhanden und gültig sein.
+- Ein Profil ohne `PasswordCredential` DARF nicht gesperrt sein.
+- Ein vorhandenes `PasswordCredential` MUSS gültig sein.
+- Klartextpasswörter DÜRFEN nicht Bestandteil der Entity sein.
+- Fehlgeschlagene Operationen DÜRFEN den bestehenden Zustand nicht verändern.
+- Die Entity erzeugt keine Domain Events.
+
+Die enthaltenen Value Objects werden ausschließlich durch ihre eigenen
+Validation Rules validiert.
+
+### Fehlercodes
+
+| Fehlercode | Message Key | Severity | Category | Feld | Constraint | Parameter |
+|------------|-------------|----------|----------|------|------------|-----------|
+| PRO-VAL-PSEC-001 | `validation.profileSecurity.securityId.required` | ERROR | VALIDATION | securityId | required | – |
+| PRO-VAL-PSEC-002 | `validation.profileSecurity.securityId.invalid` | ERROR | VALIDATION | securityId | invalid | – |
+| PRO-VAL-PSEC-003 | `validation.profileSecurity.lockState.required` | ERROR | VALIDATION | lockState | required | – |
+| PRO-VAL-PSEC-004 | `validation.profileSecurity.passwordCredential.invalid` | ERROR | VALIDATION | passwordCredential | invalid | – |
+| PRO-VAL-PSEC-005 | `validation.profileSecurity.lockState.requiresCredential` | ERROR | VALIDATION | lockState | consistency | `{"required":"passwordCredential"}` |
+| PRO-VAL-PSEC-006 | `validation.profileSecurity.incomplete` | ERROR | VALIDATION | profileSecurity | completeness | `{"requiredFields":["securityId","lockState"]}` |
+
+### Fehlerverhalten
+
+#### Fehlende ProfileSecurityId
+
+Ist `securityId` nicht vorhanden, wird ausschließlich
+
+```text
+PRO-VAL-PSEC-001
+```
+
+erzeugt.
+
+#### Ungültige ProfileSecurityId
+
+Ist `securityId` ungültig, wird
+
+```text
+PRO-VAL-PSEC-002
+```
+
+erzeugt.
+
+#### Fehlender LockState
+
+Ist `lockState` nicht vorhanden, wird ausschließlich
+
+```text
+PRO-VAL-PSEC-003
+```
+
+erzeugt.
+
+#### Ungültiges PasswordCredential
+
+Ist ein `PasswordCredential` vorhanden, aber ungültig, wird
+
+```text
+PRO-VAL-PSEC-004
+```
+
+erzeugt.
+
+#### Gesperrter Zustand ohne Credential
+
+Befindet sich `lockState` im gesperrten Zustand und ist gleichzeitig kein
+`PasswordCredential` vorhanden, wird
+
+```text
+PRO-VAL-PSEC-005
+```
+
+erzeugt.
+
+#### Unvollständiger Sicherheitszustand
+
+Fehlt mindestens einer der Pflichtbestandteile, kann zusätzlich
+
+```text
+PRO-VAL-PSEC-006
+```
+
+erzeugt werden, sofern nicht bereits ein eindeutiger Pflichtfeldfehler den
+Zustand vollständig beschreibt.
+
+### Validierungsreihenfolge
+
+Die Validierung erfolgt in dieser Reihenfolge:
+
+1. `securityId`
+2. `lockState`
+3. optionales `PasswordCredential`
+4. Konsistenz zwischen Credential und LockState
+5. Vollständigkeit des Gesamtzustands
+
+Die enthaltenen Value Objects werden ausschließlich durch ihre eigenen
+Validation Rules geprüft.
+
+Fehler dieser Value Objects werden nicht erneut als
+`ProfileSecurity`-Fehler erzeugt.
+
+Dadurch werden doppelte Fehlermeldungen vermieden.
+
+### Nicht als Fehler definiert
+
+Die folgenden Situationen sind keine Validierungsfehler:
+
+- kein `PasswordCredential`,
+- entsperrter Zustand ohne `PasswordCredential`,
+- Austausch eines gültigen `PasswordCredential`,
+- gültiger entsperrter Zustand.
+
+Die fachliche Zulässigkeit von Operationen wie
+
+- Passwortschutz aktivieren,
+- Passwortschutz deaktivieren,
+- Passwort ändern,
+- sperren,
+- entsperren
+
+ist keine Aufgabe der Entity-Validierung.
+
+Diese Fälle werden ausschließlich durch die Business Rules beschrieben.
+
+### Abgrenzung
+
+Nicht Bestandteil dieser Validation Rule sind:
+
+- Passwortprüfung,
+- Passwortstärke,
+- Authentifizierung,
+- AuthenticationProof,
+- Passwort-Ports,
+- Kryptographie,
+- technische Hashverfahren,
+- Domain Events,
+- Application Services.
+
+Diese Validation Rule beschreibt ausschließlich den gültigen
+Sicherheitszustand der Entity.
+
+### Verhalten bei fachlichen Operationen
+
+Die Operationen
+
+```text
+enablePasswordProtection(...)
+
+disablePasswordProtection(...)
+
+changePasswordCredential(...)
+
+lock(...)
+
+unlock(...)
+```
+
+dürfen ausschließlich vollständige und konsistente Zielzustände erzeugen.
+
+Ein erfolgreicher No-Change ist kein Validierungsfehler.
+
+Business Errors werden getrennt von Validation Errors spezifiziert.
+
+### Traceability
+
+**Domain Model**
+
+- `ProfileSecurity`
+- `ProfileSecurity.create(...)`
+- `ProfileSecurity.enablePasswordProtection(...)`
+- `ProfileSecurity.disablePasswordProtection(...)`
+- `ProfileSecurity.changePasswordCredential(...)`
+- `ProfileSecurity.lock(...)`
+- `ProfileSecurity.unlock(...)`
+- `PasswordCredential`
+- `LockState`
+
+**Business Rules**
+
+- PRO-BR-026
+- PRO-BR-027
+
+**Validation Principles**
+
+- PRO-VP-001
+- PRO-VP-002
+- PRO-VP-003
+- PRO-VP-004
+- PRO-VP-009
 
 ---
 
