@@ -966,6 +966,518 @@ Beim Übergang in den Initialzustand KÖNNEN globale, nicht personenbezogene Ein
 
 ---
 
+# PRO-BR-028
+
+## Titel
+
+Passwortschutz verwalten
+
+### Zweck
+
+Diese Business Rule beschreibt die fachlichen Regeln für das Aktivieren und
+Deaktivieren des Passwortschutzes eines Profils.
+
+Die Regel beschreibt ausschließlich das fachliche Verhalten.
+
+Authentifizierung, Kryptographie, Hashverfahren und technische
+Credential-Erzeugung sind nicht Bestandteil dieser Regel.
+
+---
+
+## Geltungsbereich
+
+Diese Regel gilt für
+
+- `Profile.enablePasswordProtection(...)`
+- `Profile.disablePasswordProtection(...)`
+
+sowie die zugehörige `ProfileSecurity`-Entity.
+
+---
+
+## Aktivieren des Passwortschutzes
+
+### Voraussetzungen
+
+- Das Profil besitzt einen gültigen Sicherheitszustand.
+- Ein gültiges `PasswordCredential` liegt vor.
+
+### Erfolgsfall
+
+Ist aktuell kein Passwortschutz aktiviert,
+
+dann gilt:
+
+- das Credential wird übernommen,
+- der Passwortschutz ist anschließend aktiviert,
+- der bestehende Sperrzustand bleibt erhalten,
+- die `ProfileSecurityId` bleibt unverändert.
+
+---
+
+## Bereits aktivierter Passwortschutz
+
+Besitzt das Profil bereits ein Credential,
+
+ist ein erneutes Aktivieren fachlich unzulässig.
+
+Es entsteht ein Business Error.
+
+Der bestehende Zustand bleibt vollständig unverändert.
+
+---
+
+## Deaktivieren des Passwortschutzes
+
+### Erfolgsfall
+
+Besitzt das Profil ein Credential,
+
+dann gilt:
+
+- das Credential wird entfernt,
+- der Passwortschutz ist anschließend deaktiviert,
+- das Profil befindet sich anschließend im entsperrten Zustand,
+- die `ProfileSecurityId` bleibt unverändert.
+
+---
+
+## Bereits deaktivierter Passwortschutz
+
+Besitzt das Profil bereits kein Credential,
+
+liegt kein fachlicher Fehler vor.
+
+Die Operation liefert einen erfolgreichen No-Change.
+
+Der bestehende Zustand bleibt vollständig unverändert.
+
+---
+
+## Allgemeine Regeln
+
+Für beide Operationen gilt:
+
+- Fehlgeschlagene Operationen verändern den bestehenden Zustand nicht.
+- Erfolgreiche Änderungen erzeugen einen vollständigen konsistenten
+  Sicherheitszustand.
+- No-Change ist kein Fehler.
+- Validation Errors werden nicht durch diese Regel erzeugt.
+- AuthenticationProof wird durch die dafür zuständigen Regeln behandelt.
+- `ProfileSecurity` erzeugt keine Domain Events.
+
+---
+
+## Traceability
+
+### Domain Model
+
+- `Profile.enablePasswordProtection(...)`
+- `Profile.disablePasswordProtection(...)`
+- `ProfileSecurity`
+- `PasswordCredential`
+
+### Validation Rules
+
+- PRO-VR-024
+
+### Requirements
+
+- PRO-FR-013
+
+### Invarianten
+
+- AG-INV-012
+
+---
+
+# PRO-BR-029
+
+## Titel
+
+Profil sperren
+
+### Zweck
+
+Diese Business Rule beschreibt das fachliche Sperren eines Profils.
+
+Sie regelt ausschließlich die Änderung des fachlichen Sperrzustands.
+
+Authentifizierung, Passwortprüfung, Kryptographie und technische
+Sicherheitsmechanismen sind nicht Bestandteil dieser Regel.
+
+---
+
+## Geltungsbereich
+
+Diese Regel gilt für
+
+- `Profile.lock(...)`
+
+sowie die zugehörige `ProfileSecurity`-Entity.
+
+---
+
+## Voraussetzungen
+
+Für das Sperren gilt:
+
+- das Profil besitzt einen gültigen Sicherheitszustand,
+- ein gültiges `PasswordCredential` ist vorhanden,
+- ein gültiger Zeitstempel liegt vor.
+
+---
+
+## Erfolgsfall
+
+Ist das Profil aktuell entsperrt,
+
+dann gilt:
+
+- der Sperrzustand wird auf „gesperrt" gesetzt,
+- der Sperrzeitpunkt wird übernommen,
+- das vorhandene Credential bleibt unverändert,
+- die `ProfileSecurityId` bleibt unverändert.
+
+---
+
+## Bereits gesperrtes Profil
+
+Ist das Profil bereits gesperrt,
+
+liegt kein fachlicher Fehler vor.
+
+Die Operation liefert einen erfolgreichen No-Change.
+
+Der bestehende Zustand bleibt vollständig unverändert.
+
+---
+
+## Sperren ohne Passwortschutz
+
+Besitzt das Profil kein `PasswordCredential`,
+
+ist das Sperren fachlich unzulässig.
+
+Die Operation liefert einen Business Error.
+
+Der bestehende Zustand bleibt vollständig unverändert.
+
+---
+
+## Allgemeine Regeln
+
+Für die Sperroperation gilt:
+
+- Fehlgeschlagene Operationen verändern den bestehenden Zustand nicht.
+- Erfolgreiche Änderungen erzeugen einen vollständigen konsistenten
+  Sicherheitszustand.
+- No-Change ist kein Fehler.
+- Validation Errors werden nicht durch diese Regel erzeugt.
+- `ProfileSecurity` erzeugt keine Domain Events.
+
+Die Erzeugung fachlicher Domain Events erfolgt ausschließlich durch das
+Aggregate Root.
+
+---
+
+## Traceability
+
+### Domain Model
+
+- `Profile.lock(...)`
+- `ProfileSecurity.lock(...)`
+- `ProfileSecurity`
+- `LockState`
+
+### Validation Rules
+
+- PRO-VR-024
+
+### Requirements
+
+- PRO-FR-013
+
+### Invarianten
+
+- AG-INV-012
+
+---
+
+# PRO-BR-030
+
+## Titel
+
+Profil entsperren
+
+### Zweck
+
+Diese Business Rule beschreibt das fachliche Entsperren eines Profils.
+
+Sie regelt ausschließlich die Änderung des fachlichen Sperrzustands.
+
+Authentifizierung, Passwortprüfung, Kryptographie, technische
+Credential-Verifikation sowie die Prüfung eines `AuthenticationProof`
+sind nicht Bestandteil dieser Regel.
+
+---
+
+## Geltungsbereich
+
+Diese Regel gilt für
+
+- `Profile.unlock(...)`
+
+sowie die zugehörige `ProfileSecurity`-Entity.
+
+---
+
+## Voraussetzungen
+
+Für das Entsperren gilt:
+
+- das Profil besitzt einen gültigen Sicherheitszustand,
+- ein gültiger Zeitstempel liegt vor,
+- die Prüfung eines `AuthenticationProof` erfolgt außerhalb dieser
+  Business Rule.
+
+---
+
+## Erfolgsfall
+
+Ist das Profil aktuell gesperrt,
+
+dann gilt:
+
+- der Sperrzustand wird aufgehoben,
+- der Entsperrzeitpunkt wird übernommen,
+- das vorhandene `PasswordCredential` bleibt unverändert,
+- die `ProfileSecurityId` bleibt unverändert.
+
+---
+
+## Bereits entsperrtes Profil
+
+Ist das Profil bereits entsperrt,
+
+liegt kein fachlicher Fehler vor.
+
+Die Operation liefert einen erfolgreichen No-Change.
+
+Der bestehende Zustand bleibt vollständig unverändert.
+
+---
+
+## Entsperren ohne Passwortschutz
+
+Besitzt das Profil kein `PasswordCredential`,
+
+liegt kein fachlicher Fehler vor.
+
+Die Operation liefert einen erfolgreichen No-Change.
+
+Der bestehende Zustand bleibt vollständig unverändert.
+
+---
+
+## Allgemeine Regeln
+
+Für die Entsperroperation gilt:
+
+- Fehlgeschlagene Operationen verändern den bestehenden Zustand nicht.
+- Erfolgreiche Änderungen erzeugen einen vollständigen konsistenten
+  Sicherheitszustand.
+- No-Change ist kein Fehler.
+- Validation Errors werden nicht durch diese Regel erzeugt.
+- `ProfileSecurity` erzeugt keine Domain Events.
+
+Die Erzeugung fachlicher Domain Events erfolgt ausschließlich durch das
+Aggregate Root.
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieser Regel sind:
+
+- Prüfung des `AuthenticationProof`,
+- Authentifizierung,
+- Passwortverifikation,
+- Kryptographie,
+- technische Sicherheitsports,
+- Application Services.
+
+Diese Verantwortlichkeiten sind im Domain Model separat beschrieben.
+
+---
+
+## Traceability
+
+### Domain Model
+
+- `Profile.unlock(...)`
+- `ProfileSecurity.unlock(...)`
+- `ProfileSecurity`
+- `LockState`
+- `AuthenticationProof`
+
+### Validation Rules
+
+- PRO-VR-024
+
+### Requirements
+
+- PRO-FR-013
+
+### Invarianten
+
+- AG-INV-012
+
+---
+
+# PRO-BR-031
+
+## Titel
+
+Passwort ändern
+
+### Zweck
+
+Diese Business Rule beschreibt das fachliche Ändern eines
+Profilpasswortes.
+
+Sie regelt ausschließlich den Austausch eines vorhandenen
+`PasswordCredential`.
+
+Die technische Erzeugung eines Credentials, Kryptographie,
+Hashverfahren, Passwortprüfung und die Prüfung eines
+`AuthenticationProof` sind nicht Bestandteil dieser Regel.
+
+---
+
+## Geltungsbereich
+
+Diese Regel gilt für
+
+- `Profile.changePasswordCredential(...)`
+
+sowie die zugehörige `ProfileSecurity`-Entity.
+
+---
+
+## Voraussetzungen
+
+Für das Ändern eines Passwortes gilt:
+
+- das Profil besitzt einen gültigen Sicherheitszustand,
+- ein gültiges `PasswordCredential` ist bereits vorhanden,
+- ein neues gültiges `PasswordCredential` liegt vor,
+- die Prüfung eines `AuthenticationProof` erfolgt außerhalb dieser
+  Business Rule.
+
+---
+
+## Erfolgsfall
+
+Besitzt das Profil bereits ein Credential,
+
+und unterscheidet sich das neue Credential fachlich,
+
+dann gilt:
+
+- das bisherige Credential wird vollständig ersetzt,
+- der Passwortschutz bleibt aktiviert,
+- der Sperrzustand bleibt unverändert,
+- die `ProfileSecurityId` bleibt unverändert.
+
+---
+
+## Passwortschutz nicht aktiviert
+
+Besitzt das Profil kein `PasswordCredential`,
+
+ist ein Passwortwechsel fachlich unzulässig.
+
+Die Operation liefert einen Business Error.
+
+Der bestehende Zustand bleibt vollständig unverändert.
+
+---
+
+## Unverändertes Credential
+
+Entspricht das neue Credential fachlich bereits dem vorhandenen
+Credential,
+
+liegt kein fachlicher Fehler vor.
+
+Die Operation liefert einen erfolgreichen No-Change.
+
+Der bestehende Zustand bleibt vollständig unverändert.
+
+---
+
+## Allgemeine Regeln
+
+Für den Passwortwechsel gilt:
+
+- Fehlgeschlagene Operationen verändern den bestehenden Zustand nicht.
+- Erfolgreiche Änderungen erzeugen einen vollständigen konsistenten
+  Sicherheitszustand.
+- Das Credential wird vollständig ersetzt.
+- No-Change ist kein Fehler.
+- Validation Errors werden nicht durch diese Regel erzeugt.
+- `ProfileSecurity` erzeugt keine Domain Events.
+
+Die Erzeugung fachlicher Domain Events erfolgt ausschließlich durch das
+Aggregate Root.
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieser Regel sind:
+
+- Passwortstärke,
+- Passwortkomplexität,
+- Klartextpasswörter,
+- Kryptographie,
+- Hashverfahren,
+- technische Credential-Erzeugung,
+- Passwortverifikation,
+- AuthenticationProof,
+- technische Security-Ports,
+- Application Services.
+
+Diese Verantwortlichkeiten werden an anderer Stelle des Domain Models
+beschrieben.
+
+---
+
+## Traceability
+
+### Domain Model
+
+- `Profile.changePasswordCredential(...)`
+- `ProfileSecurity.changePasswordCredential(...)`
+- `ProfileSecurity`
+- `PasswordCredential`
+- `AuthenticationProof`
+
+### Validation Rules
+
+- PRO-VR-024
+
+### Requirements
+
+- PRO-FR-013
+
+### Invarianten
+
+- AG-INV-012
+
+---
+
 # Regelabhängigkeiten
 
 ```text
