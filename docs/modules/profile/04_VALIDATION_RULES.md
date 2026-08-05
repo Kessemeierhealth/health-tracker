@@ -4123,6 +4123,232 @@ Sie erzeugt die internen Fehler dieses Value Objects nicht erneut als
 
 ---
 
+# PRO-VR-026
+
+## Titel
+
+ProfileSecurityId validieren
+
+### Typ
+
+Value-Object-Validierung
+
+### Beschreibung
+
+`ProfileSecurityId` repräsentiert die unveränderliche lokale Identität der
+untergeordneten Entity `ProfileSecurity`.
+
+Die ID besitzt ausschließlich innerhalb des `Profile`-Aggregats eine
+fachliche Bedeutung.
+
+Sie darf nicht als Ersatz für `ProfileId`, `ProfileSettingsId` oder eine
+andere fachliche Identität verwendet werden.
+
+Die kontrollierte Rekonstruktion erfolgt über:
+
+```text
+DomainResult<ProfileSecurityId> ProfileSecurityId.fromString(
+  String? value
+)
+```
+
+Die Erzeugung einer neuen Identität erfolgt über:
+
+```text
+DomainResult<ProfileSecurityId> ProfileSecurityId.generate()
+```
+
+### Interner Wert
+
+```text
+UUIDv7
+```
+
+### Fachliche Regeln
+
+Für `ProfileSecurityId.fromString(...)` gilt:
+
+- `value` MUSS vorhanden sein.
+- `value` DARF nach dem Trimmen nicht leer sein.
+- `value` MUSS eine syntaktisch gültige UUID Version 7 repräsentieren.
+- Der normalisierte Wert MUSS in kanonischer UUIDv7-Darstellung gespeichert
+  werden.
+- Die erzeugte ID MUSS unveränderlich sein.
+- Die ID DARF nicht aus Passwörtern, Credentials, Hashes,
+  `AuthenticationProof`, Profilnamen oder anderen Profildaten abgeleitet
+  werden.
+- Die ID DARF nicht als `ProfileId` oder `ProfileSettingsId` verwendet
+  werden.
+
+Die Prüfung, ob eine ID innerhalb eines konkreten Aggregats bereits
+verwendet wird, gehört nicht zur lokalen Formatvalidierung dieses
+Value Objects.
+
+### Normalisierung
+
+Vor der Validierung werden ausschließlich
+
+- führende Leerzeichen entfernt,
+- nachfolgende Leerzeichen entfernt.
+
+Der anschließend validierte UUIDv7-Wert wird in seiner kanonischen
+UUIDv7-Repräsentation und in Kleinschreibung gespeichert.
+
+Weitere fachliche Transformationen sind nicht zulässig.
+
+### Fehlercodes
+
+| Fehlercode | Message Key | Severity | Category | Feld | Constraint | Parameter |
+|------------|-------------|----------|----------|------|------------|-----------|
+| PRO-VAL-PSECID-001 | `validation.profileSecurityId.required` | ERROR | VALIDATION | value | required | – |
+| PRO-VAL-PSECID-002 | `validation.profileSecurityId.blank` | ERROR | VALIDATION | value | blank | – |
+| PRO-VAL-PSECID-003 | `validation.profileSecurityId.invalidFormat` | ERROR | VALIDATION | value | format | `{"expectedFormat":"UUIDv7"}` |
+
+### Fehlerverhalten
+
+#### Fehlender Wert
+
+Ist `value` nicht vorhanden, wird ausschließlich
+
+```text
+PRO-VAL-PSECID-001
+```
+
+erzeugt.
+
+Weitere Prüfungen werden in diesem Fall nicht durchgeführt.
+
+#### Leerer Wert
+
+Ist `value` vorhanden, ergibt aber nach dem Trimmen einen leeren Wert, wird
+ausschließlich
+
+```text
+PRO-VAL-PSECID-002
+```
+
+erzeugt.
+
+Eine zusätzliche Formatprüfung wird in diesem Fall nicht durchgeführt.
+
+#### Ungültiges UUIDv7-Format
+
+Ist der normalisierte Wert vorhanden und nicht leer, repräsentiert aber
+keine syntaktisch gültige UUID Version 7, wird
+
+```text
+PRO-VAL-PSECID-003
+```
+
+erzeugt.
+
+Der Fehlerparameter lautet:
+
+```json
+{
+  "expectedFormat": "UUIDv7"
+}
+```
+
+Der ungültige Eingabewert wird nicht als Fehlerparameter übertragen.
+
+### Validierungsreihenfolge
+
+Die Validierung erfolgt in dieser Reihenfolge:
+
+1. Vorhandensein von `value` prüfen.
+2. Normalisierung durch Trimmen durchführen.
+3. Leeren normalisierten Wert prüfen.
+4. UUIDv7-Format und UUID-Version prüfen.
+5. Kanonische UUIDv7-Repräsentation herstellen.
+6. Gültige unveränderliche `ProfileSecurityId` erzeugen.
+
+Ein fehlender Wert erzeugt keinen zusätzlichen Blank- oder Formatfehler.
+
+Ein leerer normalisierter Wert erzeugt keinen zusätzlichen Formatfehler.
+
+Dadurch werden Folgefehler vermieden.
+
+### Verhalten von generate()
+
+Die Factory
+
+```text
+ProfileSecurityId.generate()
+```
+
+erzeugt ausschließlich eine neue gültige UUID Version 7.
+
+Für die technische Erzeugung darf die bereits im Projekt verwendete
+UUID-Bibliothek eingesetzt werden.
+
+Die Bibliothek ist ausschließlich ein internes technisches
+Implementierungsdetail.
+
+Typen der UUID-Bibliothek dürfen nicht Bestandteil sein von
+
+- der öffentlichen Domain-Schnittstelle,
+- `DomainResult`,
+- Domain Messages,
+- Fehlerparametern.
+
+Für `generate()` werden keine Validation Errors definiert.
+
+Ein unerwartetes technisches Versagen der UUID-Erzeugung ist kein
+fachlicher Validierungsfehler und darf nicht mit einem
+`PRO-VAL-PSECID-*`-Code abgebildet werden.
+
+### Equality
+
+Zwei `ProfileSecurityId`-Instanzen sind fachlich gleich, wenn ihre
+kanonischen UUIDv7-Werte identisch sind.
+
+Der Hashcode basiert ausschließlich auf dem kanonischen UUIDv7-Wert.
+
+### Abgrenzung
+
+Nicht Bestandteil dieser Validation Rule sind:
+
+- Eindeutigkeitsprüfungen über mehrere Aggregate,
+- Persistenzkonflikte,
+- Datenbank-Constraints,
+- Verwendung als `ProfileId`,
+- Verwendung als `ProfileSettingsId`,
+- technische Generatorfehler,
+- Serialisierung,
+- JSON-Mapping,
+- Repositoryzugriffe,
+- Passwortprüfung,
+- Authentifizierung,
+- Credential-Erzeugung.
+
+Die Entity `ProfileSecurity` prüft ausschließlich, ob eine gültige
+`ProfileSecurityId` vorhanden ist.
+
+Sie erzeugt die internen Fehler dieses Value Objects nicht erneut als
+`ProfileSecurity`-Fehler.
+
+### Traceability
+
+**Domain Model**
+
+- `ProfileSecurityId`
+- `ProfileSecurityId.generate()`
+- `ProfileSecurityId.fromString(...)`
+- `ProfileSecurity.securityId`
+- `ProfileSecurity.create(...)`
+
+**Validation Principles**
+
+- PRO-VP-001
+- PRO-VP-002
+- PRO-VP-003
+- PRO-VP-004
+- PRO-VP-007
+- PRO-VP-009
+
+---
+
 # Validierungsreihenfolge
 
 Jede Profilerstellung und Profiländerung wird in folgender Reihenfolge validiert:

@@ -10681,6 +10681,185 @@ dokumentiert.
 
 ---
 
+# ProfileSecurityId
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- ProfileSecurityId
+
+---
+
+## Zweck
+
+Dieser Abschnitt definiert sämtliche Validation Error Codes des
+Value Objects **ProfileSecurityId**.
+
+Die ID repräsentiert ausschließlich die lokale Identität der
+Entity `ProfileSecurity`.
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-PSECID-001 | validation.profileSecurityId.required | ERROR | VALIDATION | value | required | – |
+| PRO-VAL-PSECID-002 | validation.profileSecurityId.blank | ERROR | VALIDATION | value | blank | – |
+| PRO-VAL-PSECID-003 | validation.profileSecurityId.invalidFormat | ERROR | VALIDATION | value | format | expectedFormat |
+
+### Parameter
+
+#### PRO-VAL-PSECID-003
+
+```json
+{
+  "expectedFormat": "UUIDv7"
+}
+```
+
+---
+
+## Herkunft
+
+Diese Error Codes werden ausschließlich aus
+
+- PRO-VR-026
+
+abgeleitet.
+
+Neue fachliche Regeln werden in diesem Dokument nicht definiert.
+
+---
+
+## Fehlerverhalten
+
+### Fehlender Wert
+
+Ist kein Wert vorhanden,
+
+wird
+
+```text
+PRO-VAL-PSECID-001
+```
+
+erzeugt.
+
+Weitere Prüfungen werden nicht durchgeführt.
+
+---
+
+### Leerer Wert
+
+Ist der Wert nach dem Trimmen leer,
+
+wird
+
+```text
+PRO-VAL-PSECID-002
+```
+
+erzeugt.
+
+Ein zusätzlicher Formatfehler wird nicht erzeugt.
+
+---
+
+### Ungültiges UUIDv7-Format
+
+Entspricht der normalisierte Wert keiner gültigen UUID Version 7,
+
+wird
+
+```text
+PRO-VAL-PSECID-003
+```
+
+erzeugt.
+
+Der Fehlerparameter lautet:
+
+```json
+{
+  "expectedFormat": "UUIDv7"
+}
+```
+
+Der ungültige Eingabewert wird nicht in den Fehlerparametern
+übertragen.
+
+---
+
+## Validierungsreihenfolge
+
+Die Validierung erfolgt in dieser Reihenfolge:
+
+1. Vorhandensein prüfen.
+2. Trimmen.
+3. Leeren Wert prüfen.
+4. UUIDv7-Format prüfen.
+5. Gültige `ProfileSecurityId` erzeugen.
+
+Ein fehlender Wert erzeugt keinen zusätzlichen Blank- oder
+Formatfehler.
+
+Ein leerer Wert erzeugt keinen zusätzlichen Formatfehler.
+
+---
+
+## Verhalten von generate()
+
+Die Factory
+
+```text
+ProfileSecurityId.generate()
+```
+
+erzeugt ausschließlich eine neue gültige UUID Version 7.
+
+Für die technische Erzeugung darf die bereits im Projekt verwendete
+UUID-Bibliothek eingesetzt werden.
+
+Die Bibliothek ist ausschließlich ein internes technisches
+Implementierungsdetail.
+
+Typen der Bibliothek dürfen nicht Bestandteil sein von
+
+- der öffentlichen Domain-Schnittstelle,
+- `DomainResult`,
+- Domain Messages,
+- Fehlerparametern.
+
+Für diese Factory werden keine Validation Errors definiert.
+
+Ein unerwarteter technischer Generatorfehler ist kein fachlicher
+Validation Error.
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Abschnitts sind:
+
+- technische UUID-Erzeugung,
+- Persistenz,
+- Datenbank-Constraints,
+- Repository-Konflikte,
+- Verwendung als `ProfileId`,
+- Verwendung als `ProfileSettingsId`,
+- JSON-Serialisierung,
+- Infrastrukturfehler.
+
+Die Entity `ProfileSecurity` prüft ausschließlich,
+ob eine gültige `ProfileSecurityId` vorhanden ist.
+
+Validation Errors dieses Value Objects werden von
+`ProfileSecurity` nicht erneut als Entity-Fehler erzeugt.
+
+----
+
 # ProfileSecurity
 
 ### Zugeordneter Domänentyp
@@ -12150,7 +12329,7 @@ gültigen Zustand.
 
 ---
 
-# ProfileSecurity
+# ProfileSecurity – Information Codes
 
 ## Herkunft
 

@@ -4845,28 +4845,177 @@ fachlichen Domäne.
 
 ## Zweck
 
-`ProfileSecurityId` repräsentiert die lokale Identität der untergeordneten Entity `ProfileSecurity`.
+`ProfileSecurityId` repräsentiert die unveränderliche lokale Identität der
+untergeordneten Entity `ProfileSecurity` innerhalb eines
+`Profile`-Aggregats.
+
+Die ID besitzt ausschließlich innerhalb des Aggregats eine fachliche
+Bedeutung.
+
+Sie darf nicht als Ersatz für `ProfileId` oder eine andere fachliche
+Identität verwendet werden.
+
+---
 
 ## Interner Wert
 
 ```text
-UUID
+UUIDv7
 ```
+
+Der interne Wert wird als kanonische UUID-Version-7-Zeichenfolge in
+Kleinschreibung gespeichert.
+
+---
 
 ## Factories
 
+### Neuerzeugung
+
 ```text
 DomainResult<ProfileSecurityId> generate()
-
-DomainResult<ProfileSecurityId> fromString(value)
 ```
+
+Die Factory erzeugt ausschließlich eine neue gültige UUID Version 7.
+
+Für die technische Erzeugung darf die bereits im Projekt verwendete
+UUID-Bibliothek eingesetzt werden.
+
+Die Bibliothek ist ausschließlich ein internes technisches
+Implementierungsdetail.
+
+Typen der UUID-Bibliothek dürfen nicht Bestandteil sein von
+
+- der öffentlichen Domain-Schnittstelle,
+- `DomainResult`,
+- Domain Messages,
+- Fehlerparametern.
+
+Für `generate()` werden keine fachlichen Validation Errors definiert.
+
+Ein unerwartetes technisches Versagen der UUID-Erzeugung ist kein
+fachlicher Validierungsfehler.
+
+### Rekonstruktion
+
+```text
+DomainResult<ProfileSecurityId> fromString(
+  String? value
+)
+```
+
+Die Factory rekonstruiert eine bereits vorhandene `ProfileSecurityId`.
+
+Vor der Validierung werden ausschließlich
+
+- führende Leerzeichen entfernt,
+- nachfolgende Leerzeichen entfernt.
+
+Der normalisierte Wert muss eine syntaktisch gültige UUID Version 7
+repräsentieren.
+
+Bei erfolgreicher Rekonstruktion wird der Wert in kanonischer
+UUIDv7-Darstellung und in Kleinschreibung gespeichert.
+
+---
+
+## Preconditions
+
+### generate()
+
+- Die technische UUIDv7-Erzeugung ist verfügbar.
+
+### fromString(...)
+
+- `value` ist vorhanden.
+- `value` ist nach dem Trimmen nicht leer.
+- `value` repräsentiert eine syntaktisch gültige UUID Version 7.
+
+---
+
+## Postconditions
+
+### Bei erfolgreicher Neuerzeugung
+
+- Es wurde eine gültige `ProfileSecurityId` erzeugt.
+- Der interne Wert ist eine UUID Version 7.
+- Der interne Wert besitzt eine kanonische Darstellung.
+- Es wurden keine fachlichen oder technischen Sicherheitsinformationen in
+  der ID kodiert.
+
+### Bei erfolgreicher Rekonstruktion
+
+- Es wurde eine gültige `ProfileSecurityId` erzeugt.
+- Führende und nachfolgende Leerzeichen wurden entfernt.
+- Der interne Wert wurde in kanonische Kleinschreibung überführt.
+- Der interne Wert ist eine UUID Version 7.
+
+### Bei fachlichem Fehler
+
+- Es wird keine `ProfileSecurityId` erzeugt.
+- Das Ergebnis enthält mindestens einen strukturierten Validation Error.
+- Der ungültige Eingabewert wird nicht in Fehlerparametern offengelegt.
+
+---
 
 ## Regeln
 
 - Die ID ist unveränderlich.
-- Sie ist innerhalb des Aggregats eindeutig.
-- Sie besitzt außerhalb des Aggregats keine selbstständige Bedeutung.
+- Neu erzeugte IDs verwenden ausschließlich UUID Version 7.
+- Rekonstruierte IDs müssen UUID Version 7 entsprechen.
+- Die ID ist innerhalb des Aggregats eindeutig.
+- Sie besitzt außerhalb des `Profile`-Aggregats keine selbstständige
+  fachliche Bedeutung.
+- Sie darf nicht als Ersatz für `ProfileId`, `ProfileSettingsId` oder eine
+  andere fachliche Identität verwendet werden.
 - Sie darf keine sicherheitsrelevanten Informationen kodieren.
+- Sie darf nicht aus Passwörtern, Credentials, Hashes,
+  `AuthenticationProof`, Profilnamen oder anderen Profildaten abgeleitet
+  werden.
+- Die konkrete UUID-Bibliothek ist kein Bestandteil des Domain Models.
+- Das Value Object veröffentlicht keine Domain Events.
+- Das Value Object besitzt keine Audit- oder Versionslogik.
+
+---
+
+## Equality
+
+Zwei `ProfileSecurityId`-Instanzen sind fachlich gleich, wenn ihre
+kanonischen UUIDv7-Werte identisch sind.
+
+Die Gleichheit richtet sich ausschließlich nach dem internen UUIDv7-Wert.
+
+---
+
+## HashCode
+
+Der Hashcode basiert ausschließlich auf dem kanonischen UUIDv7-Wert.
+
+---
+
+## String-Darstellung
+
+Die String-Darstellung entspricht ausschließlich dem kanonischen
+UUIDv7-Wert.
+
+Sie enthält keine zusätzlichen sicherheitsrelevanten Informationen.
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Value Objects sind:
+
+- profilübergreifende Eindeutigkeitsprüfungen,
+- Persistenzkonflikte,
+- Datenbank-Constraints,
+- Repositoryzugriffe,
+- JSON- oder DTO-Repräsentationen,
+- Authentifizierung,
+- Passwortprüfung,
+- Credential-Erzeugung,
+- kryptographische Schlüssel,
+- technische Generatorfehler.
 
 ---
 
