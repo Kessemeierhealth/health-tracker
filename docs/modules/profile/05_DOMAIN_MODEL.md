@@ -4704,32 +4704,140 @@ Die Gleichheit richtet sich nach dem enthaltenen Versionswert.
 
 ## Zweck
 
-`ProfileSettingsId` repräsentiert die lokale Identität der untergeordneten Entity `ProfileSettings`.
+`ProfileSettingsId` repräsentiert die unveränderliche fachliche Identität der
+Entity `ProfileSettings` innerhalb eines `Profile`-Aggregates.
+
+Die Identität besitzt ausschließlich lokale Bedeutung innerhalb des
+Aggregates.
+
+Sie darf nicht als Ersatz für `ProfileId` verwendet werden.
+
+---
 
 ## Interner Wert
 
 ```text
-UUID
+UUIDv7
 ```
 
-## Factories
+---
+
+## Eigenschaften
+
+- unveränderlich (immutable)
+- wertbasiert
+- keine fachliche Logik
+- keine Domain Events
+- keine Versionsinformationen
+- keine Auditinformationen
+
+---
+
+## Factory-Methoden
+
+### Rekonstruktion
+
+```text
+DomainResult<ProfileSettingsId> fromString(
+    String? value
+)
+```
+
+Rekonstruiert eine bereits vorhandene
+`ProfileSettingsId`.
+
+Die Factory validiert den übergebenen Wert gemäß
+`PRO-VR-025`.
+
+---
+
+### Neuerzeugung
 
 ```text
 DomainResult<ProfileSettingsId> generate()
-
-DomainResult<ProfileSettingsId> fromString(value)
 ```
+
+Erzeugt eine neue gültige `ProfileSettingsId`.
+
+Die erzeugte Identität verwendet ausschließlich UUID Version 7.
+
+Die konkrete technische UUID-Erzeugung ist ein internes
+Implementierungsdetail und nicht Bestandteil der öffentlichen
+Domain-Schnittstelle.
+
+---
 
 ## Regeln
 
-- Die ID ist unveränderlich.
-- Sie ist innerhalb des Aggregats eindeutig.
-- Sie besitzt außerhalb des `Profile`-Aggregats keine eigenständige fachliche Bedeutung.
-- Sie darf nicht als Ersatz für `ProfileId` verwendet werden.
+- Jede `ProfileSettingsId` MUSS eine gültige UUID Version 7 enthalten.
+- Die ID DARF niemals verändert werden.
+- Zwei `ProfileSettingsId`-Instanzen sind gleich, wenn ihr UUID-Wert gleich ist.
+- Die ID DARF nicht aus fachlichen Profildaten berechnet werden.
+- Die ID DARF nicht als `ProfileId` verwendet werden.
+- Die konkrete UUID-Bibliothek ist kein Bestandteil des Domain Models.
+
+---
 
 ## Equality
 
-Die Gleichheit richtet sich nach der normalisierten UUID.
+Zwei `ProfileSettingsId`-Instanzen sind fachlich gleich,
+wenn ihre UUIDv7 identisch ist.
+
+---
+
+## HashCode
+
+Der HashCode basiert ausschließlich auf dem UUIDv7-Wert.
+
+---
+
+## String-Darstellung
+
+```text
+550e8400-e29b-71d4-a716-446655440000
+```
+
+Die String-Darstellung entspricht der kanonischen UUIDv7-Repräsentation.
+
+---
+
+## Fehlerbehandlung
+
+`fromString(...)`
+
+liefert bei ungültigen Eingaben ausschließlich die in
+
+```text
+PRO-VR-025
+```
+
+definierten Validation Errors zurück.
+
+`generate()`
+
+liefert bei erfolgreicher Erzeugung immer eine gültige
+`ProfileSettingsId`.
+
+Für `generate()` werden keine fachlichen Validation Errors definiert.
+
+Ein technischer Fehler der UUID-Erzeugung gehört nicht zur
+fachlichen Domäne.
+
+---
+
+## Traceability
+
+**Validation Rules**
+
+- PRO-VR-025
+
+**Business Rules**
+
+- PRO-BR-026
+
+**Entity**
+
+- ProfileSettings
 
 ---
 

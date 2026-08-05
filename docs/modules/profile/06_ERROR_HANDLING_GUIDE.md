@@ -9954,6 +9954,79 @@ Abschnitt dokumentiert.
 
 ---
 
+# ProfileSettingsId
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- ProfileSettingsId
+
+---
+
+## Zweck
+
+Dieser Abschnitt definiert sämtliche Validation Error Codes des
+Value Objects **ProfileSettingsId**.
+
+Die ID repräsentiert ausschließlich die lokale Identität der
+Entity `ProfileSettings`.
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-PSETID-001 | validation.profileSettingsId.required | ERROR | VALIDATION | value | required | – |
+| PRO-VAL-PSETID-002 | validation.profileSettingsId.blank | ERROR | VALIDATION | value | blank | – |
+| PRO-VAL-PSETID-003 | validation.profileSettingsId.invalidFormat | ERROR | VALIDATION | value | format | expectedFormat |
+
+### Parameter
+
+#### PRO-VAL-PSETID-003
+
+```json
+{
+  "expectedFormat": "UUIDv7"
+}
+```
+
+---
+
+## Herkunft
+
+Diese Error Codes werden ausschließlich aus
+
+- PRO-VR-025
+
+abgeleitet.
+
+Neue fachliche Regeln werden in diesem Dokument nicht definiert.
+
+---
+
+## Hinweise
+
+`fromString(...)` validiert ausschließlich
+
+- Vorhandensein,
+- Leerwert,
+- UUIDv7-Format.
+
+`generate()`
+
+erzeugt ausschließlich eine gültige UUID Version 7.
+
+Für `generate()` werden keine Validation Errors definiert.
+
+Die technische UUID-Erzeugung ist kein Bestandteil der Domänenspezifikation.
+
+Validation Errors dieses Value Objects werden von
+`ProfileSettings` nicht erneut als Entity-Fehler erzeugt.
+
+---
+
 # LocalizationSettings
 
 ### Zugeordneter Domänentyp

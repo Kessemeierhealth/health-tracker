@@ -3926,13 +3926,21 @@ Die Erzeugung einer neuen Identität erfolgt über:
 DomainResult<ProfileSettingsId> ProfileSettingsId.generate()
 ```
 
+### Interner Wert
+
+```text
+UUIDv7
+```
+
 ### Fachliche Regeln
 
 Für `ProfileSettingsId.fromString(...)` gilt:
 
 - `value` MUSS vorhanden sein.
 - `value` DARF nach dem Trimmen nicht leer sein.
-- `value` MUSS ein syntaktisch gültiges UUID-Format besitzen.
+- `value` MUSS eine syntaktisch gültige UUID Version 7 repräsentieren.
+- Der normalisierte Wert MUSS in kanonischer UUIDv7-Darstellung gespeichert
+  werden.
 - Die erzeugte ID MUSS unveränderlich sein.
 - Die ID DARF nicht aus `ProfileId`, Profilname oder anderen Profildaten
   abgeleitet werden.
@@ -3944,23 +3952,23 @@ Value Objects.
 
 ### Normalisierung
 
-Vor der Formatprüfung werden ausschließlich
+Vor der Validierung werden ausschließlich
 
 - führende Leerzeichen entfernt,
 - nachfolgende Leerzeichen entfernt.
 
-Der anschließend validierte UUID-Wert wird in seiner kanonischen
-UUID-Repräsentation gespeichert.
+Der anschließend validierte UUIDv7-Wert wird in seiner kanonischen
+UUIDv7-Repräsentation gespeichert.
 
 Weitere fachliche Transformationen sind nicht zulässig.
 
 ### Fehlercodes
 
-| Fehlercode | Message Key | Severity | Feld | Constraint | Parameter |
-|------------|-------------|----------|------|------------|-----------|
-| PRO-VAL-PSETID-001 | `validation.profileSettingsId.required` | ERROR | value | required | – |
-| PRO-VAL-PSETID-002 | `validation.profileSettingsId.blank` | ERROR | value | blank | – |
-| PRO-VAL-PSETID-003 | `validation.profileSettingsId.invalidFormat` | ERROR | value | format | `{"expectedFormat":"UUID"}` |
+| Fehlercode | Message Key | Severity | Category | Feld | Constraint | Parameter |
+|------------|-------------|----------|----------|------|------------|-----------|
+| PRO-VAL-PSETID-001 | `validation.profileSettingsId.required` | ERROR | VALIDATION | value | required | – |
+| PRO-VAL-PSETID-002 | `validation.profileSettingsId.blank` | ERROR | VALIDATION | value | blank | – |
+| PRO-VAL-PSETID-003 | `validation.profileSettingsId.invalidFormat` | ERROR | VALIDATION | value | format | `{"expectedFormat":"UUIDv7"}` |
 
 ### Fehlerverhalten
 
@@ -3989,10 +3997,10 @@ erzeugt.
 
 Eine zusätzliche Formatprüfung wird in diesem Fall nicht durchgeführt.
 
-#### Ungültiges UUID-Format
+#### Ungültiges UUIDv7-Format
 
-Ist der normalisierte Wert vorhanden und nicht leer, entspricht aber keinem
-syntaktisch gültigen UUID-Format, wird
+Ist der normalisierte Wert vorhanden und nicht leer, repräsentiert aber
+keine syntaktisch gültige UUID Version 7, wird
 
 ```text
 PRO-VAL-PSETID-003
@@ -4004,7 +4012,7 @@ Der Fehlerparameter lautet:
 
 ```json
 {
-  "expectedFormat": "UUID"
+  "expectedFormat": "UUIDv7"
 }
 ```
 
@@ -4017,8 +4025,9 @@ Die Validierung erfolgt in dieser Reihenfolge:
 1. Vorhandensein von `value` prüfen.
 2. Normalisierung durch Trimmen durchführen.
 3. Leeren normalisierten Wert prüfen.
-4. UUID-Format prüfen.
-5. Gültige unveränderliche `ProfileSettingsId` erzeugen.
+4. UUIDv7-Format und UUID-Version prüfen.
+5. Kanonische UUIDv7-Repräsentation herstellen.
+6. Gültige unveränderliche `ProfileSettingsId` erzeugen.
 
 Ein fehlender Wert erzeugt keinen zusätzlichen Blank- oder Formatfehler.
 
@@ -4034,14 +4043,44 @@ Die Factory
 ProfileSettingsId.generate()
 ```
 
-erzeugt eine neue gültige Identität über die im Projekt vorgesehene
-technische UUID-Erzeugung.
+erzeugt ausschließlich eine neue gültige UUID Version 7.
+
+Für die technische Erzeugung darf das Dart-Paket
+
+```text
+uuid
+```
+
+als reguläre Projektabhängigkeit verwendet werden.
+
+Die Bibliothek ist ausschließlich ein internes technisches
+Implementierungsdetail.
+
+Typen der Bibliothek dürfen nicht Bestandteil sein von
+
+- der öffentlichen Domain-Schnittstelle,
+- `DomainResult`,
+- Domain Messages,
+- Fehlerparametern.
+
+Die öffentliche Repräsentation von `ProfileSettingsId` bleibt ein
+domäneneigener, unveränderlicher String-basierter Wert.
+
+Jede erfolgreich erzeugte ID MUSS sämtliche Regeln dieser Validation Rule
+erfüllen.
 
 Für `generate()` werden keine Validation Errors definiert.
 
-Ein unerwartetes Versagen der technischen UUID-Erzeugung ist kein
+Ein unerwartetes technisches Versagen der UUID-Erzeugung ist kein
 fachlicher Validierungsfehler und darf nicht mit einem
 `PRO-VAL-PSETID-*`-Code abgebildet werden.
+
+### Equality
+
+Zwei `ProfileSettingsId`-Instanzen sind fachlich gleich, wenn ihre
+kanonischen UUIDv7-Werte identisch sind.
+
+Der Hashcode basiert ausschließlich auf dem kanonischen UUIDv7-Wert.
 
 ### Abgrenzung
 
@@ -4051,7 +4090,7 @@ Nicht Bestandteil dieser Validation Rule sind:
 - Persistenzkonflikte,
 - Datenbank-Constraints,
 - Verwendung als `ProfileId`,
-- technische UUID-Generatorfehler,
+- technische Generatorfehler,
 - Serialisierung,
 - JSON-Mapping,
 - Repositoryzugriffe.
