@@ -3691,6 +3691,16 @@ Die Entity besteht aus
 Sie darf ausschließlich als vollständiger und konsistenter Zustand erzeugt
 oder rekonstruiert werden.
 
+Die kontrollierte Erzeugung erfolgt über
+
+```text
+DomainResult<ProfileSecurity> ProfileSecurity.create(
+    ProfileSecurityId? securityId,
+    PasswordCredential? passwordCredential,
+    LockState? lockState
+)
+```
+
 ### Fachliche Regeln
 
 Für `ProfileSecurity` gilt:

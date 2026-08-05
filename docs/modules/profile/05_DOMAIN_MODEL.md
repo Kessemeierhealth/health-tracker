@@ -2435,6 +2435,62 @@ Passwortschutz deaktiviert
 
 ---
 
+## Factory
+
+Die kontrollierte initiale Erzeugung und die Rekonstruktion erfolgen
+ausschließlich über:
+
+```text
+DomainResult<ProfileSecurity> create(
+  ProfileSecurityId? securityId,
+  PasswordCredential? passwordCredential,
+  LockState? lockState
+)
+```
+
+Dieselbe Factory wird sowohl für die initiale Erzeugung als auch für die
+Rekonstruktion einer bestehenden `ProfileSecurity`-Entity verwendet.
+
+Es existiert keine weitere öffentliche Factory.
+
+### Regeln
+
+- `securityId` muss vorhanden und gültig sein.
+- `lockState` muss vorhanden und gültig sein.
+- `passwordCredential` darf fehlen.
+- Ein fehlendes `passwordCredential` bedeutet, dass der Passwortschutz
+  deaktiviert ist.
+- Ein gesperrter Zustand ohne `passwordCredential` ist unzulässig.
+- Die Factory erzeugt ausschließlich einen vollständigen und fachlich
+  konsistenten Zustand.
+- Bei mindestens einem Validation Error wird keine Entity erzeugt.
+- Fehler der enthaltenen Value Objects werden nicht als generische
+  `ProfileSecurity`-Fehler dupliziert.
+
+### Erfolgsverhalten
+
+Bei erfolgreicher Erzeugung gilt:
+
+- `securityId` entspricht dem übergebenen Wert.
+- `passwordCredential` entspricht dem übergebenen optionalen Wert.
+- `lockState` entspricht dem übergebenen Wert.
+- Die Entity ist vollständig und fachlich konsistent.
+- Die Entity erzeugt keine Domain Events.
+- Die Entity besitzt keine eigene Audit- oder Versionslogik.
+
+### Fehlerverhalten
+
+Bei einem fachlichen Fehler gilt:
+
+- Es wird keine `ProfileSecurity`-Entity erzeugt.
+- Das `DomainResult<ProfileSecurity>` enthält mindestens einen
+  strukturierten Validation Error.
+- Es entsteht kein teilweise gültiger Sicherheitszustand.
+- Sensible Inhalte werden nicht in Domain Messages oder Fehlerparametern
+  offengelegt.
+
+---
+
 ## Verantwortlichkeiten
 
 `ProfileSecurity` ist verantwortlich für:
@@ -4334,48 +4390,184 @@ Sie darf nicht zur Authentifizierung genutzt werden.
 
 ## Zweck
 
-`PasswordHash` kapselt einen sicher erzeugten Passwort-Hash.
+`PasswordHash` repräsentiert den bereits kryptographisch erzeugten Hashwert
+eines Passworts.
+
+Der Typ enthält niemals ein Klartextpasswort.
+
+Die Erzeugung des Hashwerts erfolgt ausschließlich außerhalb der Domain über
+die zuständigen Security Ports.
+
+Die Domain behandelt den Hashwert ausschließlich als undurchsichtigen,
+unveränderlichen Sicherheitswert.
+
+---
 
 ## Interner Wert
 
 ```text
-Opaque String
+OpaqueString
 ```
 
-oder:
+Der interne Wert wird als unveränderlicher String gespeichert.
+
+Die Domain
+
+- interpretiert den Wert nicht,
+- zerlegt den Wert nicht,
+- verändert den Wert nicht,
+- leitet keine fachlichen Informationen aus seinem Inhalt ab.
+
+---
+
+## Kontrollierte Rekonstruktion
+
+Die Rekonstruktion eines bereits vorhandenen Hashwerts erfolgt ausschließlich
+über:
 
 ```text
-Immutable Byte Sequence
+DomainResult<PasswordHash> fromPersistedValue(
+  String? value
+)
 ```
 
-## Factory
+Die Factory dient ausschließlich der kontrollierten Übernahme eines bereits
+erzeugten Hashwerts.
 
-Die Erzeugung erfolgt ausschließlich durch den zuständigen Security Port.
+Sie erzeugt selbst keinen neuen Hash.
 
-Für die kontrollierte Rekonstruktion kann vorgesehen werden:
+---
+
+## Fachliche Regeln
+
+Für `PasswordHash` gilt:
+
+- `value` MUSS vorhanden sein.
+- `value` DARF nach dem Trimmen nicht leer sein.
+- Der Wert MUSS als undurchsichtiger Sicherheitswert behandelt werden.
+- Der Wert DARF nicht fachlich interpretiert werden.
+- Der Wert DARF nicht aus einem Klartextpasswort innerhalb der Domain erzeugt
+  werden.
+- Der Wert DARF nicht in Domain Messages, Fehlerparametern, Logs oder
+  `toString()` offengelegt werden.
+- Die interne Repräsentation MUSS unveränderlich sein.
+- Der Wert DARF nach der Erzeugung nicht verändert werden.
+- Zwei `PasswordHash`-Instanzen sind fachlich gleich, wenn ihre internen Werte
+  identisch sind.
+
+---
+
+## Normalisierung
+
+Vor der Validierung werden ausschließlich
+
+- führende Leerzeichen entfernt,
+- nachfolgende Leerzeichen entfernt.
+
+Weitere Transformationen sind unzulässig.
+
+Insbesondere dürfen nicht automatisch verändert werden:
+
+- Groß- und Kleinschreibung,
+- Sonderzeichen,
+- Trennzeichen,
+- kodierte Parameter,
+- algorithmusspezifische Präfixe.
+
+Die Domain muss den persistierten Hashwert nach dem Trimmen unverändert
+übernehmen.
+
+---
+
+## Erfolgsverhalten
+
+Bei erfolgreicher Rekonstruktion gilt:
+
+- Es wurde ein gültiger `PasswordHash` erzeugt.
+- Der interne Wert entspricht dem normalisierten persistierten Wert.
+- Es wurde kein Klartextpasswort verarbeitet.
+- Es wurde keine kryptographische Operation ausgeführt.
+- Es wurden keine sensiblen Inhalte offengelegt.
+
+---
+
+## Fehlerverhalten
+
+Bei einem fachlichen Fehler gilt:
+
+- Es wird kein `PasswordHash` erzeugt.
+- Das Ergebnis enthält mindestens einen strukturierten Validation Error.
+- Der ungültige Eingabewert wird nicht in Fehlerparametern oder Domain
+  Messages übertragen.
+- Es wird keine Exception für erwartbare Validierungsfehler geworfen.
+
+Die konkreten Validation Errors werden in den Validation Rules definiert.
+
+---
+
+## Equality
+
+Zwei `PasswordHash`-Instanzen sind fachlich gleich, wenn ihre internen
+undurchsichtigen Stringwerte identisch sind.
+
+Die Gleichheit basiert ausschließlich auf dem internen Wert.
+
+---
+
+## HashCode
+
+Der Hashcode basiert ausschließlich auf dem internen Wert.
+
+---
+
+## Sichere String-Darstellung
+
+`toString()` darf den tatsächlichen Hashwert niemals ausgeben.
+
+Die sichere Darstellung lautet:
 
 ```text
-DomainResult<PasswordHash> fromPersistedValue(value)
+PasswordHash(<redacted>)
 ```
 
-## Regeln
+---
 
-- Der Wert muss vorhanden sein.
-- Der Wert darf nicht leer sein.
-- Der Wert darf nicht als Klartextpasswort interpretierbar sein.
-- Der Wert darf nicht in Logs, Events oder Fehlermeldungen erscheinen.
-- Der Wert darf nur in ausdrücklich freigegebene sichere Persistenzmodelle übertragen werden.
-- Die Domäne verändert einen bestehenden Hash nicht.
+## Datenschutz und Sicherheit
 
-## Darstellung
+Der interne Hashwert darf niemals Bestandteil sein von
 
-Eine reguläre `toString()`-Ausgabe darf den enthaltenen Wert nicht offenlegen.
+- Domain Messages,
+- Validation Errors,
+- Business Errors,
+- Information Codes,
+- Logs,
+- Audit-Daten,
+- Monitoringdaten,
+- Exceptions,
+- `toString()`-Ausgaben.
 
-Zulässig ist beispielsweise:
+Vergleichsoperationen dürfen ausschließlich intern erfolgen.
 
-```text
-PasswordHash(**redacted**)
-```
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Value Objects sind:
+
+- Passwort-Hashing,
+- Passwortverifikation,
+- Klartextpasswörter,
+- `PlainPassword`,
+- Auswahl des Hashalgorithmus,
+- Hashparameter,
+- Salt-Erzeugung,
+- kryptographische Bibliotheken,
+- Schlüsselverwaltung,
+- Credential-Erzeugung,
+- Migration kryptographischer Verfahren.
+
+Diese Verantwortlichkeiten liegen ausschließlich bei den zuständigen
+Security Ports und technischen Sicherheitskomponenten.
 
 ---
 
@@ -4383,38 +4575,256 @@ PasswordHash(**redacted**)
 
 ## Zweck
 
-`PasswordHashParameters` kapselt die für die sichere Passwortprüfung erforderlichen kryptographischen Parameter.
+`PasswordHashParameters` repräsentiert die Parameter, mit denen ein
+`PasswordHash` erzeugt wurde.
 
-## Mögliche Attribute
+Die Parameter werden gemeinsam mit dem Hash gespeichert, damit ein
+bestehendes `PasswordCredential` später technisch verifiziert und bei Bedarf
+migriert werden kann.
 
-| Attribut | Bedeutung |
-|---|---|
-| salt | kryptographischer Salt |
-| memoryCost | Speicherparameter |
-| iterations | Iterations- oder Zeitkostenparameter |
-| parallelism | Parallelitätsparameter |
-| algorithmVersion | Version des Hashverfahrens |
+Das Value Object führt selbst keine kryptographischen Operationen aus.
 
-## Factory
+Die Auswahl und Bewertung konkreter Parameterwerte erfolgt außerhalb der
+Domain durch die zuständigen Security Ports und den `SECURITY_GUIDE.md`.
+
+---
+
+## Attribute
+
+| Attribut | Typ | Bedeutung |
+|---|---|---|
+| memoryCostKiB | PositiveInteger | Verwendeter Speicheraufwand in Kibibyte |
+| iterations | PositiveInteger | Anzahl der Iterationen |
+| parallelism | PositiveInteger | Verwendeter Parallelitätsgrad |
+| salt | OpaqueString | Bei der Hash-Erzeugung verwendeter Salt-Wert |
+
+---
+
+## Interne Repräsentation
 
 ```text
-DomainResult<PasswordHashParameters> create(...)
+memoryCostKiB: PositiveInteger
+iterations: PositiveInteger
+parallelism: PositiveInteger
+salt: OpaqueString
 ```
 
-Für rekonstruierte Werte:
+Alle Attribute sind unveränderlich.
+
+Der Salt-Wert wird ausschließlich als undurchsichtiger String behandelt.
+
+Die Domain interpretiert, dekodiert oder verändert den Salt-Wert nicht.
+
+---
+
+## Kontrollierte Erzeugung
+
+Die kontrollierte Erzeugung erfolgt über:
 
 ```text
-DomainResult<PasswordHashParameters> fromPersistedValues(...)
+DomainResult<PasswordHashParameters> create(
+  int? memoryCostKiB,
+  int? iterations,
+  int? parallelism,
+  String? salt
+)
 ```
 
-## Regeln
+Diese Factory wird für Parameter verwendet, die durch einen zuständigen
+Security Port neu erzeugt wurden.
 
-- Sämtliche Pflichtparameter müssen vorhanden sein.
-- Werte müssen innerhalb der im `SECURITY_GUIDE.md` definierten Grenzen liegen.
-- Das Value Object ist unveränderlich.
-- Parameter dürfen nicht mit geheimen kryptographischen Schlüsseln verwechselt werden.
-- Eine Änderung der Parameter erzeugt ein vollständig neues Credential.
-- Parameter dürfen nicht in öffentliche Exporte aufgenommen werden.
+Sie führt selbst keine Parameterermittlung und keine kryptographische
+Operation aus.
+
+---
+
+## Kontrollierte Rekonstruktion
+
+Die kontrollierte Rekonstruktion bereits gespeicherter Parameter erfolgt
+über:
+
+```text
+DomainResult<PasswordHashParameters> fromPersistedValues(
+  int? memoryCostKiB,
+  int? iterations,
+  int? parallelism,
+  String? salt
+)
+```
+
+Die Rekonstruktionsfactory validiert dieselben fachlichen Invarianten wie
+`create(...)`.
+
+Sie führt keine Migration, Anpassung oder automatische Ersetzung bestehender
+Parameter durch.
+
+---
+
+## Fachliche Regeln
+
+Für `PasswordHashParameters` gilt:
+
+- `memoryCostKiB` MUSS vorhanden sein.
+- `memoryCostKiB` MUSS größer als `0` sein.
+- `iterations` MUSS vorhanden sein.
+- `iterations` MUSS größer als `0` sein.
+- `parallelism` MUSS vorhanden sein.
+- `parallelism` MUSS größer als `0` sein.
+- `salt` MUSS vorhanden sein.
+- `salt` DARF nach dem Trimmen nicht leer sein.
+- Alle Attribute MÜSSEN gemeinsam einen vollständigen Zustand bilden.
+- Das Value Object MUSS vollständig unveränderlich sein.
+- Die Domain DARF keine fehlenden Parameter durch Standardwerte ersetzen.
+- Unbekannte oder unvollständige Parameter DÜRFEN nicht stillschweigend
+  akzeptiert werden.
+- Der Salt-Wert DARF nicht in Domain Messages, Fehlerparametern, Logs oder
+  `toString()` offengelegt werden.
+
+Konkrete Mindest-, Höchst- und Zielwerte für
+
+- `memoryCostKiB`,
+- `iterations`,
+- `parallelism`
+
+werden nicht durch dieses Value Object festgelegt.
+
+Diese Werte werden ausschließlich durch den `SECURITY_GUIDE.md` und die
+zuständigen technischen Security-Komponenten bestimmt.
+
+---
+
+## Normalisierung
+
+Für `salt` werden vor der Validierung ausschließlich
+
+- führende Leerzeichen entfernt,
+- nachfolgende Leerzeichen entfernt.
+
+Weitere Transformationen sind unzulässig.
+
+Insbesondere dürfen nicht automatisch verändert werden:
+
+- Groß- und Kleinschreibung,
+- Zeichenkodierung,
+- Trennzeichen,
+- Padding,
+- algorithmusspezifische Bestandteile.
+
+Numerische Parameter werden nicht normalisiert.
+
+---
+
+## Erfolgsverhalten
+
+Bei erfolgreicher Erzeugung oder Rekonstruktion gilt:
+
+- Es wurde ein vollständiges `PasswordHashParameters` erzeugt.
+- Alle numerischen Werte sind größer als `0`.
+- Der Salt-Wert ist vorhanden und nicht leer.
+- Sämtliche Werte entsprechen den übergebenen normalisierten Werten.
+- Es wurden keine kryptographischen Operationen ausgeführt.
+- Es wurden keine sensiblen Werte offengelegt.
+
+---
+
+## Fehlerverhalten
+
+Bei einem fachlichen Fehler gilt:
+
+- Es wird kein `PasswordHashParameters` erzeugt.
+- Das Ergebnis enthält mindestens einen strukturierten Validation Error.
+- Es entsteht kein teilweise gültiger Parameterzustand.
+- Der Salt-Wert wird nicht in Fehlerparametern oder Domain Messages
+  übertragen.
+- Erwartbare Validierungsfehler erzeugen keine Exception.
+
+Die konkreten Validation Errors werden in den Validation Rules definiert.
+
+---
+
+## Equality
+
+Zwei `PasswordHashParameters`-Instanzen sind fachlich gleich, wenn alle
+folgenden Attribute identisch sind:
+
+- `memoryCostKiB`,
+- `iterations`,
+- `parallelism`,
+- `salt`.
+
+Die Gleichheitsprüfung erfolgt intern.
+
+Der Salt-Wert darf dabei nicht offengelegt werden.
+
+---
+
+## HashCode
+
+Der Hashcode basiert auf allen vier Attributen.
+
+Er darf keine Rückschlüsse auf den Salt-Wert in einer sichtbaren Ausgabe
+ermöglichen.
+
+---
+
+## Sichere String-Darstellung
+
+`toString()` darf den Salt-Wert nicht ausgeben.
+
+Die sichere Darstellung lautet beispielsweise:
+
+```text
+PasswordHashParameters(
+  memoryCostKiB: <value>,
+  iterations: <value>,
+  parallelism: <value>,
+  salt: <redacted>
+)
+```
+
+Die numerischen Parameter dürfen dargestellt werden, sofern der
+`SECURITY_GUIDE.md` dies nicht weiter einschränkt.
+
+Der Salt-Wert bleibt immer verborgen.
+
+---
+
+## Datenschutz und Sicherheit
+
+Der Salt-Wert darf niemals Bestandteil sein von:
+
+- Domain Messages,
+- Validation Errors,
+- Business Errors,
+- Information Codes,
+- Logs,
+- Audit-Daten,
+- Monitoringdaten,
+- Exceptions,
+- sichtbaren `toString()`-Ausgaben.
+
+Das Value Object darf keine Klartextpasswörter, Hashwerte,
+`AuthenticationProof`-Werte oder kryptographischen Schlüssel enthalten.
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Value Objects sind:
+
+- Auswahl konkreter Parameterwerte,
+- Prüfung der aktuellen Sicherheitsempfehlungen,
+- Passwort-Hashing,
+- Passwortverifikation,
+- Salt-Erzeugung,
+- Auswahl des Hashalgorithmus,
+- Migration bestehender Parameter,
+- automatische Parameteraktualisierung,
+- kryptographische Bibliotheken,
+- Schlüsselverwaltung.
+
+Diese Verantwortlichkeiten liegen ausschließlich bei den zuständigen
+Security Ports und technischen Sicherheitskomponenten.
 
 ---
 
@@ -5449,33 +5859,129 @@ image/webp
 
 # Enumeration: PasswordAlgorithm
 
-## Beispielwerte
+## Zweck
+
+`PasswordAlgorithm` bezeichnet den kryptographischen Algorithmus, mit dem
+ein `PasswordHash` erzeugt wurde.
+
+Die Enumeration dient ausschließlich der eindeutigen fachlichen
+Kennzeichnung eines bestehenden `PasswordCredential`.
+
+Die tatsächliche kryptographische Verarbeitung erfolgt außerhalb der Domain
+über die zuständigen Security Ports.
+
+---
+
+## Zulässige Werte
 
 ```text
 argon2id
 ```
 
-## Regeln
+Für Version 1 des Profilmoduls ist ausschließlich `argon2id` zulässig.
 
-- Die zulässigen Werte werden im `SECURITY_GUIDE.md` definiert.
-- Veraltete Werte können für Migration und Prüfung lesbar bleiben.
-- Neue Credentials müssen die aktuell freigegebene Sicherheitsrichtlinie verwenden.
-- Die Domain enthält keine Algorithmusimplementierung.
+Weitere Algorithmen dürfen erst nach einer ausdrücklichen Erweiterung des
+Domain Models als zusätzliche Enumerationswerte aufgenommen werden.
 
 ---
 
-# Enumeration: ChecksumAlgorithm
-
-## Beispielwerte
-
-```text
-sha256
-```
-
 ## Regeln
 
-- Die Enumeration beschreibt ausschließlich Integritätsverfahren.
-- Sie darf nicht mit Passwort-Hashverfahren vermischt werden.
+- `PasswordAlgorithm` ist unveränderlich.
+- Der Wert MUSS vorhanden sein.
+- Der Wert MUSS einem definierten Enumerationswert entsprechen.
+- Für Version 1 ist ausschließlich `argon2id` zulässig.
+- Die Enumeration enthält keine kryptographische Implementierung.
+- Die Enumeration enthält keine Bibliotheks-, Plattform- oder
+  Infrastrukturtypen.
+- Die Enumeration bestimmt keine konkreten Hashparameter.
+- Die Enumeration darf nicht aus einem Klartextpasswort abgeleitet werden.
+- Ein unbekannter Wert darf nicht stillschweigend durch `argon2id` ersetzt
+  werden.
+
+---
+
+## Kontrollierte Rekonstruktion
+
+Die Rekonstruktion aus einem gespeicherten Wert erfolgt über:
+
+```text
+DomainResult<PasswordAlgorithm> fromString(
+  String? value
+)
+```
+
+Vor der Prüfung werden ausschließlich
+
+- führende Leerzeichen entfernt,
+- nachfolgende Leerzeichen entfernt.
+
+Die Groß- und Kleinschreibung wird nicht automatisch verändert.
+
+Der normalisierte Wert muss exakt einem definierten Enumerationswert
+entsprechen.
+
+---
+
+## Erfolgsverhalten
+
+Bei erfolgreicher Rekonstruktion gilt:
+
+- Es wurde ein gültiger `PasswordAlgorithm` erzeugt.
+- Der Wert entspricht exakt `argon2id`.
+- Es wurden keine kryptographischen Operationen ausgeführt.
+- Es wurden keine sensiblen Daten verarbeitet oder offengelegt.
+
+---
+
+## Fehlerverhalten
+
+Bei einem fachlichen Fehler gilt:
+
+- Es wird kein `PasswordAlgorithm` erzeugt.
+- Das Ergebnis enthält mindestens einen strukturierten Validation Error.
+- Der ungültige Eingabewert darf nicht Bestandteil von Fehlerparametern
+  oder Domain Messages sein.
+
+Die konkreten Validation Errors werden in den Validation Rules definiert.
+
+---
+
+## Equality
+
+Zwei `PasswordAlgorithm`-Werte sind fachlich gleich, wenn sie denselben
+Enumerationswert repräsentieren.
+
+---
+
+## String-Darstellung
+
+Die sichere String-Darstellung lautet:
+
+```text
+argon2id
+```
+
+Sie enthält keine Hashwerte, Parameter, Credentials oder sonstigen
+Sicherheitsdaten.
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieser Enumeration sind:
+
+- Passwort-Hashing,
+- Passwortverifikation,
+- Auswahl kryptographischer Bibliotheken,
+- Parametrisierung von Argon2id,
+- Salt-Erzeugung,
+- Schlüsselverwaltung,
+- Migration bestehender Credentials,
+- technische Fallback-Algorithmen.
+
+Diese Verantwortlichkeiten liegen ausschließlich bei den zuständigen
+Security Ports und technischen Sicherheitskomponenten.
 
 ---
 

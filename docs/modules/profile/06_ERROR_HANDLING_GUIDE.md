@@ -11009,6 +11009,16 @@ vollständig beschreibt.
 
 ### Hinweise
 
+Die kontrollierte initiale Erzeugung und die Rekonstruktion erfolgen
+ausschließlich über:
+
+```text
+DomainResult<ProfileSecurity> ProfileSecurity.create(
+  ProfileSecurityId? securityId,
+  PasswordCredential? passwordCredential,
+  LockState? lockState
+)
+
 `ProfileSecurity` validiert ausschließlich den vollständigen
 fachlichen Sicherheitszustand.
 
