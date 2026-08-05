@@ -11302,6 +11302,184 @@ Nicht Bestandteil dieses Abschnitts sind:
 
 ---
 
+# Timestamp
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- Timestamp
+
+---
+
+## Zweck
+
+Dieser Abschnitt definiert sämtliche Validation Error Codes des
+Value Objects `Timestamp`.
+
+Der Typ repräsentiert einen einzelnen unveränderlichen UTC-Zeitpunkt.
+
+Chronologische Beziehungen zwischen mehreren Zeitpunkten werden nicht durch
+diesen Typ geprüft.
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-TS-001 | validation.timestamp.required | ERROR | VALIDATION | value | required | – |
+| PRO-VAL-TS-002 | validation.timestamp.notUtc | ERROR | VALIDATION | value | utc | expectedTimezone |
+| PRO-VAL-TS-003 | validation.timestamp.invalidFormat | ERROR | VALIDATION | value | format | expectedFormat |
+| PRO-VAL-TS-004 | validation.timestamp.blank | ERROR | VALIDATION | value | blank | – |
+
+### Parameter
+
+#### PRO-VAL-TS-002
+
+```json
+{
+  "expectedTimezone": "UTC"
+}
+```
+
+#### PRO-VAL-TS-003
+
+```json
+{
+  "expectedFormat": "ISO-8601 UTC"
+}
+```
+
+---
+
+## Herkunft
+
+Diese Error Codes werden ausschließlich aus
+
+- PRO-VR-031
+
+abgeleitet.
+
+Neue fachliche Regeln werden in diesem Dokument nicht definiert.
+
+---
+
+## Fehlerverhalten
+
+### Fehlender Wert
+
+Ist kein Wert vorhanden,
+
+wird ausschließlich
+
+```text
+PRO-VAL-TS-001
+```
+
+erzeugt.
+
+Weitere Prüfungen werden nicht durchgeführt.
+
+---
+
+### Leerer String
+
+Ist der String nach dem Trimmen leer,
+
+wird ausschließlich
+
+```text
+PRO-VAL-TS-004
+```
+
+erzeugt.
+
+Ein zusätzlicher Format- oder UTC-Fehler wird nicht erzeugt.
+
+---
+
+### Kein UTC-Zeitpunkt
+
+Liegt der Zeitpunkt nicht in UTC vor,
+
+wird
+
+```text
+PRO-VAL-TS-002
+```
+
+erzeugt.
+
+Der tatsächliche Zeitwert wird nicht in Fehlerparametern übertragen.
+
+---
+
+### Ungültiges ISO-8601-Format
+
+Ist der normalisierte String kein gültiger ISO-8601-UTC-Zeitpunkt,
+
+wird
+
+```text
+PRO-VAL-TS-003
+```
+
+erzeugt.
+
+Der ursprüngliche Eingabewert wird nicht in Fehlerparametern übertragen.
+
+---
+
+## Validierungsreihenfolge
+
+Für `fromUtc(...)`:
+
+1. Vorhandensein prüfen.
+2. UTC prüfen.
+3. `Timestamp` erzeugen.
+
+Für `parseIso8601(...)`:
+
+1. Vorhandensein prüfen.
+2. Trimmen.
+3. Leerwert prüfen.
+4. ISO-8601 prüfen.
+5. UTC-Kennzeichen prüfen.
+6. `Timestamp` erzeugen.
+
+Folgefehler werden nicht erzeugt.
+
+---
+
+## Sichere Darstellung
+
+Die kanonische Darstellung lautet ausschließlich:
+
+```text
+YYYY-MM-DDTHH:mm:ss.SSSZ
+```
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Abschnitts sind:
+
+- AuditInformation,
+- chronologische Vergleiche,
+- Ablaufberechnungen,
+- Zeitdifferenzen,
+- lokale Zeitzonen,
+- Sommer-/Winterzeit,
+- Scheduling,
+- Timer,
+- technische Systemuhren.
+
+Diese Verantwortlichkeiten liegen außerhalb des Value Objects.
+
+---
+
 # ProfileSecurity
 
 ### Zugeordneter Domänentyp

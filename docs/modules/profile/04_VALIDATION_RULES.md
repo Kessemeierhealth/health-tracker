@@ -5061,6 +5061,262 @@ Nicht Bestandteil dieser Validation Rule sind:
 
 ---
 
+---
+
+# PRO-VR-031
+
+## Titel
+
+Timestamp validieren
+
+### Typ
+
+Value-Object-Validierung
+
+### Beschreibung
+
+`Timestamp` repräsentiert einen unveränderlichen fachlichen Zeitpunkt.
+
+Innerhalb der Domain werden Zeitpunkte ausschließlich in UTC gespeichert.
+
+Die kontrollierte Erzeugung erfolgt über:
+
+```text
+DomainResult<Timestamp> Timestamp.fromUtc(
+  DateTime? value
+)
+```
+
+Die kontrollierte Rekonstruktion erfolgt über:
+
+```text
+DomainResult<Timestamp> Timestamp.parseIso8601(
+  String? value
+)
+```
+
+Diese Validation Rule beschreibt ausschließlich die allgemeine Gültigkeit
+eines einzelnen `Timestamp`.
+
+Chronologische Beziehungen zwischen mehreren Zeitpunkten werden durch die
+jeweils zuständigen Domain-Typen validiert.
+
+### Fachliche Regeln
+
+Für `Timestamp.fromUtc(...)` gilt:
+
+- `value` MUSS vorhanden sein.
+- `value` MUSS bereits in UTC vorliegen.
+- Eine automatische Umrechnung aus einer lokalen Zeitzone ist unzulässig.
+- Der erzeugte Zeitpunkt MUSS unveränderlich sein.
+
+Für `Timestamp.parseIso8601(...)` gilt:
+
+- `value` MUSS vorhanden sein.
+- `value` DARF nach dem Trimmen nicht leer sein.
+- `value` MUSS einen syntaktisch gültigen ISO-8601-Zeitpunkt repräsentieren.
+- Der Zeitwert MUSS ausdrücklich UTC repräsentieren.
+- Die Eingabe MUSS mit dem UTC-Kennzeichen `Z` enden.
+- Eine Eingabe mit lokalem Zeitpunkt oder numerischem Offset ist unzulässig.
+- Der erzeugte Zeitpunkt MUSS unveränderlich sein.
+
+### Normalisierung
+
+Für `parseIso8601(...)` werden ausschließlich
+
+- führende Leerzeichen entfernt,
+- nachfolgende Leerzeichen entfernt.
+
+Weitere Transformationen sind unzulässig.
+
+Insbesondere erfolgt keine
+
+- automatische Zeitzonenumrechnung,
+- Ersetzung eines Offsets durch `Z`,
+- Korrektur ungültiger Datums- oder Zeitbestandteile.
+
+### Fehlercodes
+
+| Fehlercode | Message Key | Severity | Category | Feld | Constraint | Parameter |
+|------------|-------------|----------|----------|------|------------|-----------|
+| PRO-VAL-TS-001 | `validation.timestamp.required` | ERROR | VALIDATION | value | required | – |
+| PRO-VAL-TS-002 | `validation.timestamp.notUtc` | ERROR | VALIDATION | value | utc | `{"expectedTimezone":"UTC"}` |
+| PRO-VAL-TS-003 | `validation.timestamp.invalidFormat` | ERROR | VALIDATION | value | format | `{"expectedFormat":"ISO-8601 UTC"}` |
+| PRO-VAL-TS-004 | `validation.timestamp.blank` | ERROR | VALIDATION | value | blank | – |
+
+### Fehlerverhalten
+
+#### Fehlender Wert
+
+Ist bei `fromUtc(...)` oder `parseIso8601(...)` kein Wert vorhanden, wird
+ausschließlich
+
+```text
+PRO-VAL-TS-001
+```
+
+erzeugt.
+
+Weitere Prüfungen werden für diesen Wert nicht durchgeführt.
+
+#### Leerer Stringwert
+
+Ist der an `parseIso8601(...)` übergebene Wert vorhanden, ergibt nach dem
+Trimmen aber einen leeren Wert, wird ausschließlich
+
+```text
+PRO-VAL-TS-004
+```
+
+erzeugt.
+
+Ein zusätzlicher Format- oder UTC-Fehler wird nicht erzeugt.
+
+#### Nicht-UTC-DateTime
+
+Liegt der an `fromUtc(...)` übergebene `DateTime` nicht in UTC vor, wird
+
+```text
+PRO-VAL-TS-002
+```
+
+erzeugt.
+
+Der Fehlerparameter lautet:
+
+```json
+{
+  "expectedTimezone": "UTC"
+}
+```
+
+Der tatsächliche Zeitwert wird nicht als Fehlerparameter übertragen.
+
+#### Ungültiges ISO-8601-Format
+
+Ist der normalisierte String vorhanden und nicht leer, kann aber nicht als
+gültiger ISO-8601-Zeitpunkt interpretiert werden, wird
+
+```text
+PRO-VAL-TS-003
+```
+
+erzeugt.
+
+Der Fehlerparameter lautet:
+
+```json
+{
+  "expectedFormat": "ISO-8601 UTC"
+}
+```
+
+Der ungültige Eingabewert wird nicht als Fehlerparameter übertragen.
+
+#### ISO-8601-Wert ohne UTC-Kennzeichen
+
+Repräsentiert der String zwar einen syntaktisch gültigen Zeitpunkt, aber
+keinen ausdrücklich mit `Z` gekennzeichneten UTC-Zeitpunkt, wird
+
+```text
+PRO-VAL-TS-002
+```
+
+erzeugt.
+
+Dies gilt insbesondere für
+
+- lokale Zeitwerte ohne Zeitzonenkennzeichen,
+- Zeitwerte mit positivem oder negativem numerischem Offset.
+
+### Validierungsreihenfolge
+
+#### Timestamp.fromUtc(...)
+
+Die Validierung erfolgt in dieser Reihenfolge:
+
+1. Vorhandensein von `value` prüfen.
+2. UTC-Eigenschaft prüfen.
+3. Unveränderlichen `Timestamp` erzeugen.
+
+#### Timestamp.parseIso8601(...)
+
+Die Validierung erfolgt in dieser Reihenfolge:
+
+1. Vorhandensein von `value` prüfen.
+2. Trimmen.
+3. Leeren normalisierten Wert prüfen.
+4. ISO-8601-Format prüfen.
+5. Explizites UTC-Kennzeichen `Z` prüfen.
+6. Unveränderlichen `Timestamp` erzeugen.
+
+Ein fehlender Wert erzeugt keinen zusätzlichen Blank-, Format- oder
+UTC-Fehler.
+
+Ein leerer normalisierter Wert erzeugt keinen zusätzlichen Format- oder
+UTC-Fehler.
+
+Ein syntaktisch ungültiger Wert erzeugt keinen zusätzlichen UTC-Fehler.
+
+Dadurch werden Folgefehler vermieden.
+
+### Erfolgsverhalten
+
+Bei erfolgreicher Erzeugung gilt:
+
+- Der interne Zeitpunkt liegt in UTC vor.
+- Der Wert ist unveränderlich.
+- Die kanonische String-Darstellung verwendet ISO-8601 und endet mit `Z`.
+- Es wurde keine automatische Zeitzonenumrechnung durchgeführt.
+
+### Equality
+
+Zwei `Timestamp`-Instanzen sind fachlich gleich, wenn sie denselben
+UTC-Zeitpunkt repräsentieren.
+
+Der Hashcode basiert ausschließlich auf dem UTC-Zeitpunkt.
+
+### Abgrenzung
+
+Nicht Bestandteil dieser Validation Rule sind:
+
+- chronologische Vergleiche mehrerer Zeitpunkte,
+- AuditInformation,
+- Ablaufzeiten,
+- Zeitdifferenzen,
+- lokale Zeitzonen,
+- Sommer- und Winterzeit,
+- Benutzer-Locale,
+- Kalenderdarstellung,
+- Scheduling,
+- Timer,
+- technische Systemuhren.
+
+Die chronologische Konsistenz von Auditinformationen wird weiterhin
+ausschließlich durch `PRO-VR-014` beschrieben.
+
+### Traceability
+
+**Domain Model**
+
+- `Timestamp`
+- `Timestamp.fromUtc(...)`
+- `Timestamp.parseIso8601(...)`
+- `PasswordCredential.createdAt`
+- `AuditInformation.createdAt`
+- `AuditInformation.updatedAt`
+
+**Validation Principles**
+
+- PRO-VP-001
+- PRO-VP-002
+- PRO-VP-003
+- PRO-VP-004
+- PRO-VP-007
+- PRO-VP-009
+
+---
+
 # Validierungsreihenfolge
 
 Jede Profilerstellung und Profiländerung wird in folgender Reihenfolge validiert:

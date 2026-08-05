@@ -5297,49 +5297,166 @@ DomainResult<AuditInformation> touchAndIncrement(
 
 ## Zweck
 
-`Timestamp` repräsentiert einen fachlichen Zeitpunkt.
+`Timestamp` repräsentiert einen unveränderlichen fachlichen Zeitpunkt.
 
-## Interne Repräsentation
+Der Zeitpunkt dient ausschließlich der zeitlichen Einordnung fachlicher
+Ereignisse.
 
-```text
-UTC Instant
-```
+Das Value Object enthält keinerlei Informationen über Zeitzonen des
+Benutzers oder lokale Kalenderdarstellungen.
 
-## Factories
+Innerhalb der Domain werden sämtliche Zeitpunkte ausschließlich in UTC
+gespeichert.
 
-```text
-DomainResult<Timestamp> fromUtc(value)
+---
 
-DomainResult<Timestamp> parseIso8601(value)
-```
-
-Die aktuelle Zeit wird über eine abstrahierte `Clock` bereitgestellt.
-
-## Regeln
-
-- Intern wird ausschließlich UTC verwendet.
-- Lokale Zeitzonen gehören zur Darstellungsschicht.
-- Der Zeitpunkt muss technisch und fachlich gültig sein.
-- Domänenobjekte greifen nicht direkt auf die Systemzeit zu.
-- Die Serialisierung verwendet ein eindeutiges ISO-8601-Format.
-
-## Vergleiche
-
-`Timestamp` unterstützt:
+## Interner Wert
 
 ```text
-isBefore(other)
-
-isAfter(other)
-
-isEqualTo(other)
-
-compareTo(other)
+UTC DateTime
 ```
+
+Die interne Repräsentation erfolgt ausschließlich als UTC-Zeitpunkt.
+
+Lokale Zeitzonen gehören nicht zur fachlichen Repräsentation.
+
+---
+
+## Kontrollierte Erzeugung
+
+Die kontrollierte Erzeugung eines bereits vorhandenen UTC-Zeitpunkts
+erfolgt ausschließlich über:
+
+```text
+DomainResult<Timestamp> fromUtc(
+  DateTime? value
+)
+```
+
+Der übergebene Zeitpunkt muss bereits in UTC vorliegen.
+
+Eine automatische Zeitzonenumrechnung erfolgt nicht.
+
+---
+
+## Kontrollierte Rekonstruktion
+
+Die kontrollierte Rekonstruktion erfolgt ausschließlich über:
+
+```text
+DomainResult<Timestamp> parseIso8601(
+  String? value
+)
+```
+
+Der übergebene Wert muss einen gültigen ISO-8601-Zeitpunkt in UTC
+repräsentieren.
+
+---
+
+## Fachliche Regeln
+
+Für `Timestamp` gilt:
+
+- `value` MUSS vorhanden sein.
+- Der Zeitpunkt MUSS in UTC vorliegen.
+- Der Zeitpunkt MUSS im ISO-8601-UTC-Format rekonstruiert werden können.
+- Die interne Repräsentation MUSS unveränderlich sein.
+- Eine lokale Zeitzone DARF nicht gespeichert werden.
+- Eine automatische Umrechnung lokaler Zeitzonen erfolgt nicht.
+- Das Value Object enthält keine Kalenderlogik.
+- Das Value Object enthält keine Geschäftslogik.
+
+---
+
+## Normalisierung
+
+Für `parseIso8601(...)` werden ausschließlich
+
+- führende Leerzeichen entfernt,
+- nachfolgende Leerzeichen entfernt.
+
+Weitere Transformationen sind unzulässig.
+
+Insbesondere erfolgt keine
+
+- Zeitzonenumrechnung,
+- Kalenderkonvertierung,
+- automatische Korrektur ungültiger Datumsangaben.
+
+---
+
+## Erfolgsverhalten
+
+Bei erfolgreicher Erzeugung gilt:
+
+- Es wurde ein gültiger UTC-Zeitpunkt erzeugt.
+- Der interne Wert ist unveränderlich.
+- Die ISO-8601-Darstellung endet mit `Z`.
+- Es wurden keine Zeitzonenumrechnungen durchgeführt.
+
+---
+
+## Fehlerverhalten
+
+Bei einem fachlichen Fehler gilt:
+
+- Es wird kein `Timestamp` erzeugt.
+- Das Ergebnis enthält mindestens einen strukturierten Validation Error.
+- Erwartbare Validierungsfehler erzeugen keine Exception.
+
+Die konkreten Validation Errors werden ausschließlich in den Validation Rules
+definiert.
+
+---
 
 ## Equality
 
-Zwei Zeitstempel sind gleich, wenn sie denselben UTC-Zeitpunkt repräsentieren.
+Zwei `Timestamp`-Instanzen sind fachlich gleich, wenn sie denselben UTC-
+Zeitpunkt repräsentieren.
+
+---
+
+## HashCode
+
+Der Hashcode basiert ausschließlich auf dem UTC-Zeitpunkt.
+
+---
+
+## String-Darstellung
+
+Die kanonische Darstellung lautet:
+
+```text
+YYYY-MM-DDTHH:mm:ss.SSSZ
+```
+
+Beispiel:
+
+```text
+2026-08-05T14:37:21.123Z
+```
+
+Die Darstellung erfolgt ausschließlich im ISO-8601-UTC-Format.
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Value Objects sind:
+
+- lokale Zeitzonen,
+- Sommer-/Winterzeit,
+- Kalenderberechnungen,
+- Zeitdifferenzen,
+- Ablaufberechnungen,
+- Scheduling,
+- Timer,
+- technische Systemuhren,
+- AuditInformation,
+- Versionsverwaltung.
+
+Diese Verantwortlichkeiten liegen außerhalb dieses Value Objects.
 
 ---
 
