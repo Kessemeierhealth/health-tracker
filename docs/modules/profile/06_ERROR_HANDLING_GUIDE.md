@@ -10858,7 +10858,449 @@ ob eine gültige `ProfileSecurityId` vorhanden ist.
 Validation Errors dieses Value Objects werden von
 `ProfileSecurity` nicht erneut als Entity-Fehler erzeugt.
 
-----
+---
+
+# PasswordAlgorithm
+
+### Zugeordneter Domänentyp
+
+**Enumeration**
+
+- PasswordAlgorithm
+
+## Zweck
+
+Dieser Abschnitt definiert die Validation Error Codes für
+`PasswordAlgorithm`.
+
+Für Version 1 ist ausschließlich folgender Wert zulässig:
+
+```text
+argon2id
+```
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-PALG-001 | validation.passwordAlgorithm.required | ERROR | VALIDATION | value | required | – |
+| PRO-VAL-PALG-002 | validation.passwordAlgorithm.invalid | ERROR | VALIDATION | value | enum | allowedValues |
+
+### Parameter
+
+#### PRO-VAL-PALG-002
+
+```json
+{
+  "allowedValues": [
+    "argon2id"
+  ]
+}
+```
+
+## Herkunft
+
+Diese Error Codes werden ausschließlich aus
+
+- PRO-VR-027
+
+abgeleitet.
+
+Neue fachliche Regeln werden in diesem Dokument nicht definiert.
+
+## Fehlerverhalten
+
+### Fehlender oder leerer Wert
+
+Ist `value` nicht vorhanden oder nach dem Trimmen leer, wird ausschließlich
+
+```text
+PRO-VAL-PALG-001
+```
+
+erzeugt.
+
+Ein zusätzlicher Enum-Fehler wird nicht erzeugt.
+
+### Nicht unterstützter Algorithmus
+
+Entspricht der normalisierte Wert nicht exakt `argon2id`, wird
+
+```text
+PRO-VAL-PALG-002
+```
+
+erzeugt.
+
+Der ungültige Eingabewert wird nicht als Fehlerparameter übertragen.
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Abschnitts sind:
+
+- Passwort-Hashing,
+- Passwortverifikation,
+- Auswahl kryptographischer Bibliotheken,
+- Argon2id-Parameter,
+- Migration bestehender Credentials.
+
+---
+
+# PasswordHash
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- PasswordHash
+
+## Zweck
+
+Dieser Abschnitt definiert die Validation Error Codes für
+`PasswordHash`.
+
+Der tatsächliche Hashwert ist ein sensibler, undurchsichtiger Wert und darf
+niemals in Domain Messages oder Fehlerparametern offengelegt werden.
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-PHASH-001 | validation.passwordHash.required | ERROR | VALIDATION | value | required | – |
+| PRO-VAL-PHASH-002 | validation.passwordHash.blank | ERROR | VALIDATION | value | blank | – |
+
+## Herkunft
+
+Diese Error Codes werden ausschließlich aus
+
+- PRO-VR-028
+
+abgeleitet.
+
+Neue fachliche Regeln werden in diesem Dokument nicht definiert.
+
+## Fehlerverhalten
+
+### Fehlender Wert
+
+Ist `value` nicht vorhanden, wird ausschließlich
+
+```text
+PRO-VAL-PHASH-001
+```
+
+erzeugt.
+
+### Leerer Wert
+
+Ist `value` nach dem Trimmen leer, wird ausschließlich
+
+```text
+PRO-VAL-PHASH-002
+```
+
+erzeugt.
+
+Der tatsächliche Hashwert wird niemals als Fehlerparameter übertragen.
+
+## Sicherheitsregel
+
+Der Hashwert darf niemals Bestandteil sein von:
+
+- Validation Errors,
+- Business Errors,
+- Information Codes,
+- Domain Messages,
+- Logs,
+- Exceptions,
+- sichtbaren `toString()`-Ausgaben.
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Abschnitts sind:
+
+- Erzeugung des Hashwerts,
+- Interpretation des Hashformats,
+- Passwortverifikation,
+- Algorithmusprüfung,
+- Salt-Erzeugung.
+
+---
+
+# PasswordHashParameters
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- PasswordHashParameters
+
+## Zweck
+
+Dieser Abschnitt definiert die Validation Error Codes für
+`PasswordHashParameters`.
+
+Das Value Object besteht aus:
+
+- `memoryCostKiB`,
+- `iterations`,
+- `parallelism`,
+- `salt`.
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-PHPAR-001 | validation.passwordHashParameters.memoryCostKiB.required | ERROR | VALIDATION | memoryCostKiB | required | – |
+| PRO-VAL-PHPAR-002 | validation.passwordHashParameters.memoryCostKiB.minimum | ERROR | VALIDATION | memoryCostKiB | minimum | minimum, actual |
+| PRO-VAL-PHPAR-003 | validation.passwordHashParameters.iterations.required | ERROR | VALIDATION | iterations | required | – |
+| PRO-VAL-PHPAR-004 | validation.passwordHashParameters.iterations.minimum | ERROR | VALIDATION | iterations | minimum | minimum, actual |
+| PRO-VAL-PHPAR-005 | validation.passwordHashParameters.parallelism.required | ERROR | VALIDATION | parallelism | required | – |
+| PRO-VAL-PHPAR-006 | validation.passwordHashParameters.parallelism.minimum | ERROR | VALIDATION | parallelism | minimum | minimum, actual |
+| PRO-VAL-PHPAR-007 | validation.passwordHashParameters.salt.required | ERROR | VALIDATION | salt | required | – |
+| PRO-VAL-PHPAR-008 | validation.passwordHashParameters.salt.blank | ERROR | VALIDATION | salt | blank | – |
+
+### Parameter
+
+#### PRO-VAL-PHPAR-002
+
+```json
+{
+  "minimum": 1,
+  "actual": "<value>"
+}
+```
+
+#### PRO-VAL-PHPAR-004
+
+```json
+{
+  "minimum": 1,
+  "actual": "<value>"
+}
+```
+
+#### PRO-VAL-PHPAR-006
+
+```json
+{
+  "minimum": 1,
+  "actual": "<value>"
+}
+```
+
+## Herkunft
+
+Diese Error Codes werden ausschließlich aus
+
+- PRO-VR-029
+
+abgeleitet.
+
+Neue fachliche Regeln werden in diesem Dokument nicht definiert.
+
+## Fehlerverhalten
+
+### Fehlende numerische Werte
+
+Fehlt einer der numerischen Pflichtwerte, wird ausschließlich der zugehörige
+Required-Code erzeugt:
+
+```text
+PRO-VAL-PHPAR-001
+PRO-VAL-PHPAR-003
+PRO-VAL-PHPAR-005
+```
+
+Für denselben fehlenden Wert wird kein zusätzlicher Mindestwertfehler erzeugt.
+
+### Ungültige numerische Werte
+
+Ist ein numerischer Wert kleiner als `1`, wird der zugehörige Mindestwertcode
+erzeugt:
+
+```text
+PRO-VAL-PHPAR-002
+PRO-VAL-PHPAR-004
+PRO-VAL-PHPAR-006
+```
+
+### Fehlender Salt-Wert
+
+Ist `salt` nicht vorhanden, wird
+
+```text
+PRO-VAL-PHPAR-007
+```
+
+erzeugt.
+
+### Leerer Salt-Wert
+
+Ist `salt` nach dem Trimmen leer, wird
+
+```text
+PRO-VAL-PHPAR-008
+```
+
+erzeugt.
+
+Der Salt-Wert wird niemals als Fehlerparameter übertragen.
+
+## Sicherheitsregel
+
+Der Salt-Wert darf niemals Bestandteil sein von:
+
+- Validation Errors,
+- Business Errors,
+- Information Codes,
+- Domain Messages,
+- Logs,
+- Exceptions,
+- sichtbaren `toString()`-Ausgaben.
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Abschnitts sind:
+
+- Auswahl optimaler Argon2id-Parameter,
+- Salt-Erzeugung,
+- Passwort-Hashing,
+- Passwortverifikation,
+- Migration bestehender Parameter.
+
+---
+
+# PasswordCredential
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- PasswordCredential
+
+## Zweck
+
+Dieser Abschnitt definiert die Validation Error Codes für
+`PasswordCredential`.
+
+Das Value Object besteht aus:
+
+- `PasswordHash`,
+- `PasswordAlgorithm`,
+- `PasswordHashParameters`,
+- `Timestamp`.
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-PCRED-001 | validation.passwordCredential.hash.required | ERROR | VALIDATION | hash | required | – |
+| PRO-VAL-PCRED-002 | validation.passwordCredential.algorithm.required | ERROR | VALIDATION | algorithm | required | – |
+| PRO-VAL-PCRED-003 | validation.passwordCredential.parameters.required | ERROR | VALIDATION | parameters | required | – |
+| PRO-VAL-PCRED-004 | validation.passwordCredential.createdAt.required | ERROR | VALIDATION | createdAt | required | – |
+
+## Herkunft
+
+Diese Error Codes werden ausschließlich aus
+
+- PRO-VR-030
+
+abgeleitet.
+
+Neue fachliche Regeln werden in diesem Dokument nicht definiert.
+
+## Fehlerverhalten
+
+### Fehlender PasswordHash
+
+Ist `hash` nicht vorhanden, wird
+
+```text
+PRO-VAL-PCRED-001
+```
+
+erzeugt.
+
+### Fehlender PasswordAlgorithm
+
+Ist `algorithm` nicht vorhanden, wird
+
+```text
+PRO-VAL-PCRED-002
+```
+
+erzeugt.
+
+### Fehlende PasswordHashParameters
+
+Sind `parameters` nicht vorhanden, wird
+
+```text
+PRO-VAL-PCRED-003
+```
+
+erzeugt.
+
+### Fehlender Erzeugungszeitpunkt
+
+Ist `createdAt` nicht vorhanden, wird
+
+```text
+PRO-VAL-PCRED-004
+```
+
+erzeugt.
+
+Mehrere fehlende Pflichtwerte dürfen gemeinsam als mehrere strukturierte
+Validation Errors zurückgegeben werden.
+
+## Keine Fehlerduplizierung
+
+Validation Errors der enthaltenen Value Objects werden nicht zusätzlich als
+`PasswordCredential`-Fehler erzeugt.
+
+Dies betrifft insbesondere:
+
+- `PasswordHash`,
+- `PasswordAlgorithm`,
+- `PasswordHashParameters`,
+- `Timestamp`.
+
+## Sicherheitsregel
+
+Folgende Inhalte dürfen niemals Bestandteil von Fehlern oder Domain Messages
+sein:
+
+- tatsächlicher Passwort-Hash,
+- Salt-Wert,
+- `PlainPassword`,
+- `AuthenticationProof`,
+- kryptographische Schlüssel.
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Abschnitts sind:
+
+- Klartextpasswörter,
+- Passwort-Hashing,
+- Passwortverifikation,
+- Security Ports,
+- Hashbibliotheken,
+- Salt-Erzeugung,
+- AuthenticationProof,
+- Passwortänderungsregeln,
+- Lockout und Rate Limiting.
+
+---
 
 # ProfileSecurity
 

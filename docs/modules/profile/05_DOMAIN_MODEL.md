@@ -4330,59 +4330,345 @@ Die Gleichheit richtet sich nach Algorithmus und normalisiertem Checksum-Wert.
 
 ## Zweck
 
-`PasswordCredential` repräsentiert das vollständige Ergebnis einer sicheren Passwortverarbeitung.
+`PasswordCredential` repräsentiert den vollständigen fachlichen Nachweis
+eines bereits kryptographisch verarbeiteten Passworts.
+
+Das Value Object enthält ausschließlich die für eine spätere technische
+Passwortverifikation erforderlichen Bestandteile.
 
 Es enthält niemals ein Klartextpasswort.
 
+Die Erzeugung eines neuen Credentials aus einem `PlainPassword` erfolgt
+ausschließlich außerhalb der Domain durch den zuständigen Security Port.
+
+Die Domain kann ein bereits vollständig erzeugtes Credential kontrolliert
+übernehmen oder rekonstruieren.
+
+---
+
 ## Attribute
 
-| Attribut | Typ |
-|---|---|
-| hash | PasswordHash |
-| algorithm | PasswordAlgorithm |
-| parameters | PasswordHashParameters |
-| createdAt | Timestamp |
+| Attribut | Typ | Bedeutung |
+|---|---|---|
+| hash | PasswordHash | Bereits kryptographisch erzeugter Passwort-Hash |
+| algorithm | PasswordAlgorithm | Algorithmus, mit dem der Hash erzeugt wurde |
+| parameters | PasswordHashParameters | Bei der Hash-Erzeugung verwendete Parameter |
+| createdAt | Timestamp | Fachlicher Erzeugungszeitpunkt des Credentials |
 
-## Factory
+---
 
-Das Credential wird nicht direkt aus einem Klartextpasswort innerhalb der Domäne erzeugt.
-
-Ein Security Port liefert:
+## Interne Repräsentation
 
 ```text
-DomainResult<PasswordCredential> createCredential(
-  PlainPassword input
+hash: PasswordHash
+algorithm: PasswordAlgorithm
+parameters: PasswordHashParameters
+createdAt: Timestamp
+```
+
+Alle Attribute sind unveränderlich.
+
+Das Value Object besitzt keine eigene fachliche Identität.
+
+---
+
+## Kontrollierte Erzeugung und Rekonstruktion
+
+Die kontrollierte Übernahme eines vollständig erzeugten Credentials sowie
+die Rekonstruktion eines bereits gespeicherten Credentials erfolgen
+ausschließlich über:
+
+```text
+DomainResult<PasswordCredential> create(
+  PasswordHash? hash,
+  PasswordAlgorithm? algorithm,
+  PasswordHashParameters? parameters,
+  Timestamp? createdAt
 )
 ```
 
-Die Domäne erhält ausschließlich das fertige Credential.
+Dieselbe Factory wird sowohl verwendet für
 
-## Regeln
+- die Übernahme eines durch einen Security Port neu erzeugten Credentials,
+- die Rekonstruktion eines bereits gespeicherten Credentials.
 
-- Alle Bestandteile sind unveränderlich.
-- Das Credential enthält kein Klartextpasswort.
-- Ein Credential wird bei einer Passwortänderung vollständig ersetzt.
-- Das Credential darf nicht in einen Profilexport aufgenommen werden.
-- Das Credential darf nicht protokolliert werden.
-- Die Passwortprüfung erfolgt ausschließlich über den zuständigen Security Port.
-- Direkte fachliche Gleichheit darf nicht als Passwortprüfung verwendet werden.
+Es existiert keine weitere öffentliche Factory.
+
+Die Factory erzeugt selbst
+
+- keinen Passwort-Hash,
+- keinen Salt,
+- keine Hashparameter,
+- keinen Erzeugungszeitpunkt.
+
+Sie übernimmt ausschließlich bereits kontrolliert erzeugte und gültige
+Domänenwerte.
+
+---
+
+## Fachliche Regeln
+
+Für `PasswordCredential` gilt:
+
+- `hash` MUSS vorhanden und gültig sein.
+- `algorithm` MUSS vorhanden und gültig sein.
+- `parameters` MUSS vorhanden und gültig sein.
+- `createdAt` MUSS vorhanden und gültig sein.
+- Alle vier Bestandteile MÜSSEN gemeinsam einen vollständigen Zustand
+  bilden.
+- Eine teilweise erzeugte oder teilweise rekonstruierte Instanz ist
+  unzulässig.
+- Das Credential MUSS vollständig unveränderlich sein.
+- Das Credential DARF kein `PlainPassword` enthalten.
+- Das Credential DARF keine `AuthenticationProof`-Instanz enthalten.
+- Das Credential DARF keine kryptographischen Schlüssel enthalten.
+- Die Domain DARF keinen fehlenden Bestandteil durch einen Standardwert
+  ersetzen.
+- Die Domain DARF den verwendeten Algorithmus oder die Hashparameter nicht
+  automatisch verändern.
+- Der Hash und der Salt-Wert DÜRFEN niemals über Domain Messages,
+  Fehlerparameter, Logs oder `toString()` offengelegt werden.
+
+Für Version 1 gilt zusätzlich:
+
+```text
+algorithm = argon2id
+```
+
+Ein Credential mit einem anderen Algorithmus ist kein gültiger
+`PasswordCredential`-Zustand des Profilmoduls in Version 1.
+
+---
+
+## Konsistenzregeln
+
+Die Bestandteile eines Credentials müssen fachlich zusammengehören.
+
+Es gilt:
+
+- `hash` wurde mit dem angegebenen `algorithm` erzeugt.
+- `hash` wurde mit den angegebenen `parameters` erzeugt.
+- `createdAt` bezeichnet den Zeitpunkt, zu dem genau dieses Credential
+  erzeugt wurde.
+
+Die Domain kann diese kryptographischen Zusammenhänge nicht selbst
+technisch verifizieren.
+
+Die Verantwortung dafür liegt beim zuständigen Security Port.
+
+Die Domain setzt voraus, dass ein Security Port ausschließlich konsistente
+Bestandteile zu einem `PasswordCredential` zusammensetzt.
+
+---
+
+## Preconditions
+
+Für `create(...)` gilt:
+
+- `hash` ist vorhanden und gültig.
+- `algorithm` ist vorhanden und gültig.
+- `parameters` ist vorhanden und gültig.
+- `createdAt` ist vorhanden und gültig.
+- `algorithm` entspricht `argon2id`.
+
+---
+
+## Erfolgsverhalten
+
+Bei erfolgreicher Erzeugung oder Rekonstruktion gilt:
+
+- Es wurde ein vollständiges `PasswordCredential` erzeugt.
+- Alle vier Attribute entsprechen den übergebenen Domänenwerten.
+- Alle Attribute sind unveränderlich.
+- Es wurde kein Klartextpasswort verarbeitet.
+- Es wurde keine kryptographische Operation ausgeführt.
+- Es wurden keine sensiblen Inhalte offengelegt.
+- Es wurden keine Domain Events erzeugt.
+- Es wurden keine Audit- oder Versionsinformationen verändert.
+
+---
+
+## Fehlerverhalten
+
+Bei einem fachlichen Fehler gilt:
+
+- Es wird kein `PasswordCredential` erzeugt.
+- Das Ergebnis enthält mindestens einen strukturierten Validation Error.
+- Es entsteht kein teilweise gültiger Credential-Zustand.
+- Hashwerte, Salt-Werte und sonstige sensible Inhalte werden nicht in
+  Fehlerparametern oder Domain Messages übertragen.
+- Erwartbare Validierungsfehler erzeugen keine Exception.
+
+Die konkreten Validation Errors werden in den Validation Rules definiert.
+
+Fehler der enthaltenen Value Objects werden nicht zusätzlich als generische
+`PasswordCredential`-Fehler dupliziert.
+
+---
+
+## Erzeugung durch Security Ports
+
+Die technische Erzeugung eines neuen Credentials erfolgt über den
+zuständigen Security Port.
+
+Der Security Port
+
+- erhält ein kurzlebiges `PlainPassword`,
+- erzeugt einen kryptographischen Hash,
+- erzeugt einen Salt,
+- bestimmt die anzuwendenden Hashparameter,
+- verwendet den verbindlichen `PasswordAlgorithm`,
+- ermittelt den Erzeugungszeitpunkt,
+- liefert ein vollständig gültiges `PasswordCredential`.
+
+Die konkrete Port-Signatur wird in der zuständigen
+Security-Spezifikation definiert.
+
+`PasswordCredential.create(...)` ersetzt diese technische Operation nicht.
+
+Die Factory dient ausschließlich der kontrollierten Zusammensetzung bereits
+erzeugter Domänenwerte.
+
+---
+
+## Verifikation
+
+`PasswordCredential` verifiziert selbst keine Passwörter.
+
+Die technische Passwortverifikation erfolgt ausschließlich über den
+zuständigen Security Port.
+
+Dabei werden verwendet:
+
+- das kurzlebige `PlainPassword`,
+- der gespeicherte `PasswordHash`,
+- der gespeicherte `PasswordAlgorithm`,
+- die gespeicherten `PasswordHashParameters`.
+
+Das Ergebnis der technischen Verifikation darf nicht durch einen direkten
+Vergleich von Klartext- und Hashwert innerhalb der Domain ersetzt werden.
+
+---
 
 ## Equality
 
-Eine technische Wertgleichheit kann für Persistenz- oder Testzwecke definiert werden.
+Zwei `PasswordCredential`-Instanzen sind fachlich gleich, wenn alle
+folgenden Bestandteile fachlich gleich sind:
 
-Sie darf nicht zur Authentifizierung genutzt werden.
+- `hash`,
+- `algorithm`,
+- `parameters`,
+- `createdAt`.
 
-## Traceability
+Die Gleichheitsprüfung darf keine sensiblen Werte offenlegen.
 
-- PRO-FR-017
-- PRO-FR-019
-- PRO-FR-020
-- PRO-BR-019
-- PRO-VR-006
-- PRO-VR-007
-- PRO-VR-008
-- AG-INV-009
+---
+
+## HashCode
+
+Der Hashcode basiert auf allen vier Attributen.
+
+Er muss zur Equality-Definition konsistent sein.
+
+Der Hashcode darf nicht in sichtbaren Ausgaben verwendet werden, um
+Rückschlüsse auf enthaltene Sicherheitswerte zu ermöglichen.
+
+---
+
+## Sichere String-Darstellung
+
+`toString()` darf weder den Passwort-Hash noch den Salt-Wert ausgeben.
+
+Die sichere Darstellung lautet beispielsweise:
+
+```text
+PasswordCredential(
+  algorithm: argon2id,
+  createdAt: <timestamp>,
+  hash: <redacted>,
+  parameters: <redacted>
+)
+```
+
+Die vollständigen `PasswordHashParameters` werden nicht ausgegeben, da sie
+den Salt-Wert enthalten.
+
+---
+
+## Datenschutz und Sicherheit
+
+Folgende Inhalte dürfen niemals Bestandteil sein von
+
+- Domain Messages,
+- Validation Errors,
+- Business Errors,
+- Information Codes,
+- Logs,
+- Audit-Daten,
+- Monitoringdaten,
+- Exceptions,
+- sichtbaren `toString()`-Ausgaben:
+
+```text
+PlainPassword
+PasswordHash.value
+PasswordHashParameters.salt
+AuthenticationProof
+kryptographische Schlüssel
+```
+
+Das Credential darf dauerhaft gespeichert werden.
+
+Ein `PlainPassword` darf niemals gemeinsam mit dem Credential gespeichert
+werden.
+
+---
+
+## Lebenszyklus
+
+Ein `PasswordCredential` wird nicht verändert.
+
+Bei einer Passwortänderung wird ein vollständig neues
+`PasswordCredential` erzeugt.
+
+Das bisherige Credential wird anschließend atomar durch das neue Credential
+ersetzt.
+
+Eine teilweise Aktualisierung einzelner Credential-Bestandteile ist
+unzulässig.
+
+Insbesondere dürfen nicht unabhängig voneinander geändert werden:
+
+- `hash`,
+- `algorithm`,
+- `parameters`,
+- `createdAt`.
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Value Objects sind:
+
+- Klartextpasswörter,
+- Passwortvalidierung,
+- Passwortbestätigung,
+- Passwort-Hashing,
+- Passwortverifikation,
+- Auswahl kryptographischer Bibliotheken,
+- Erzeugung von Salt-Werten,
+- Auswahl konkreter Hashparameter,
+- Migration bestehender Credentials,
+- Passwort-Historie,
+- Lockout,
+- Rate Limiting,
+- Schlüsselverwaltung,
+- `AuthenticationProof`,
+- Persistenzlogik.
+
+Diese Verantwortlichkeiten liegen ausschließlich bei den zuständigen
+Security Ports, technischen Sicherheitskomponenten und den dafür
+vorgesehenen Business Rules.
 
 ---
 

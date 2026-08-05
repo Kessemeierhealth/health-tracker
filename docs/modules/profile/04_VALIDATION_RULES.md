@@ -4359,6 +4359,708 @@ Sie erzeugt die internen Fehler dieses Value Objects nicht erneut als
 
 ---
 
+# PRO-VR-027
+
+## Titel
+
+PasswordAlgorithm validieren
+
+### Typ
+
+Value-Object-Validierung
+
+### Beschreibung
+
+`PasswordAlgorithm` bezeichnet den kryptographischen Algorithmus, mit dem
+ein `PasswordHash` erzeugt wurde.
+
+Für Version 1 des Profilmoduls ist ausschließlich folgender Wert zulässig:
+
+```text
+argon2id
+```
+
+Die Enumeration führt selbst keine kryptographischen Operationen aus.
+
+Die kontrollierte Rekonstruktion erfolgt über:
+
+```text
+DomainResult<PasswordAlgorithm> PasswordAlgorithm.fromString(
+  String? value
+)
+```
+
+### Fachliche Regeln
+
+Für `PasswordAlgorithm.fromString(...)` gilt:
+
+- `value` MUSS vorhanden sein.
+- `value` DARF nach dem Trimmen nicht leer sein.
+- Der normalisierte Wert MUSS exakt `argon2id` entsprechen.
+- Groß- und Kleinschreibung werden nicht automatisch verändert.
+- Ein unbekannter Wert DARF nicht durch einen Standardwert ersetzt werden.
+- Weitere Algorithmen sind in Version 1 nicht zulässig.
+
+### Normalisierung
+
+Vor der Validierung werden ausschließlich
+
+- führende Leerzeichen entfernt,
+- nachfolgende Leerzeichen entfernt.
+
+Weitere Transformationen sind unzulässig.
+
+Insbesondere wird die Groß- und Kleinschreibung nicht verändert.
+
+### Fehlercodes
+
+| Fehlercode | Message Key | Severity | Category | Feld | Constraint | Parameter |
+|------------|-------------|----------|----------|------|------------|-----------|
+| PRO-VAL-PALG-001 | `validation.passwordAlgorithm.required` | ERROR | VALIDATION | value | required | – |
+| PRO-VAL-PALG-002 | `validation.passwordAlgorithm.invalid` | ERROR | VALIDATION | value | enum | `{"allowedValues":["argon2id"]}` |
+
+### Fehlerverhalten
+
+#### Fehlender oder leerer Wert
+
+Ist `value` nicht vorhanden oder nach dem Trimmen leer, wird ausschließlich
+
+```text
+PRO-VAL-PALG-001
+```
+
+erzeugt.
+
+Ein zusätzlicher Enum-Fehler wird nicht erzeugt.
+
+#### Nicht unterstützter Algorithmus
+
+Entspricht der normalisierte Wert nicht exakt `argon2id`, wird
+
+```text
+PRO-VAL-PALG-002
+```
+
+erzeugt.
+
+Der Fehlerparameter lautet:
+
+```json
+{
+  "allowedValues": [
+    "argon2id"
+  ]
+}
+```
+
+Der ungültige Eingabewert wird nicht als Fehlerparameter übertragen.
+
+### Validierungsreihenfolge
+
+1. Vorhandensein prüfen.
+2. Trimmen.
+3. Leeren Wert prüfen.
+4. Unterstützten Enumerationswert prüfen.
+5. Gültigen `PasswordAlgorithm` erzeugen.
+
+### Abgrenzung
+
+Nicht Bestandteil dieser Validation Rule sind:
+
+- Passwort-Hashing,
+- Passwortverifikation,
+- Auswahl kryptographischer Bibliotheken,
+- Argon2id-Parameter,
+- Migration bestehender Credentials.
+
+### Traceability
+
+**Domain Model**
+
+- `PasswordAlgorithm`
+- `PasswordAlgorithm.fromString(...)`
+- `PasswordCredential.algorithm`
+
+**Validation Principles**
+
+- PRO-VP-001
+- PRO-VP-002
+- PRO-VP-003
+- PRO-VP-004
+- PRO-VP-007
+- PRO-VP-009
+
+---
+
+# PRO-VR-028
+
+## Titel
+
+PasswordHash validieren
+
+### Typ
+
+Value-Object-Validierung
+
+### Beschreibung
+
+`PasswordHash` repräsentiert einen bereits kryptographisch erzeugten
+Passwort-Hash.
+
+Die Domain behandelt den Wert ausschließlich als undurchsichtigen,
+unveränderlichen Sicherheitswert.
+
+Die kontrollierte Rekonstruktion erfolgt über:
+
+```text
+DomainResult<PasswordHash> PasswordHash.fromPersistedValue(
+  String? value
+)
+```
+
+Die Factory erzeugt selbst keinen Passwort-Hash.
+
+### Fachliche Regeln
+
+Für `PasswordHash` gilt:
+
+- `value` MUSS vorhanden sein.
+- `value` DARF nach dem Trimmen nicht leer sein.
+- Der Wert MUSS unveränderlich gespeichert werden.
+- Der Wert DARF nicht fachlich interpretiert oder zerlegt werden.
+- Der Wert DARF nicht aus einem Klartextpasswort innerhalb der Domain
+  erzeugt werden.
+- Der Wert DARF nicht in Domain Messages oder Fehlerparametern offengelegt
+  werden.
+
+### Normalisierung
+
+Vor der Validierung werden ausschließlich
+
+- führende Leerzeichen entfernt,
+- nachfolgende Leerzeichen entfernt.
+
+Weitere Transformationen sind unzulässig.
+
+Insbesondere dürfen nicht verändert werden:
+
+- Groß- und Kleinschreibung,
+- Sonderzeichen,
+- Präfixe,
+- Trennzeichen,
+- algorithmusspezifische Bestandteile.
+
+### Fehlercodes
+
+| Fehlercode | Message Key | Severity | Category | Feld | Constraint | Parameter |
+|------------|-------------|----------|----------|------|------------|-----------|
+| PRO-VAL-PHASH-001 | `validation.passwordHash.required` | ERROR | VALIDATION | value | required | – |
+| PRO-VAL-PHASH-002 | `validation.passwordHash.blank` | ERROR | VALIDATION | value | blank | – |
+
+### Fehlerverhalten
+
+#### Fehlender Wert
+
+Ist `value` nicht vorhanden, wird ausschließlich
+
+```text
+PRO-VAL-PHASH-001
+```
+
+erzeugt.
+
+#### Leerer Wert
+
+Ist `value` vorhanden, ergibt nach dem Trimmen aber einen leeren Wert, wird
+ausschließlich
+
+```text
+PRO-VAL-PHASH-002
+```
+
+erzeugt.
+
+Der tatsächliche Hashwert wird niemals als Fehlerparameter übertragen.
+
+### Validierungsreihenfolge
+
+1. Vorhandensein prüfen.
+2. Trimmen.
+3. Leeren Wert prüfen.
+4. Unveränderlichen `PasswordHash` erzeugen.
+
+### Sichere Darstellung
+
+Der tatsächliche Hashwert darf nicht durch `toString()` ausgegeben werden.
+
+Die sichere Darstellung lautet:
+
+```text
+PasswordHash(<redacted>)
+```
+
+### Abgrenzung
+
+Nicht Bestandteil dieser Validation Rule sind:
+
+- Passwort-Hashing,
+- Hashformatinterpretation,
+- Passwortverifikation,
+- Algorithmusprüfung,
+- Hashparameter,
+- Salt-Erzeugung.
+
+### Traceability
+
+**Domain Model**
+
+- `PasswordHash`
+- `PasswordHash.fromPersistedValue(...)`
+- `PasswordCredential.hash`
+
+**Validation Principles**
+
+- PRO-VP-001
+- PRO-VP-002
+- PRO-VP-003
+- PRO-VP-004
+- PRO-VP-007
+- PRO-VP-009
+
+---
+
+# PRO-VR-029
+
+## Titel
+
+PasswordHashParameters validieren
+
+### Typ
+
+Value-Object-Validierung
+
+### Beschreibung
+
+`PasswordHashParameters` repräsentiert die Parameter, mit denen ein
+`PasswordHash` erzeugt wurde.
+
+Das Value Object besteht aus:
+
+- `memoryCostKiB`,
+- `iterations`,
+- `parallelism`,
+- `salt`.
+
+Die kontrollierte Erzeugung erfolgt über:
+
+```text
+DomainResult<PasswordHashParameters> create(
+  int? memoryCostKiB,
+  int? iterations,
+  int? parallelism,
+  String? salt
+)
+```
+
+Die kontrollierte Rekonstruktion erfolgt über:
+
+```text
+DomainResult<PasswordHashParameters> fromPersistedValues(
+  int? memoryCostKiB,
+  int? iterations,
+  int? parallelism,
+  String? salt
+)
+```
+
+Beide Factories prüfen dieselben fachlichen Invarianten.
+
+### Fachliche Regeln
+
+Für `PasswordHashParameters` gilt:
+
+- `memoryCostKiB` MUSS vorhanden sein.
+- `memoryCostKiB` MUSS größer als `0` sein.
+- `iterations` MUSS vorhanden sein.
+- `iterations` MUSS größer als `0` sein.
+- `parallelism` MUSS vorhanden sein.
+- `parallelism` MUSS größer als `0` sein.
+- `salt` MUSS vorhanden sein.
+- `salt` DARF nach dem Trimmen nicht leer sein.
+- Alle vier Bestandteile MÜSSEN gemeinsam einen vollständigen Zustand
+  bilden.
+- Fehlende Werte DÜRFEN nicht durch Standardwerte ersetzt werden.
+- Der Salt-Wert DARF nicht in Domain Messages oder Fehlerparametern
+  offengelegt werden.
+
+Es werden derzeit keine weiteren Mindest-, Höchst- oder Zielwerte
+festgelegt.
+
+### Normalisierung
+
+Für `salt` werden ausschließlich
+
+- führende Leerzeichen entfernt,
+- nachfolgende Leerzeichen entfernt.
+
+Weitere Transformationen des Salt-Werts sind unzulässig.
+
+Numerische Werte werden nicht normalisiert.
+
+### Fehlercodes
+
+| Fehlercode | Message Key | Severity | Category | Feld | Constraint | Parameter |
+|------------|-------------|----------|----------|------|------------|-----------|
+| PRO-VAL-PHPAR-001 | `validation.passwordHashParameters.memoryCostKiB.required` | ERROR | VALIDATION | memoryCostKiB | required | – |
+| PRO-VAL-PHPAR-002 | `validation.passwordHashParameters.memoryCostKiB.minimum` | ERROR | VALIDATION | memoryCostKiB | minimum | `{"minimum":1,"actual":"<value>"}` |
+| PRO-VAL-PHPAR-003 | `validation.passwordHashParameters.iterations.required` | ERROR | VALIDATION | iterations | required | – |
+| PRO-VAL-PHPAR-004 | `validation.passwordHashParameters.iterations.minimum` | ERROR | VALIDATION | iterations | minimum | `{"minimum":1,"actual":"<value>"}` |
+| PRO-VAL-PHPAR-005 | `validation.passwordHashParameters.parallelism.required` | ERROR | VALIDATION | parallelism | required | – |
+| PRO-VAL-PHPAR-006 | `validation.passwordHashParameters.parallelism.minimum` | ERROR | VALIDATION | parallelism | minimum | `{"minimum":1,"actual":"<value>"}` |
+| PRO-VAL-PHPAR-007 | `validation.passwordHashParameters.salt.required` | ERROR | VALIDATION | salt | required | – |
+| PRO-VAL-PHPAR-008 | `validation.passwordHashParameters.salt.blank` | ERROR | VALIDATION | salt | blank | – |
+
+### Fehlerverhalten
+
+#### Fehlender Speicherparameter
+
+Ist `memoryCostKiB` nicht vorhanden, wird
+
+```text
+PRO-VAL-PHPAR-001
+```
+
+erzeugt.
+
+Ein zusätzlicher Mindestwertfehler wird nicht erzeugt.
+
+#### Ungültiger Speicherparameter
+
+Ist `memoryCostKiB` kleiner als `1`, wird
+
+```text
+PRO-VAL-PHPAR-002
+```
+
+erzeugt.
+
+#### Fehlende Iterationen
+
+Ist `iterations` nicht vorhanden, wird
+
+```text
+PRO-VAL-PHPAR-003
+```
+
+erzeugt.
+
+Ein zusätzlicher Mindestwertfehler wird nicht erzeugt.
+
+#### Ungültige Iterationen
+
+Ist `iterations` kleiner als `1`, wird
+
+```text
+PRO-VAL-PHPAR-004
+```
+
+erzeugt.
+
+#### Fehlender Parallelitätsgrad
+
+Ist `parallelism` nicht vorhanden, wird
+
+```text
+PRO-VAL-PHPAR-005
+```
+
+erzeugt.
+
+Ein zusätzlicher Mindestwertfehler wird nicht erzeugt.
+
+#### Ungültiger Parallelitätsgrad
+
+Ist `parallelism` kleiner als `1`, wird
+
+```text
+PRO-VAL-PHPAR-006
+```
+
+erzeugt.
+
+#### Fehlender Salt-Wert
+
+Ist `salt` nicht vorhanden, wird
+
+```text
+PRO-VAL-PHPAR-007
+```
+
+erzeugt.
+
+#### Leerer Salt-Wert
+
+Ist `salt` vorhanden, ergibt nach dem Trimmen aber einen leeren Wert, wird
+
+```text
+PRO-VAL-PHPAR-008
+```
+
+erzeugt.
+
+Der Salt-Wert wird niemals als Fehlerparameter übertragen.
+
+### Validierungsreihenfolge
+
+Die Validierung erfolgt in dieser Reihenfolge:
+
+1. `memoryCostKiB` auf Vorhandensein prüfen.
+2. `memoryCostKiB` auf Mindestwert prüfen.
+3. `iterations` auf Vorhandensein prüfen.
+4. `iterations` auf Mindestwert prüfen.
+5. `parallelism` auf Vorhandensein prüfen.
+6. `parallelism` auf Mindestwert prüfen.
+7. `salt` auf Vorhandensein prüfen.
+8. `salt` trimmen.
+9. `salt` auf Leerwert prüfen.
+10. Vollständiges Value Object erzeugen.
+
+Fehlende numerische Werte erzeugen keinen zusätzlichen Mindestwertfehler.
+
+Ein fehlender Salt-Wert erzeugt keinen zusätzlichen Blank-Fehler.
+
+### Sichere Darstellung
+
+Der Salt-Wert darf nicht durch `toString()` ausgegeben werden.
+
+Eine sichere Darstellung lautet:
+
+```text
+PasswordHashParameters(
+  memoryCostKiB: <value>,
+  iterations: <value>,
+  parallelism: <value>,
+  salt: <redacted>
+)
+```
+
+### Abgrenzung
+
+Nicht Bestandteil dieser Validation Rule sind:
+
+- Auswahl optimaler Argon2id-Parameter,
+- aktuelle Sicherheitsempfehlungen,
+- Salt-Erzeugung,
+- Passwort-Hashing,
+- Passwortverifikation,
+- Migration bestehender Parameter.
+
+### Traceability
+
+**Domain Model**
+
+- `PasswordHashParameters`
+- `PasswordHashParameters.create(...)`
+- `PasswordHashParameters.fromPersistedValues(...)`
+- `PasswordCredential.parameters`
+
+**Validation Principles**
+
+- PRO-VP-001
+- PRO-VP-002
+- PRO-VP-003
+- PRO-VP-004
+- PRO-VP-007
+- PRO-VP-009
+
+---
+
+# PRO-VR-030
+
+## Titel
+
+PasswordCredential validieren
+
+### Typ
+
+Value-Object-Validierung
+
+### Beschreibung
+
+`PasswordCredential` repräsentiert den vollständigen fachlichen Nachweis
+eines bereits kryptographisch verarbeiteten Passworts.
+
+Das Value Object besteht aus:
+
+- `PasswordHash`,
+- `PasswordAlgorithm`,
+- `PasswordHashParameters`,
+- `Timestamp`.
+
+Die kontrollierte Erzeugung und Rekonstruktion erfolgen über:
+
+```text
+DomainResult<PasswordCredential> create(
+  PasswordHash? hash,
+  PasswordAlgorithm? algorithm,
+  PasswordHashParameters? parameters,
+  Timestamp? createdAt
+)
+```
+
+Dieselbe Factory wird für die Übernahme eines neu erzeugten Credentials und
+für die Rekonstruktion eines gespeicherten Credentials verwendet.
+
+### Fachliche Regeln
+
+Für `PasswordCredential` gilt:
+
+- `hash` MUSS vorhanden und gültig sein.
+- `algorithm` MUSS vorhanden und gültig sein.
+- `parameters` MÜSSEN vorhanden und gültig sein.
+- `createdAt` MUSS vorhanden und gültig sein.
+- Alle vier Bestandteile MÜSSEN gemeinsam einen vollständigen Zustand
+  bilden.
+- Für Version 1 MUSS `algorithm` dem Wert `argon2id` entsprechen.
+- Eine teilweise erzeugte Instanz ist unzulässig.
+- Das Credential MUSS unveränderlich sein.
+- Das Credential DARF kein `PlainPassword` enthalten.
+- Hash- und Salt-Werte DÜRFEN nicht offengelegt werden.
+
+Die interne Validierung der enthaltenen Value Objects erfolgt ausschließlich
+durch deren eigene Validation Rules.
+
+### Fehlercodes
+
+| Fehlercode | Message Key | Severity | Category | Feld | Constraint | Parameter |
+|------------|-------------|----------|----------|------|------------|-----------|
+| PRO-VAL-PCRED-001 | `validation.passwordCredential.hash.required` | ERROR | VALIDATION | hash | required | – |
+| PRO-VAL-PCRED-002 | `validation.passwordCredential.algorithm.required` | ERROR | VALIDATION | algorithm | required | – |
+| PRO-VAL-PCRED-003 | `validation.passwordCredential.parameters.required` | ERROR | VALIDATION | parameters | required | – |
+| PRO-VAL-PCRED-004 | `validation.passwordCredential.createdAt.required` | ERROR | VALIDATION | createdAt | required | – |
+
+### Fehlerverhalten
+
+#### Fehlender PasswordHash
+
+Ist `hash` nicht vorhanden, wird
+
+```text
+PRO-VAL-PCRED-001
+```
+
+erzeugt.
+
+#### Fehlender PasswordAlgorithm
+
+Ist `algorithm` nicht vorhanden, wird
+
+```text
+PRO-VAL-PCRED-002
+```
+
+erzeugt.
+
+#### Fehlende PasswordHashParameters
+
+Sind `parameters` nicht vorhanden, wird
+
+```text
+PRO-VAL-PCRED-003
+```
+
+erzeugt.
+
+#### Fehlender Erzeugungszeitpunkt
+
+Ist `createdAt` nicht vorhanden, wird
+
+```text
+PRO-VAL-PCRED-004
+```
+
+erzeugt.
+
+### Validierungsreihenfolge
+
+Die Validierung erfolgt in dieser Reihenfolge:
+
+1. `hash` prüfen.
+2. `algorithm` prüfen.
+3. `parameters` prüfen.
+4. `createdAt` prüfen.
+5. Vollständiges `PasswordCredential` erzeugen.
+
+Mehrere fehlende Pflichtbestandteile dürfen gemeinsam als mehrere
+strukturierte Validation Errors zurückgegeben werden.
+
+### Keine Fehlerduplizierung
+
+Die folgenden Fehler werden nicht erneut als
+`PasswordCredential`-Fehler erzeugt:
+
+- leerer oder ungültiger `PasswordHash`,
+- ungültiger `PasswordAlgorithm`,
+- ungültige `PasswordHashParameters`,
+- ungültiger `Timestamp`.
+
+Diese Fehler gehören ausschließlich zu den jeweiligen Value Objects.
+
+Ein bereits typisiert übergebener `PasswordAlgorithm` ist bereits gültig
+und entspricht für Version 1 dem Wert `argon2id`.
+
+### Sichere Darstellung
+
+`toString()` darf keine Hash- oder Salt-Werte ausgeben.
+
+Eine sichere Darstellung lautet:
+
+```text
+PasswordCredential(
+  algorithm: argon2id,
+  createdAt: <timestamp>,
+  hash: <redacted>,
+  parameters: <redacted>
+)
+```
+
+### Abgrenzung
+
+Nicht Bestandteil dieser Validation Rule sind:
+
+- Klartextpasswörter,
+- Passwort-Hashing,
+- Passwortverifikation,
+- Security Ports,
+- Hashbibliotheken,
+- Salt-Erzeugung,
+- AuthenticationProof,
+- Passwortänderungsregeln,
+- Lockout und Rate Limiting.
+
+### Traceability
+
+**Domain Model**
+
+- `PasswordCredential`
+- `PasswordCredential.create(...)`
+- `PasswordHash`
+- `PasswordAlgorithm`
+- `PasswordHashParameters`
+- `Timestamp`
+- `ProfileSecurity.passwordCredential`
+
+**Validation Principles**
+
+- PRO-VP-001
+- PRO-VP-002
+- PRO-VP-003
+- PRO-VP-004
+- PRO-VP-007
+- PRO-VP-009
+
+---
+
 # Validierungsreihenfolge
 
 Jede Profilerstellung und Profiländerung wird in folgender Reihenfolge validiert:
