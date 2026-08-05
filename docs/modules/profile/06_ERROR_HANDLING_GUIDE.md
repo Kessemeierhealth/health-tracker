@@ -9705,6 +9705,174 @@ Fehlerkatalogen dokumentiert.
 
 ---
 
+# ProfileSettingsId
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- ProfileSettingsId
+
+## Zweck
+
+Dieser Abschnitt definiert die Validation Error Codes für das Value Object
+`ProfileSettingsId`.
+
+`ProfileSettingsId` repräsentiert die lokale Identität der untergeordneten
+Entity `ProfileSettings`.
+
+Die ID besitzt ausschließlich innerhalb des `Profile`-Aggregats eine
+fachliche Bedeutung.
+
+Sie ersetzt keine `ProfileId`.
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-PSETID-001 | validation.profileSettingsId.required | ERROR | VALIDATION | value | required | – |
+| PRO-VAL-PSETID-002 | validation.profileSettingsId.blank | ERROR | VALIDATION | value | blank | – |
+| PRO-VAL-PSETID-003 | validation.profileSettingsId.invalidFormat | ERROR | VALIDATION | value | format | expectedFormat |
+
+### Parameter
+
+#### PRO-VAL-PSETID-003
+
+```json
+{
+  "expectedFormat": "UUID"
+}
+```
+
+---
+
+## Herkunft
+
+Diese Error Codes werden ausschließlich aus
+
+- PRO-VR-025
+
+übernommen.
+
+Neue fachliche Regeln werden in diesem Dokument nicht definiert.
+
+---
+
+## Fehlerverhalten
+
+### Fehlender Wert
+
+Ist kein Wert vorhanden,
+
+wird
+
+```text
+PRO-VAL-PSETID-001
+```
+
+erzeugt.
+
+Weitere Prüfungen werden nicht durchgeführt.
+
+---
+
+### Leerer Wert
+
+Ist der Wert nach dem Trimmen leer,
+
+wird
+
+```text
+PRO-VAL-PSETID-002
+```
+
+erzeugt.
+
+Ein zusätzlicher Formatfehler wird nicht erzeugt.
+
+---
+
+### Ungültiges UUID-Format
+
+Entspricht der normalisierte Wert keinem gültigen UUID-Format,
+
+wird
+
+```text
+PRO-VAL-PSETID-003
+```
+
+erzeugt.
+
+Der Fehlerparameter lautet:
+
+```json
+{
+  "expectedFormat": "UUID"
+}
+```
+
+Der ungültige Eingabewert wird nicht in den Fehlerparametern
+übertragen.
+
+---
+
+## Validierungsreihenfolge
+
+Die Validierung erfolgt in dieser Reihenfolge:
+
+1. Vorhandensein prüfen.
+2. Trimmen.
+3. Leeren Wert prüfen.
+4. UUID-Format prüfen.
+5. `ProfileSettingsId` erzeugen.
+
+Ein fehlender Wert erzeugt keinen zusätzlichen Blank- oder
+Formatfehler.
+
+Ein leerer Wert erzeugt keinen zusätzlichen Formatfehler.
+
+---
+
+## Verhalten von generate()
+
+Die Factory
+
+```text
+ProfileSettingsId.generate()
+```
+
+erzeugt eine neue gültige UUID.
+
+Für diese Factory werden keine Validation Errors definiert.
+
+Fehler der technischen UUID-Erzeugung gehören nicht zu den
+fachlichen Validation Errors.
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Abschnitts sind:
+
+- technische UUID-Erzeugung,
+- Persistenz,
+- Datenbank-Constraints,
+- Repository-Konflikte,
+- Verwendung als `ProfileId`,
+- JSON-Serialisierung,
+- Infrastrukturfehler.
+
+Die Entity `ProfileSettings` prüft ausschließlich,
+ob eine gültige `ProfileSettingsId` vorhanden ist.
+
+Validation Errors dieses Value Objects werden auf Entity-Ebene
+nicht erneut erzeugt.
+
+---
+
 # 06_ERROR_HANDLING_GUIDE.md
 
 # Teil 5B-1b-1b – Core Validation Codes (ProfileSettings und ProfileSecurity)

@@ -3889,6 +3889,201 @@ Business Errors werden getrennt von Validation Errors spezifiziert.
 
 ---
 
+---
+
+# PRO-VR-025
+
+## Titel
+
+ProfileSettingsId validieren
+
+### Typ
+
+Value-Object-Validierung
+
+### Beschreibung
+
+`ProfileSettingsId` repräsentiert die unveränderliche lokale Identität der
+untergeordneten Entity `ProfileSettings`.
+
+Die ID besitzt ausschließlich innerhalb des `Profile`-Aggregats eine
+fachliche Bedeutung.
+
+Sie darf nicht als Ersatz für `ProfileId` verwendet und nicht aus
+personenbezogenen Profildaten abgeleitet werden.
+
+Die kontrollierte Rekonstruktion erfolgt über:
+
+```text
+DomainResult<ProfileSettingsId> ProfileSettingsId.fromString(
+  String? value
+)
+```
+
+Die Erzeugung einer neuen Identität erfolgt über:
+
+```text
+DomainResult<ProfileSettingsId> ProfileSettingsId.generate()
+```
+
+### Fachliche Regeln
+
+Für `ProfileSettingsId.fromString(...)` gilt:
+
+- `value` MUSS vorhanden sein.
+- `value` DARF nach dem Trimmen nicht leer sein.
+- `value` MUSS ein syntaktisch gültiges UUID-Format besitzen.
+- Die erzeugte ID MUSS unveränderlich sein.
+- Die ID DARF nicht aus `ProfileId`, Profilname oder anderen Profildaten
+  abgeleitet werden.
+- Die ID DARF nicht als `ProfileId` verwendet werden.
+
+Die Prüfung, ob eine ID innerhalb eines konkreten Aggregats bereits
+verwendet wird, gehört nicht zur lokalen Formatvalidierung dieses
+Value Objects.
+
+### Normalisierung
+
+Vor der Formatprüfung werden ausschließlich
+
+- führende Leerzeichen entfernt,
+- nachfolgende Leerzeichen entfernt.
+
+Der anschließend validierte UUID-Wert wird in seiner kanonischen
+UUID-Repräsentation gespeichert.
+
+Weitere fachliche Transformationen sind nicht zulässig.
+
+### Fehlercodes
+
+| Fehlercode | Message Key | Severity | Feld | Constraint | Parameter |
+|------------|-------------|----------|------|------------|-----------|
+| PRO-VAL-PSETID-001 | `validation.profileSettingsId.required` | ERROR | value | required | – |
+| PRO-VAL-PSETID-002 | `validation.profileSettingsId.blank` | ERROR | value | blank | – |
+| PRO-VAL-PSETID-003 | `validation.profileSettingsId.invalidFormat` | ERROR | value | format | `{"expectedFormat":"UUID"}` |
+
+### Fehlerverhalten
+
+#### Fehlender Wert
+
+Ist `value` nicht vorhanden, wird ausschließlich
+
+```text
+PRO-VAL-PSETID-001
+```
+
+erzeugt.
+
+Weitere Prüfungen werden in diesem Fall nicht durchgeführt.
+
+#### Leerer Wert
+
+Ist `value` vorhanden, ergibt aber nach dem Trimmen einen leeren Wert, wird
+ausschließlich
+
+```text
+PRO-VAL-PSETID-002
+```
+
+erzeugt.
+
+Eine zusätzliche Formatprüfung wird in diesem Fall nicht durchgeführt.
+
+#### Ungültiges UUID-Format
+
+Ist der normalisierte Wert vorhanden und nicht leer, entspricht aber keinem
+syntaktisch gültigen UUID-Format, wird
+
+```text
+PRO-VAL-PSETID-003
+```
+
+erzeugt.
+
+Der Fehlerparameter lautet:
+
+```json
+{
+  "expectedFormat": "UUID"
+}
+```
+
+Der ungültige Eingabewert wird nicht als Fehlerparameter übertragen.
+
+### Validierungsreihenfolge
+
+Die Validierung erfolgt in dieser Reihenfolge:
+
+1. Vorhandensein von `value` prüfen.
+2. Normalisierung durch Trimmen durchführen.
+3. Leeren normalisierten Wert prüfen.
+4. UUID-Format prüfen.
+5. Gültige unveränderliche `ProfileSettingsId` erzeugen.
+
+Ein fehlender Wert erzeugt keinen zusätzlichen Blank- oder Formatfehler.
+
+Ein leerer normalisierter Wert erzeugt keinen zusätzlichen Formatfehler.
+
+Dadurch werden Folgefehler vermieden.
+
+### Verhalten von generate()
+
+Die Factory
+
+```text
+ProfileSettingsId.generate()
+```
+
+erzeugt eine neue gültige Identität über die im Projekt vorgesehene
+technische UUID-Erzeugung.
+
+Für `generate()` werden keine Validation Errors definiert.
+
+Ein unerwartetes Versagen der technischen UUID-Erzeugung ist kein
+fachlicher Validierungsfehler und darf nicht mit einem
+`PRO-VAL-PSETID-*`-Code abgebildet werden.
+
+### Abgrenzung
+
+Nicht Bestandteil dieser Validation Rule sind:
+
+- Eindeutigkeitsprüfungen über mehrere Aggregate,
+- Persistenzkonflikte,
+- Datenbank-Constraints,
+- Verwendung als `ProfileId`,
+- technische UUID-Generatorfehler,
+- Serialisierung,
+- JSON-Mapping,
+- Repositoryzugriffe.
+
+Die Entity `ProfileSettings` prüft ausschließlich, ob eine gültige
+`ProfileSettingsId` vorhanden ist.
+
+Sie erzeugt die internen Fehler dieses Value Objects nicht erneut als
+`ProfileSettings`-Fehler.
+
+### Traceability
+
+**Domain Model**
+
+- `ProfileSettingsId`
+- `ProfileSettingsId.generate()`
+- `ProfileSettingsId.fromString(...)`
+- `ProfileSettings.settingsId`
+- `ProfileSettings.create(...)`
+- PRO-EINV-001
+
+**Validation Principles**
+
+- PRO-VP-001
+- PRO-VP-002
+- PRO-VP-003
+- PRO-VP-004
+- PRO-VP-007
+- PRO-VP-009
+
+---
+
 # Validierungsreihenfolge
 
 Jede Profilerstellung und Profiländerung wird in folgender Reihenfolge validiert:
