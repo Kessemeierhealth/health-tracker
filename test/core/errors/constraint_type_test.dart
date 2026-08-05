@@ -12,6 +12,8 @@ void main() {
         ConstraintType.maximum,
         ConstraintType.range,
         ConstraintType.format,
+        ConstraintType.enumeration,
+        ConstraintType.utc,
         ConstraintType.pattern,
         ConstraintType.duplicate,
         ConstraintType.immutable,

@@ -5,6 +5,8 @@ enum ConstraintType {
   maximum,
   range,
   format,
+  enumeration,
+  utc,
   pattern,
   duplicate,
   immutable,
