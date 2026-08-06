@@ -2527,10 +2527,12 @@ DomainResult<ProfileSecurity> enablePasswordProtection(
 
 ## DomainResult<ProfileSecurity> disablePasswordProtection()
 
+```text
 DomainResult<ProfileSecurity> disablePasswordProtection(
   AuthenticationProof proof,
   Timestamp now
 )
+```
 
 ### Preconditions
 
@@ -5411,19 +5413,94 @@ Security Policies und technischen Sicherheitskomponenten.
 
 ## Zweck
 
-`LockState` beschreibt den fachlichen Sperrzustand eines Profils.
+`LockState` repräsentiert den aktuellen fachlichen Sperrzustand einer
+`ProfileSecurity`-Entity.
+
+Das Value Object beschreibt ausschließlich den gegenwärtigen Zustand.
+
+Es speichert keine Historie früherer Sperr- oder Entsperrvorgänge.
+
+---
 
 ## Attribute
 
-| Attribut | Typ |
-|---|---|
-| status | ProfileLockStatus |
-| lockedAt | Timestamp? |
-| unlockedAt | Timestamp? |
+| Attribut | Typ | Bedeutung |
+|---|---|---|
+| status | ProfileLockStatus | Aktueller fachlicher Sperrzustand |
+| lockedAt | Timestamp? | Zeitpunkt der aktuellen Sperrung |
+| unlockedAt | Timestamp? | Zeitpunkt der aktuellen Entsperrung |
 
-## Factories
+---
 
-Entsperrter Zustand:
+## Gültige Zustände
+
+### Entsperrt
+
+Ein entsperrter Zustand ist ausschließlich in folgender Kombination gültig:
+
+```text
+status = unlocked
+lockedAt = null
+unlockedAt != null
+```
+
+### Gesperrt
+
+Ein gesperrter Zustand ist ausschließlich in folgender Kombination gültig:
+
+```text
+status = locked
+lockedAt != null
+unlockedAt = null
+```
+
+Andere Kombinationen sind unzulässig.
+
+Insbesondere unzulässig sind:
+
+```text
+lockedAt = null
+unlockedAt = null
+```
+
+```text
+lockedAt != null
+unlockedAt != null
+```
+
+```text
+status = unlocked
+lockedAt != null
+```
+
+```text
+status = locked
+unlockedAt != null
+```
+
+---
+
+## Kontrollierte Erzeugung
+
+### Gesperrter Zustand
+
+```text
+DomainResult<LockState> createLocked(
+  Timestamp? lockedAt
+)
+```
+
+Die Factory erzeugt ausschließlich einen gültigen gesperrten Zustand.
+
+Bei Erfolg gilt:
+
+```text
+status = locked
+lockedAt = übergebener Zeitpunkt
+unlockedAt = null
+```
+
+### Entsperrter Zustand
 
 ```text
 DomainResult<LockState> createUnlocked(
@@ -5431,39 +5508,246 @@ DomainResult<LockState> createUnlocked(
 )
 ```
 
-Gesperrter Zustand:
+Die Factory erzeugt ausschließlich einen gültigen entsperrten Zustand.
+
+Bei Erfolg gilt:
 
 ```text
-DomainResult<LockState> createLocked(
-  Timestamp lockedAt
+status = unlocked
+lockedAt = null
+unlockedAt = übergebener Zeitpunkt
+```
+
+---
+
+## Kontrollierte Rekonstruktion
+
+Die Rekonstruktion eines gespeicherten Zustands erfolgt ausschließlich über:
+
+```text
+DomainResult<LockState> reconstruct(
+  ProfileLockStatus? status,
+  Timestamp? lockedAt,
+  Timestamp? unlockedAt
 )
 ```
 
-## Regeln für `locked`
+Die Rekonstruktionsfactory prüft sämtliche Zustandsinvarianten.
 
-- `lockedAt` muss vorhanden sein.
-- Das Profil darf nicht gleichzeitig aktiv sein.
-- `unlockedAt` darf nicht nach `lockedAt` liegen und zugleich den aktuellen Zustand beschreiben.
+Sie korrigiert keine widersprüchlichen Kombinationen automatisch.
 
-## Regeln für `unlocked`
+Es existiert keine weitere öffentliche Factory.
 
-- Ein aktueller Sperrzeitpunkt ist nicht erforderlich.
-- `unlockedAt` kann vorhanden sein.
-- Ein Profil ohne Passwort-Credential muss entsperrt sein.
+---
 
-## Übergänge
+## Zustandsübergänge
+
+### Sperren
 
 ```text
-DomainResult<LockState> lock(Timestamp now)
-
-DomainResult<LockState> unlock(Timestamp now)
+DomainResult<LockState> lock(
+  Timestamp? lockedAt
+)
 ```
 
-Da das Value Object unveränderlich ist, liefern beide Operationen eine neue Instanz.
+Bei einem erfolgreichen Übergang gilt:
+
+```text
+status = locked
+lockedAt = übergebener Zeitpunkt
+unlockedAt = null
+```
+
+Ein zuvor vorhandener `unlockedAt`-Wert wird nicht übernommen.
+
+`LockState` führt keine Historie.
+
+### Entsperren
+
+```text
+DomainResult<LockState> unlock(
+  Timestamp? unlockedAt
+)
+```
+
+Bei einem erfolgreichen Übergang gilt:
+
+```text
+status = unlocked
+lockedAt = null
+unlockedAt = übergebener Zeitpunkt
+```
+
+Ein zuvor vorhandener `lockedAt`-Wert wird nicht übernommen.
+
+`LockState` führt keine Historie.
+
+---
+
+## No-Change-Verhalten
+
+Wird `lock(...)` auf einem bereits gesperrten Zustand aufgerufen, gilt:
+
+- Der bestehende Zustand bleibt unverändert.
+- Es wird kein neuer Zeitstempel übernommen.
+- Es wird kein Validation Error erzeugt.
+- Die fachliche No-Change-Information wird auf Ebene von `ProfileSecurity`
+  erzeugt.
+
+Wird `unlock(...)` auf einem bereits entsperrten Zustand aufgerufen, gilt:
+
+- Der bestehende Zustand bleibt unverändert.
+- Es wird kein neuer Zeitstempel übernommen.
+- Es wird kein Validation Error erzeugt.
+- Die fachliche No-Change-Information wird auf Ebene von `ProfileSecurity`
+  erzeugt.
+
+`LockState` besitzt keine eigenen Information Codes.
+
+---
+
+## Fachliche Regeln
+
+Für `LockState` gilt:
+
+- `status` MUSS vorhanden und gültig sein.
+- Bei `status = locked` MUSS `lockedAt` vorhanden sein.
+- Bei `status = locked` MUSS `unlockedAt` fehlen.
+- Bei `status = unlocked` MUSS `unlockedAt` vorhanden sein.
+- Bei `status = unlocked` MUSS `lockedAt` fehlen.
+- Beide Zeitstempel dürfen niemals gleichzeitig vorhanden sein.
+- Beide Zeitstempel dürfen niemals gleichzeitig fehlen.
+- Das Value Object MUSS unveränderlich sein.
+- Das Value Object DARF keine Historie speichern.
+- Ein Zustandswechsel erzeugt immer eine neue vollständige Instanz.
+- Ein fachlich fehlerhafter Übergang verändert den bestehenden Zustand
+  nicht.
+- Fehlende Zeitstempel dürfen nicht automatisch erzeugt werden.
+- Das Value Object greift nicht auf eine technische Systemuhr zu.
+- Der aktuelle Zeitpunkt muss von außen als `Timestamp` übergeben werden.
+
+---
+
+## Regel „gesperrt und gleichzeitig aktiv“
+
+`LockState` besitzt keinen allgemeinen Profilstatus.
+
+Es kann daher nicht prüfen, ob ein Profil gleichzeitig
+
+- aktiv,
+- archiviert,
+- deaktiviert,
+- gelöscht
+
+ist.
+
+Eine solche Regel gehört ausschließlich zu einem Domänentyp, der sowohl den
+allgemeinen Profilstatus als auch den Sicherheitszustand kennt.
+
+Diese Regel ist nicht Bestandteil von `LockState`.
+
+---
+
+## Erfolgsverhalten
+
+Bei erfolgreicher Erzeugung, Rekonstruktion oder Änderung gilt:
+
+- Es wurde ein vollständiger und konsistenter `LockState` erzeugt.
+- Genau einer der beiden Zeitstempel ist vorhanden.
+- Der vorhandene Zeitstempel entspricht dem aktuellen Status.
+- Der jeweils andere Zeitstempel ist `null`.
+- Der bestehende Zustand wurde nicht mutiert.
+- Es wurden keine Domain Events erzeugt.
+- Es wurden keine Audit- oder Versionsinformationen verändert.
+
+---
+
+## Fehlerverhalten
+
+Bei einem fachlichen Fehler gilt:
+
+- Es wird kein neuer `LockState` erzeugt.
+- Das Ergebnis enthält mindestens einen strukturierten Validation Error.
+- Der bestehende Zustand bleibt unverändert.
+- Es entsteht kein teilweise gültiger Zustand.
+- Erwartbare fachliche Fehler erzeugen keine Exception.
+
+Die konkreten Validation Errors werden ausschließlich in den Validation
+Rules definiert.
+
+Fehler der enthaltenen Value Objects werden nicht zusätzlich als generische
+`LockState`-Fehler dupliziert.
+
+---
 
 ## Equality
 
-Die Gleichheit richtet sich nach Status und allen fachlich relevanten Zeitstempeln.
+Zwei `LockState`-Instanzen sind fachlich gleich, wenn folgende Attribute
+fachlich gleich sind:
+
+- `status`,
+- `lockedAt`,
+- `unlockedAt`.
+
+---
+
+## HashCode
+
+Der Hashcode basiert auf:
+
+- `status`,
+- `lockedAt`,
+- `unlockedAt`.
+
+Er muss zur Equality-Definition konsistent sein.
+
+---
+
+## String-Darstellung
+
+Eine sichere String-Darstellung darf ausschließlich enthalten:
+
+- `status`,
+- `lockedAt`,
+- `unlockedAt`.
+
+Beispiel:
+
+```text
+LockState(
+  status: locked,
+  lockedAt: 2026-08-06T08:30:00.000Z,
+  unlockedAt: null
+)
+```
+
+Das Value Object enthält keine Passwörter, Hashwerte, Credentials oder
+AuthenticationProof-Inhalte.
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Value Objects sind:
+
+- allgemeiner Profilstatus,
+- Aktivierung oder Deaktivierung eines Profils,
+- Archivierung,
+- Löschung,
+- Passwortprüfung,
+- Authentifizierung,
+- AuthenticationProof,
+- Lockout,
+- Rate Limiting,
+- Sperrhistorie,
+- Persistenz,
+- technische Systemuhren,
+- Domain Events,
+- AuditInformation,
+- AggregateVersion.
+
+Diese Verantwortlichkeiten liegen bei `ProfileSecurity`, dem
+`Profile`-Aggregat und den zuständigen Security-Komponenten.
 
 ---
 
@@ -6400,18 +6684,179 @@ archived
 
 # Enumeration: ProfileLockStatus
 
-## Werte
+## Zweck
+
+`ProfileLockStatus` beschreibt den fachlichen Sperrzustand eines
+`ProfileSecurity`-Objekts.
+
+Die Enumeration besitzt ausschließlich die Aufgabe, eindeutig zwischen
+einem gesperrten und einem entsperrten Sicherheitszustand zu unterscheiden.
+
+Sie enthält keine Zeitstempel, keine Authentifizierungslogik und keine
+Information über den allgemeinen Lebenszyklus eines Profils.
+
+---
+
+## Zulässige Werte
 
 ```text
+unlocked
 locked
+```
+
+Weitere Werte sind nicht zulässig.
+
+---
+
+## Fachliche Bedeutung
+
+### unlocked
+
+```text
 unlocked
 ```
 
+bedeutet:
+
+- Der Sicherheitszustand ist fachlich entsperrt.
+- Ein Zugriff kann grundsätzlich erfolgen, sofern keine andere fachliche
+  oder technische Regel den Zugriff verhindert.
+- Die Enumeration selbst bestätigt keine erfolgreiche Authentifizierung.
+- Die Enumeration selbst kennt kein `AuthenticationProof`.
+
+### locked
+
+```text
+locked
+```
+
+bedeutet:
+
+- Der Sicherheitszustand ist fachlich gesperrt.
+- Ein Zugriff darf erst nach erfolgreicher, durch einen gültigen
+  `AuthenticationProof` nachgewiesener Authentifizierung wieder freigegeben
+  werden.
+- Die Enumeration selbst führt keine Authentifizierung durch.
+
+---
+
 ## Regeln
 
-- Die Enumeration wird ausschließlich innerhalb von `LockState` verwendet.
-- Ein ungeschütztes Profil ist fachlich `unlocked`.
-- Ein archiviertes Profil darf nicht aktiviert werden, auch wenn es entsperrt ist.
+- `ProfileLockStatus` ist unveränderlich.
+- Es sind ausschließlich die Werte `unlocked` und `locked` zulässig.
+- Ein unbekannter Wert darf nicht stillschweigend ersetzt werden.
+- Die Enumeration enthält keine Zeitstempel.
+- Die Enumeration enthält keine Passwort-, Hash-, Credential- oder
+  Proof-Daten.
+- Die Enumeration enthält keine UI-, Persistenz-, Plattform- oder
+  Infrastrukturtypen.
+- Die Enumeration beschreibt ausschließlich den Sicherheits-Sperrzustand.
+- Die Enumeration beschreibt nicht, ob ein Profil allgemein aktiv,
+  archiviert, gelöscht oder deaktiviert ist.
+- Die Regel „gesperrt und gleichzeitig aktiv“ gehört daher nicht zu
+  `ProfileLockStatus`.
+
+---
+
+## Kontrollierte Rekonstruktion
+
+Die Rekonstruktion aus einem gespeicherten Wert erfolgt über:
+
+```text
+DomainResult<ProfileLockStatus> fromString(
+  String? value
+)
+```
+
+Vor der Validierung werden ausschließlich
+
+- führende Leerzeichen entfernt,
+- nachfolgende Leerzeichen entfernt.
+
+Die Groß- und Kleinschreibung wird nicht automatisch verändert.
+
+Der normalisierte Wert muss exakt einem der folgenden Werte entsprechen:
+
+```text
+unlocked
+locked
+```
+
+---
+
+## Erfolgsverhalten
+
+Bei erfolgreicher Rekonstruktion gilt:
+
+- Es wurde ein gültiger `ProfileLockStatus` erzeugt.
+- Der Wert entspricht exakt `unlocked` oder `locked`.
+- Es wurden keine Zeitstempel erzeugt oder verändert.
+- Es wurden keine sicherheitsrelevanten Inhalte verarbeitet oder
+  offengelegt.
+
+---
+
+## Fehlerverhalten
+
+Bei einem fachlichen Fehler gilt:
+
+- Es wird kein `ProfileLockStatus` erzeugt.
+- Das Ergebnis enthält mindestens einen strukturierten Validation Error.
+- Der ungültige Eingabewert wird nicht in Fehlerparametern oder Domain
+  Messages übertragen.
+- Erwartbare Validierungsfehler erzeugen keine Exception.
+
+Die konkreten Validation Errors werden ausschließlich in den Validation
+Rules definiert.
+
+---
+
+## Equality
+
+Zwei `ProfileLockStatus`-Werte sind fachlich gleich, wenn sie denselben
+Enumerationswert repräsentieren.
+
+---
+
+## String-Darstellung
+
+Die sichere String-Darstellung lautet ausschließlich:
+
+```text
+unlocked
+```
+
+oder
+
+```text
+locked
+```
+
+Sie enthält keine Zeitstempel, Credential-Inhalte oder sonstigen
+Sicherheitsdaten.
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieser Enumeration sind:
+
+- Zeitpunkt der Sperrung,
+- Zeitpunkt der Entsperrung,
+- Historie von Sperr- und Entsperrvorgängen,
+- Authentifizierung,
+- Passwortprüfung,
+- `AuthenticationProof`,
+- allgemeiner Profilstatus,
+- Archivierung,
+- Löschung,
+- Deaktivierung,
+- Lockout,
+- Rate Limiting,
+- Persistenzlogik.
+
+Diese Verantwortlichkeiten liegen bei `LockState`, `ProfileSecurity`, dem
+`Profile`-Aggregat und den zuständigen Security-Komponenten.
 
 ---
 

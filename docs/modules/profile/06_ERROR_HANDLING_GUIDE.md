@@ -11742,6 +11742,373 @@ Diese Verantwortlichkeiten liegen außerhalb dieses Value Objects.
 
 ---
 
+# ProfileLockStatus
+
+### Zugeordneter Domänentyp
+
+**Enumeration**
+
+- ProfileLockStatus
+
+---
+
+## Zweck
+
+Dieser Abschnitt definiert sämtliche Validation Error Codes der Enumeration
+`ProfileLockStatus`.
+
+Zulässige Werte sind ausschließlich:
+
+```text
+unlocked
+locked
+```
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-PLSTAT-001 | validation.profileLockStatus.required | ERROR | VALIDATION | value | required | – |
+| PRO-VAL-PLSTAT-002 | validation.profileLockStatus.invalid | ERROR | VALIDATION | value | enum | allowedValues |
+
+### Parameter
+
+#### PRO-VAL-PLSTAT-002
+
+```json
+{
+  "allowedValues": [
+    "unlocked",
+    "locked"
+  ]
+}
+```
+
+---
+
+## Herkunft
+
+Diese Error Codes werden ausschließlich aus
+
+- PRO-VR-033
+
+abgeleitet.
+
+Neue fachliche Regeln werden in diesem Dokument nicht definiert.
+
+---
+
+## Fehlerverhalten
+
+### Fehlender oder leerer Wert
+
+Ist `value` nicht vorhanden oder nach dem Trimmen leer, wird ausschließlich
+
+```text
+PRO-VAL-PLSTAT-001
+```
+
+erzeugt.
+
+Ein zusätzlicher Enum-Fehler wird nicht erzeugt.
+
+### Ungültiger Statuswert
+
+Entspricht der normalisierte Wert weder `unlocked` noch `locked`, wird
+
+```text
+PRO-VAL-PLSTAT-002
+```
+
+erzeugt.
+
+Der ungültige Eingabewert wird nicht als Fehlerparameter übertragen.
+
+---
+
+## Validierungsreihenfolge
+
+1. Vorhandensein prüfen.
+2. Trimmen.
+3. Leeren Wert prüfen.
+4. Zulässigen Enumerationswert prüfen.
+5. `ProfileLockStatus` erzeugen.
+
+Folgefehler werden nicht erzeugt.
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Abschnitts sind:
+
+- Sperr- oder Entsperrzeitpunkte,
+- Authentifizierung,
+- allgemeiner Profilstatus,
+- Lockout,
+- Rate Limiting,
+- Sperrhistorie.
+
+---
+
+# LockState
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- LockState
+
+---
+
+## Zweck
+
+Dieser Abschnitt definiert sämtliche Validation Error Codes des Value Objects
+`LockState`.
+
+Das Value Object beschreibt ausschließlich den aktuellen Sperrzustand und
+speichert keine Historie.
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-LSTATE-001 | validation.lockState.status.required | ERROR | VALIDATION | status | required | – |
+| PRO-VAL-LSTATE-002 | validation.lockState.lockedAt.required | ERROR | VALIDATION | lockedAt | required | requiredForStatus |
+| PRO-VAL-LSTATE-003 | validation.lockState.unlockedAt.required | ERROR | VALIDATION | unlockedAt | required | requiredForStatus |
+| PRO-VAL-LSTATE-004 | validation.lockState.lockedAt.forbidden | ERROR | VALIDATION | lockedAt | forbidden | forbiddenForStatus |
+| PRO-VAL-LSTATE-005 | validation.lockState.unlockedAt.forbidden | ERROR | VALIDATION | unlockedAt | forbidden | forbiddenForStatus |
+
+### Parameter
+
+#### PRO-VAL-LSTATE-002
+
+```json
+{
+  "requiredForStatus": "locked"
+}
+```
+
+#### PRO-VAL-LSTATE-003
+
+```json
+{
+  "requiredForStatus": "unlocked"
+}
+```
+
+#### PRO-VAL-LSTATE-004
+
+```json
+{
+  "forbiddenForStatus": "unlocked"
+}
+```
+
+#### PRO-VAL-LSTATE-005
+
+```json
+{
+  "forbiddenForStatus": "locked"
+}
+```
+
+---
+
+## Herkunft
+
+Diese Error Codes werden ausschließlich aus
+
+- PRO-VR-034
+
+abgeleitet.
+
+Neue fachliche Regeln werden in diesem Dokument nicht definiert.
+
+---
+
+## Fehlerverhalten
+
+### Fehlender Status
+
+Ist bei `reconstruct(...)` kein `status` vorhanden, wird ausschließlich
+
+```text
+PRO-VAL-LSTATE-001
+```
+
+erzeugt.
+
+Statusabhängige Folgeprüfungen werden nicht durchgeführt.
+
+### Fehlender Sperrzeitpunkt
+
+Ist der Zielzustand `locked` und `lockedAt` fehlt, wird
+
+```text
+PRO-VAL-LSTATE-002
+```
+
+erzeugt.
+
+Dies gilt auch für:
+
+```text
+createLocked(null)
+```
+
+und
+
+```text
+lock(null)
+```
+
+### Fehlender Entsperrzeitpunkt
+
+Ist der Zielzustand `unlocked` und `unlockedAt` fehlt, wird
+
+```text
+PRO-VAL-LSTATE-003
+```
+
+erzeugt.
+
+Dies gilt auch für:
+
+```text
+createUnlocked(null)
+```
+
+und
+
+```text
+unlock(null)
+```
+
+### Unzulässiger Sperrzeitpunkt
+
+Ist der Status `unlocked` und gleichzeitig `lockedAt` vorhanden, wird
+
+```text
+PRO-VAL-LSTATE-004
+```
+
+erzeugt.
+
+Der tatsächliche Zeitwert wird nicht als Fehlerparameter übertragen.
+
+### Unzulässiger Entsperrzeitpunkt
+
+Ist der Status `locked` und gleichzeitig `unlockedAt` vorhanden, wird
+
+```text
+PRO-VAL-LSTATE-005
+```
+
+erzeugt.
+
+Der tatsächliche Zeitwert wird nicht als Fehlerparameter übertragen.
+
+---
+
+## Validierungsreihenfolge
+
+### createLocked(...)
+
+1. `lockedAt` prüfen.
+2. Gesperrten Zustand erzeugen.
+
+### createUnlocked(...)
+
+1. `unlockedAt` prüfen.
+2. Entsperrten Zustand erzeugen.
+
+### reconstruct(...)
+
+1. `status` prüfen.
+2. Bei `locked` erforderlichen `lockedAt` prüfen.
+3. Bei `locked` unzulässigen `unlockedAt` prüfen.
+4. Bei `unlocked` erforderlichen `unlockedAt` prüfen.
+5. Bei `unlocked` unzulässigen `lockedAt` prüfen.
+6. Vollständigen `LockState` erzeugen.
+
+Fehlt `status`, werden keine statusabhängigen Folgefehler erzeugt.
+
+Mehrere voneinander unabhängige Zustandsfehler dürfen gemeinsam
+zurückgegeben werden.
+
+---
+
+## Zustandsübergänge
+
+### lock(...)
+
+Bei einem erfolgreichen Übergang gilt:
+
+```text
+status = locked
+lockedAt = übergebener Zeitpunkt
+unlockedAt = null
+```
+
+Der bisherige `unlockedAt`-Wert wird verworfen.
+
+Ist der Zustand bereits `locked`, wird auf Ebene von `LockState` kein
+Validation Error erzeugt.
+
+Der No Change wird auf Ebene von `ProfileSecurity` behandelt.
+
+### unlock(...)
+
+Bei einem erfolgreichen Übergang gilt:
+
+```text
+status = unlocked
+lockedAt = null
+unlockedAt = übergebener Zeitpunkt
+```
+
+Der bisherige `lockedAt`-Wert wird verworfen.
+
+Ist der Zustand bereits `unlocked`, wird auf Ebene von `LockState` kein
+Validation Error erzeugt.
+
+Der No Change wird auf Ebene von `ProfileSecurity` behandelt.
+
+---
+
+## Keine Fehlerduplizierung
+
+Validation Errors der enthaltenen Typen werden nicht zusätzlich als
+`LockState`-Fehler erzeugt.
+
+Dies betrifft insbesondere:
+
+- `ProfileLockStatus`
+- `Timestamp`
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Abschnitts sind:
+
+- allgemeiner Profilstatus,
+- Regel „gesperrt und gleichzeitig aktiv“,
+- Authentifizierung,
+- `AuthenticationProof`,
+- Lockout,
+- Rate Limiting,
+- Sperrhistorie,
+- technische Systemuhren,
+- Persistenz.
+
+---
+
 # ProfileSecurity
 
 ### Zugeordneter Domänentyp

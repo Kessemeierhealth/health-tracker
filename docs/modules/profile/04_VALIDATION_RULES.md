@@ -5643,6 +5643,496 @@ sein, bevor `createVerified(...)` aufgerufen wird.
 
 ---
 
+---
+
+# PRO-VR-033
+
+## Titel
+
+ProfileLockStatus validieren
+
+### Typ
+
+Enumerationsvalidierung
+
+### Beschreibung
+
+`ProfileLockStatus` beschreibt den fachlichen Sperrzustand einer
+`ProfileSecurity`-Entity.
+
+Zulässige Werte sind ausschließlich:
+
+```text
+unlocked
+locked
+```
+
+Die kontrollierte Rekonstruktion erfolgt über:
+
+```text
+DomainResult<ProfileLockStatus> ProfileLockStatus.fromString(
+  String? value
+)
+```
+
+### Fachliche Regeln
+
+Für `ProfileLockStatus.fromString(...)` gilt:
+
+- `value` MUSS vorhanden sein.
+- `value` DARF nach dem Trimmen nicht leer sein.
+- Der normalisierte Wert MUSS exakt `unlocked` oder `locked` entsprechen.
+- Groß- und Kleinschreibung werden nicht automatisch verändert.
+- Unbekannte Werte DÜRFEN nicht durch einen Standardwert ersetzt werden.
+- Weitere Statuswerte sind nicht zulässig.
+
+### Normalisierung
+
+Vor der Validierung werden ausschließlich
+
+- führende Leerzeichen entfernt,
+- nachfolgende Leerzeichen entfernt.
+
+Weitere Transformationen sind unzulässig.
+
+Insbesondere wird die Groß- und Kleinschreibung nicht verändert.
+
+### Fehlercodes
+
+| Fehlercode | Message Key | Severity | Category | Feld | Constraint | Parameter |
+|------------|-------------|----------|----------|------|------------|-----------|
+| PRO-VAL-PLSTAT-001 | `validation.profileLockStatus.required` | ERROR | VALIDATION | value | required | – |
+| PRO-VAL-PLSTAT-002 | `validation.profileLockStatus.invalid` | ERROR | VALIDATION | value | enum | `{"allowedValues":["unlocked","locked"]}` |
+
+### Fehlerverhalten
+
+#### Fehlender oder leerer Wert
+
+Ist `value` nicht vorhanden oder nach dem Trimmen leer, wird ausschließlich
+
+```text
+PRO-VAL-PLSTAT-001
+```
+
+erzeugt.
+
+Ein zusätzlicher Enum-Fehler wird nicht erzeugt.
+
+#### Ungültiger Statuswert
+
+Entspricht der normalisierte Wert weder `unlocked` noch `locked`, wird
+
+```text
+PRO-VAL-PLSTAT-002
+```
+
+erzeugt.
+
+Der Fehlerparameter lautet:
+
+```json
+{
+  "allowedValues": [
+    "unlocked",
+    "locked"
+  ]
+}
+```
+
+Der ungültige Eingabewert wird nicht als Fehlerparameter übertragen.
+
+### Validierungsreihenfolge
+
+1. Vorhandensein prüfen.
+2. Trimmen.
+3. Leeren Wert prüfen.
+4. Zulässigen Enumerationswert prüfen.
+5. Gültigen `ProfileLockStatus` erzeugen.
+
+### Erfolgsverhalten
+
+Bei erfolgreicher Rekonstruktion gilt:
+
+- Der Wert entspricht exakt `unlocked` oder `locked`.
+- Es wurde ein unveränderlicher `ProfileLockStatus` erzeugt.
+- Es wurden keine Zeitstempel erzeugt oder verändert.
+
+### Abgrenzung
+
+Nicht Bestandteil dieser Validation Rule sind:
+
+- Zeitpunkte von Sperrungen oder Entsperrungen,
+- Authentifizierung,
+- allgemeiner Profilstatus,
+- Lockout,
+- Rate Limiting,
+- Sperrhistorie.
+
+### Traceability
+
+**Domain Model**
+
+- `ProfileLockStatus`
+- `ProfileLockStatus.fromString(...)`
+- `LockState.status`
+
+**Validation Principles**
+
+- PRO-VP-001
+- PRO-VP-002
+- PRO-VP-003
+- PRO-VP-004
+- PRO-VP-007
+- PRO-VP-009
+
+---
+
+# PRO-VR-034
+
+## Titel
+
+LockState validieren
+
+### Typ
+
+Value-Object-Validierung
+
+### Beschreibung
+
+`LockState` repräsentiert den aktuellen fachlichen Sperrzustand einer
+`ProfileSecurity`-Entity.
+
+Das Value Object besteht aus:
+
+- `ProfileLockStatus status`,
+- `Timestamp? lockedAt`,
+- `Timestamp? unlockedAt`.
+
+Es speichert ausschließlich den aktuellen Zustand und keine Historie.
+
+Die kontrollierte Erzeugung erfolgt über:
+
+```text
+DomainResult<LockState> LockState.createLocked(
+  Timestamp? lockedAt
+)
+```
+
+und
+
+```text
+DomainResult<LockState> LockState.createUnlocked(
+  Timestamp? unlockedAt
+)
+```
+
+Die kontrollierte Rekonstruktion erfolgt über:
+
+```text
+DomainResult<LockState> LockState.reconstruct(
+  ProfileLockStatus? status,
+  Timestamp? lockedAt,
+  Timestamp? unlockedAt
+)
+```
+
+Die Zustandsübergänge erfolgen über:
+
+```text
+DomainResult<LockState> LockState.lock(
+  Timestamp? lockedAt
+)
+```
+
+und
+
+```text
+DomainResult<LockState> LockState.unlock(
+  Timestamp? unlockedAt
+)
+```
+
+### Gültige Zustände
+
+Ein entsperrter Zustand ist ausschließlich gültig als:
+
+```text
+status = unlocked
+lockedAt = null
+unlockedAt != null
+```
+
+Ein gesperrter Zustand ist ausschließlich gültig als:
+
+```text
+status = locked
+lockedAt != null
+unlockedAt = null
+```
+
+### Fachliche Regeln
+
+Für `LockState` gilt:
+
+- `status` MUSS vorhanden und gültig sein.
+- Bei `status = locked` MUSS `lockedAt` vorhanden sein.
+- Bei `status = locked` MUSS `unlockedAt` fehlen.
+- Bei `status = unlocked` MUSS `unlockedAt` vorhanden sein.
+- Bei `status = unlocked` MUSS `lockedAt` fehlen.
+- Genau einer der beiden Zeitstempel MUSS vorhanden sein.
+- Fehlende Zeitstempel DÜRFEN nicht automatisch erzeugt werden.
+- Das Value Object MUSS unveränderlich sein.
+- Ein Zustandsübergang MUSS eine neue vollständige Instanz erzeugen.
+- Der jeweils vorherige Zeitstempel wird nicht übernommen.
+- `LockState` speichert keine Sperrhistorie.
+- `LockState` greift nicht auf eine technische Systemuhr zu.
+
+### Fehlercodes
+
+| Fehlercode | Message Key | Severity | Category | Feld | Constraint | Parameter |
+|------------|-------------|----------|----------|------|------------|-----------|
+| PRO-VAL-LSTATE-001 | `validation.lockState.status.required` | ERROR | VALIDATION | status | required | – |
+| PRO-VAL-LSTATE-002 | `validation.lockState.lockedAt.required` | ERROR | VALIDATION | lockedAt | required | `{"requiredForStatus":"locked"}` |
+| PRO-VAL-LSTATE-003 | `validation.lockState.unlockedAt.required` | ERROR | VALIDATION | unlockedAt | required | `{"requiredForStatus":"unlocked"}` |
+| PRO-VAL-LSTATE-004 | `validation.lockState.lockedAt.forbidden` | ERROR | VALIDATION | lockedAt | forbidden | `{"forbiddenForStatus":"unlocked"}` |
+| PRO-VAL-LSTATE-005 | `validation.lockState.unlockedAt.forbidden` | ERROR | VALIDATION | unlockedAt | forbidden | `{"forbiddenForStatus":"locked"}` |
+
+### Fehlerverhalten
+
+#### Fehlender Status
+
+Ist bei `reconstruct(...)` kein `status` vorhanden, wird ausschließlich
+
+```text
+PRO-VAL-LSTATE-001
+```
+
+erzeugt.
+
+Statusabhängige Zeitstempelprüfungen werden in diesem Fall nicht
+durchgeführt.
+
+#### Fehlender Sperrzeitpunkt
+
+Ist der Zielzustand `locked` und `lockedAt` fehlt, wird
+
+```text
+PRO-VAL-LSTATE-002
+```
+
+erzeugt.
+
+Der Fehlerparameter lautet:
+
+```json
+{
+  "requiredForStatus": "locked"
+}
+```
+
+Dies gilt ebenfalls für:
+
+```text
+createLocked(null)
+```
+
+und
+
+```text
+lock(null)
+```
+
+#### Fehlender Entsperrzeitpunkt
+
+Ist der Zielzustand `unlocked` und `unlockedAt` fehlt, wird
+
+```text
+PRO-VAL-LSTATE-003
+```
+
+erzeugt.
+
+Der Fehlerparameter lautet:
+
+```json
+{
+  "requiredForStatus": "unlocked"
+}
+```
+
+Dies gilt ebenfalls für:
+
+```text
+createUnlocked(null)
+```
+
+und
+
+```text
+unlock(null)
+```
+
+#### Unzulässiger Sperrzeitpunkt
+
+Ist der Status `unlocked` und gleichzeitig `lockedAt` vorhanden, wird
+
+```text
+PRO-VAL-LSTATE-004
+```
+
+erzeugt.
+
+Der Fehlerparameter lautet:
+
+```json
+{
+  "forbiddenForStatus": "unlocked"
+}
+```
+
+Der tatsächliche Zeitwert wird nicht als Fehlerparameter übertragen.
+
+#### Unzulässiger Entsperrzeitpunkt
+
+Ist der Status `locked` und gleichzeitig `unlockedAt` vorhanden, wird
+
+```text
+PRO-VAL-LSTATE-005
+```
+
+erzeugt.
+
+Der Fehlerparameter lautet:
+
+```json
+{
+  "forbiddenForStatus": "locked"
+}
+```
+
+Der tatsächliche Zeitwert wird nicht als Fehlerparameter übertragen.
+
+### Validierungsreihenfolge
+
+#### LockState.createLocked(...)
+
+1. `lockedAt` auf Vorhandensein prüfen.
+2. Gesperrten Zustand erzeugen.
+
+#### LockState.createUnlocked(...)
+
+1. `unlockedAt` auf Vorhandensein prüfen.
+2. Entsperrten Zustand erzeugen.
+
+#### LockState.reconstruct(...)
+
+1. `status` auf Vorhandensein prüfen.
+2. Bei `locked` den erforderlichen `lockedAt` prüfen.
+3. Bei `locked` das Fehlen von `unlockedAt` prüfen.
+4. Bei `unlocked` den erforderlichen `unlockedAt` prüfen.
+5. Bei `unlocked` das Fehlen von `lockedAt` prüfen.
+6. Vollständigen `LockState` erzeugen.
+
+Fehlt `status`, werden keine statusabhängigen Folgefehler erzeugt.
+
+Mehrere voneinander unabhängige Zustandsfehler dürfen gemeinsam
+zurückgegeben werden.
+
+### Zustandsübergang `lock(...)`
+
+Ist der aktuelle Zustand `unlocked`, gilt bei Erfolg:
+
+```text
+status = locked
+lockedAt = übergebener Zeitpunkt
+unlockedAt = null
+```
+
+Der bisherige `unlockedAt`-Wert wird verworfen.
+
+Ist der Zustand bereits `locked`, entsteht auf Ebene von `LockState` kein
+Validation Error.
+
+Der No Change wird von `ProfileSecurity` über den dort vorgesehenen
+Information Code behandelt.
+
+### Zustandsübergang `unlock(...)`
+
+Ist der aktuelle Zustand `locked`, gilt bei Erfolg:
+
+```text
+status = unlocked
+lockedAt = null
+unlockedAt = übergebener Zeitpunkt
+```
+
+Der bisherige `lockedAt`-Wert wird verworfen.
+
+Ist der Zustand bereits `unlocked`, entsteht auf Ebene von `LockState` kein
+Validation Error.
+
+Der No Change wird von `ProfileSecurity` über den dort vorgesehenen
+Information Code behandelt.
+
+### Keine Fehlerduplizierung
+
+Fehler eines bereits typisiert übergebenen
+
+- `ProfileLockStatus`,
+- `Timestamp`
+
+werden nicht als generische `LockState`-Fehler dupliziert.
+
+### Erfolgsverhalten
+
+Bei erfolgreicher Erzeugung, Rekonstruktion oder Änderung gilt:
+
+- Genau ein Zeitstempel ist vorhanden.
+- Der vorhandene Zeitstempel entspricht dem aktuellen Status.
+- Der jeweils andere Zeitstempel ist `null`.
+- Der bestehende Zustand wurde nicht mutiert.
+- Es wurden keine Domain Events erzeugt.
+- Es wurden keine Audit- oder Versionsinformationen verändert.
+
+### Abgrenzung
+
+Nicht Bestandteil dieser Validation Rule sind:
+
+- allgemeiner Profilstatus,
+- Regel „gesperrt und gleichzeitig aktiv“,
+- Authentifizierung,
+- `AuthenticationProof`,
+- Lockout,
+- Rate Limiting,
+- Sperrhistorie,
+- technische Systemuhren,
+- Persistenz.
+
+### Traceability
+
+**Domain Model**
+
+- `LockState`
+- `LockState.createLocked(...)`
+- `LockState.createUnlocked(...)`
+- `LockState.reconstruct(...)`
+- `LockState.lock(...)`
+- `LockState.unlock(...)`
+- `ProfileLockStatus`
+- `Timestamp`
+- `ProfileSecurity.lockState`
+
+**Validation Principles**
+
+- PRO-VP-001
+- PRO-VP-002
+- PRO-VP-003
+- PRO-VP-004
+- PRO-VP-007
+- PRO-VP-009
+
+---
+
 # Validierungsreihenfolge
 
 Jede Profilerstellung und Profiländerung wird in folgender Reihenfolge validiert:
