@@ -14,4 +14,10 @@ enum ConstraintType {
   ownership,
   authentication,
   atomic,
+  forbidden,
+  consistency,
+  completeness,
+  chronological,
+  expired,
+  invalid,
 }

@@ -20,7 +20,13 @@ void main() {
         ConstraintType.transition,
         ConstraintType.ownership,
         ConstraintType.authentication,
-        ConstraintType.atomic
+        ConstraintType.atomic,
+        ConstraintType.forbidden,
+        ConstraintType.consistency,
+        ConstraintType.completeness,
+        ConstraintType.chronological,
+        ConstraintType.expired,
+        ConstraintType.invalid,
       ],
     );
     expect(ConstraintType.required.toString(), 'ConstraintType.required');
