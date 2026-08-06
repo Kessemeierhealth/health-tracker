@@ -12984,11 +12984,92 @@ wird nicht durch generische `ProfileImage`-Fehler dupliziert.
 
 - Gender
 
+---
+
+## Zweck
+
+Dieser Abschnitt definiert den Validation Error Code der Enumeration
+`Gender`.
+
+Fehlende und leere Eingaben sind zulässig und werden als `unspecified`
+behandelt.
+
+---
+
 ## Error Codes
 
-| ErrorCode | MessageKey |
-|------------|------------|
-| PRO-VAL-GENDER-001 | validation.profile.gender.invalid |
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-GENDER-001 | validation.profile.gender.invalid | ERROR | VALIDATION | value | enum | allowedValues |
+
+### Parameter
+
+#### PRO-VAL-GENDER-001
+
+```json
+{
+  "allowedValues": [
+    "male",
+    "female",
+    "diverse",
+    "unspecified"
+  ]
+}
+```
+
+---
+
+## Herkunft
+
+Dieser Error Code wird ausschließlich aus
+
+- PRO-VR-004
+
+abgeleitet.
+
+Neue fachliche Regeln werden in diesem Dokument nicht definiert.
+
+---
+
+## Fehlerverhalten
+
+Ist die Eingabe
+
+- nicht vorhanden,
+- leer,
+- oder nach dem Trimmen leer,
+
+wird kein Fehler erzeugt.
+
+Das fachliche Ergebnis ist:
+
+```text
+Gender.unspecified
+```
+
+Entspricht ein vorhandener und nicht leerer Wert keinem unterstützten
+Enumerationswert, wird ausschließlich
+
+```text
+PRO-VAL-GENDER-001
+```
+
+erzeugt.
+
+Der ungültige Eingabewert wird nicht in Fehlerparametern oder Domain
+Messages übertragen.
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Abschnitts sind:
+
+- Required-Fehler,
+- Blank-Fehler,
+- lokalisierte Anzeigetexte,
+- UI-Auswahlwerte,
+- technische Serialisierung.
 
 ---
 

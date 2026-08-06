@@ -6646,7 +6646,16 @@ Sichtbare Bezeichnungen werden niemals direkt aus Enum-Namen erzeugt, sondern ü
 
 # Enumeration: Gender
 
-## Werte
+## Zweck
+
+`Gender` beschreibt die optionale fachliche Geschlechtsangabe eines Profils.
+
+Eine fehlende Angabe wird durch den definierten Wert `unspecified`
+repräsentiert.
+
+---
+
+## Zulässige Werte
 
 ```text
 male
@@ -6655,14 +6664,108 @@ diverse
 unspecified
 ```
 
-## Regeln
-
-- `unspecified` steht für „keine Angabe“.
-- Unbekannte Werte dürfen nicht stillschweigend übernommen werden.
-- Die Enumeration enthält keine lokalisierten Anzeigetexte.
+Weitere Werte sind nicht zulässig.
 
 ---
 
+## Kontrollierte Rekonstruktion
+
+Die kontrollierte Rekonstruktion erfolgt über:
+
+```text
+DomainResult<Gender> Gender.fromString(
+  String? value
+)
+```
+
+Vor der Auswertung werden ausschließlich
+
+- führende Leerzeichen entfernt,
+- nachfolgende Leerzeichen entfernt.
+
+Die Groß- und Kleinschreibung wird nicht verändert.
+
+---
+
+## Verhalten fehlender und leerer Werte
+
+Ist `value`
+
+- nicht vorhanden,
+- leer,
+- oder nach dem Trimmen leer,
+
+wird erfolgreich
+
+```text
+Gender.unspecified
+```
+
+zurückgegeben.
+
+Ein fehlender oder leerer Wert ist kein Validation Error.
+
+---
+
+## Fachliche Regeln
+
+- Zulässig sind ausschließlich `male`, `female`, `diverse` und
+  `unspecified`.
+- Der normalisierte Wert muss exakt einem zulässigen Wert entsprechen.
+- Unbekannte Werte dürfen nicht stillschweigend übernommen werden.
+- Unbekannte Werte dürfen nicht automatisch in `unspecified` umgewandelt
+  werden.
+- Groß- und Kleinschreibung werden nicht automatisch normalisiert.
+- `unspecified` repräsentiert ausschließlich eine fehlende Angabe.
+- Die Enumeration enthält keine lokalisierten Anzeigetexte.
+- Die Enumeration ist unveränderlich.
+
+---
+
+## Fehlerverhalten
+
+Entspricht ein vorhandener und nicht leerer normalisierter Wert keinem
+zulässigen Enumerationswert, wird ausschließlich der in `PRO-VR-004`
+definierte Validation Error erzeugt.
+
+Der ungültige Eingabewert darf nicht in Fehlerparametern oder Domain
+Messages übertragen werden.
+
+Erwartbare Validierungsfehler erzeugen keine Exception.
+
+---
+
+## Equality
+
+Zwei `Gender`-Werte sind fachlich gleich, wenn sie denselben
+Enumerationswert repräsentieren.
+
+---
+
+## String-Darstellung
+
+Die String-Darstellung entspricht exakt einem der Werte:
+
+```text
+male
+female
+diverse
+unspecified
+```
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieser Enumeration sind:
+
+- lokalisierte Bezeichnungen,
+- medizinische Diagnosen,
+- Geschlechtsidentitätsmodelle außerhalb der definierten Werte,
+- UI-Auswahlkomponenten,
+- Persistenz- oder JSON-Typen.
+
+---
 # Enumeration: ProfileStatus
 
 ## Werte

@@ -671,25 +671,113 @@ Geschlecht validieren
 
 ### Typ
 
-Optionales Feld
+Optionale Enumerationsvalidierung
 
 ### Beschreibung
 
-Das Geschlecht dient ausschließlich der fachlichen Ergänzung des Profils.
+`Gender` beschreibt die optionale fachliche Geschlechtsangabe eines Profils.
+
+Nicht vorhandene oder leere Werte werden fachlich als `unspecified`
+behandelt.
+
+Die kontrollierte Rekonstruktion erfolgt über:
+
+```text
+DomainResult<Gender> Gender.fromString(
+  String? value
+)
+```
 
 ### Fachliche Regeln
 
-Ist ein Geschlecht angegeben,
+Für `Gender.fromString(...)` gilt:
 
-- MUSS es einem unterstützten Wert entsprechen.
+- Ist `value` nicht vorhanden, wird `Gender.unspecified` erzeugt.
+- Ist `value` leer oder nach dem Trimmen leer, wird
+  `Gender.unspecified` erzeugt.
+- Ist ein nicht leerer Wert vorhanden, MUSS er exakt einem unterstützten
+  Wert entsprechen.
+- Unterstützte Werte sind ausschließlich:
 
-Nicht angegebene Werte werden fachlich als **unspecified** behandelt.
+```text
+male
+female
+diverse
+unspecified
+```
+
+- Groß- und Kleinschreibung werden nicht automatisch verändert.
+- Ein unbekannter Wert DARF nicht automatisch durch `unspecified` ersetzt
+  werden.
+
+### Normalisierung
+
+Vor der Auswertung werden ausschließlich
+
+- führende Leerzeichen entfernt,
+- nachfolgende Leerzeichen entfernt.
+
+Weitere Transformationen sind unzulässig.
 
 ### Fehlercodes
 
-| Fehlercode | Message Key | Constraint | Parameter |
-|------------|-------------|------------|-----------|
-| PRO-VAL-GENDER-001 | `validation.profile.gender.invalid` | enum | `{"allowedValues":["male","female","diverse","unspecified"]}` |
+| Fehlercode | Message Key | Severity | Category | Feld | Constraint | Parameter |
+|------------|-------------|----------|----------|------|------------|-----------|
+| PRO-VAL-GENDER-001 | `validation.profile.gender.invalid` | ERROR | VALIDATION | value | enum | `{"allowedValues":["male","female","diverse","unspecified"]}` |
+
+### Fehlerverhalten
+
+#### Fehlender oder leerer Wert
+
+Ist `value`
+
+- nicht vorhanden,
+- leer,
+- oder nach dem Trimmen leer,
+
+wird erfolgreich
+
+```text
+Gender.unspecified
+```
+
+erzeugt.
+
+Es wird kein Validation Error erzeugt.
+
+#### Ungültiger Enumerationswert
+
+Entspricht der normalisierte, vorhandene und nicht leere Wert keinem
+unterstützten Wert, wird
+
+```text
+PRO-VAL-GENDER-001
+```
+
+erzeugt.
+
+Der Fehlerparameter lautet:
+
+```json
+{
+  "allowedValues": [
+    "male",
+    "female",
+    "diverse",
+    "unspecified"
+  ]
+}
+```
+
+Der ungültige Eingabewert wird nicht als Fehlerparameter übertragen.
+
+### Validierungsreihenfolge
+
+1. Vorhandensein prüfen.
+2. Trimmen.
+3. Fehlenden oder leeren Wert als `unspecified` behandeln.
+4. Unterstützten Enumerationswert prüfen.
+5. Gültigen `Gender`-Wert erzeugen.
 
 ### Traceability
 
@@ -708,6 +796,11 @@ Nicht angegebene Werte werden fachlich als **unspecified** behandelt.
 - PRO-TC-014
 - PRO-TC-021
 
+**Domain Model**
+
+- `Gender`
+- `Gender.fromString(...)`
+- `Profile.gender`
 
 # PRO-VR-005
 
