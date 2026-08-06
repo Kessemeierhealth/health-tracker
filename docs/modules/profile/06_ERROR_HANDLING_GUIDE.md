@@ -11480,6 +11480,268 @@ Diese Verantwortlichkeiten liegen außerhalb des Value Objects.
 
 ---
 
+# AuthenticationProof
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- AuthenticationProof
+
+---
+
+## Zweck
+
+Dieser Abschnitt definiert sämtliche Validation Error Codes des
+Value Objects `AuthenticationProof`.
+
+Der Proof bestätigt eine bereits erfolgreich abgeschlossene technische
+Authentifizierung für eine bestimmte `ProfileSecurity`.
+
+Der Proof enthält keine sensiblen Authentifizierungsdaten.
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-AUTHPRF-001 | validation.authenticationProof.securityId.required | ERROR | VALIDATION | securityId | required | – |
+| PRO-VAL-AUTHPRF-002 | validation.authenticationProof.verifiedAt.required | ERROR | VALIDATION | verifiedAt | required | – |
+| PRO-VAL-AUTHPRF-003 | validation.authenticationProof.validUntil.required | ERROR | VALIDATION | validUntil | required | – |
+| PRO-VAL-AUTHPRF-004 | validation.authenticationProof.validityPeriod.invalid | ERROR | VALIDATION | validUntil | chronological | comparison |
+| PRO-VAL-AUTHPRF-005 | validation.authenticationProof.expectedSecurityId.required | ERROR | VALIDATION | expectedSecurityId | required | – |
+| PRO-VAL-AUTHPRF-006 | validation.authenticationProof.now.required | ERROR | VALIDATION | now | required | – |
+| PRO-VAL-AUTHPRF-007 | validation.authenticationProof.securityId.mismatch | ERROR | VALIDATION | expectedSecurityId | ownership | – |
+| PRO-VAL-AUTHPRF-008 | validation.authenticationProof.notYetValid | ERROR | VALIDATION | now | chronological | comparison |
+| PRO-VAL-AUTHPRF-009 | validation.authenticationProof.expired | ERROR | VALIDATION | now | expired | comparison |
+
+---
+
+## Parameter
+
+### PRO-VAL-AUTHPRF-004
+
+```json
+{
+  "comparison": "validUntilNotAfterVerifiedAt"
+}
+```
+
+### PRO-VAL-AUTHPRF-008
+
+```json
+{
+  "comparison": "nowBeforeVerifiedAt"
+}
+```
+
+### PRO-VAL-AUTHPRF-009
+
+```json
+{
+  "comparison": "nowAfterValidUntil"
+}
+```
+
+---
+
+## Herkunft
+
+Diese Error Codes werden ausschließlich aus
+
+- PRO-VR-032
+
+abgeleitet.
+
+Neue fachliche Regeln werden in diesem Dokument nicht definiert.
+
+---
+
+## Fehlerverhalten
+
+### Fehlende ProfileSecurityId
+
+Es wird ausschließlich
+
+```text
+PRO-VAL-AUTHPRF-001
+```
+
+erzeugt.
+
+---
+
+### Fehlender Verifizierungszeitpunkt
+
+Es wird ausschließlich
+
+```text
+PRO-VAL-AUTHPRF-002
+```
+
+erzeugt.
+
+---
+
+### Fehlender Ablaufzeitpunkt
+
+Es wird ausschließlich
+
+```text
+PRO-VAL-AUTHPRF-003
+```
+
+erzeugt.
+
+---
+
+### Ungültiger Gültigkeitszeitraum
+
+Es wird
+
+```text
+PRO-VAL-AUTHPRF-004
+```
+
+erzeugt.
+
+Die konkreten Zeitwerte werden nicht offengelegt.
+
+---
+
+### Fehlende erwartete ProfileSecurityId
+
+Es wird
+
+```text
+PRO-VAL-AUTHPRF-005
+```
+
+erzeugt.
+
+---
+
+### Fehlender Prüfzeitpunkt
+
+Es wird
+
+```text
+PRO-VAL-AUTHPRF-006
+```
+
+erzeugt.
+
+---
+
+### Falsche Zuordnung
+
+Es wird
+
+```text
+PRO-VAL-AUTHPRF-007
+```
+
+erzeugt.
+
+Die tatsächlichen IDs werden nicht offengelegt.
+
+---
+
+### Proof noch nicht gültig
+
+Es wird
+
+```text
+PRO-VAL-AUTHPRF-008
+```
+
+erzeugt.
+
+---
+
+### Proof abgelaufen
+
+Es wird
+
+```text
+PRO-VAL-AUTHPRF-009
+```
+
+erzeugt.
+
+---
+
+## Validierungsreihenfolge
+
+Für `createVerified(...)`:
+
+1. securityId prüfen.
+2. verifiedAt prüfen.
+3. validUntil prüfen.
+4. Zeitbereich prüfen.
+5. Proof erzeugen.
+
+Für `validateFor(...)`:
+
+1. expectedSecurityId prüfen.
+2. now prüfen.
+3. Zuordnung prüfen.
+4. Gültigkeitsbeginn prüfen.
+5. Ablauf prüfen.
+6. Proof unverändert zurückgeben.
+
+Folgefehler werden nicht erzeugt.
+
+---
+
+## Sichere Darstellung
+
+`AuthenticationProof` darf niemals enthalten:
+
+- Klartextpasswort
+- PasswordHash
+- PasswordCredential
+- Salt
+- kryptographische Schlüssel
+- technische Authentifizierungstoken
+
+Die String-Darstellung darf ausschließlich anzeigen:
+
+- ProfileSecurityId
+- verifiedAt
+- validUntil
+
+---
+
+## Hinweise
+
+Validation Errors der enthaltenen Value Objects werden nicht als
+`AuthenticationProof`-Fehler dupliziert.
+
+Die Detailvalidierung erfolgt ausschließlich in den jeweiligen
+Domänentypen.
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Abschnitts sind:
+
+- Passwortprüfung,
+- technische Authentifizierung,
+- Kryptographie,
+- Sessions,
+- Tokens,
+- Security Ports,
+- Lockout,
+- Rate Limiting,
+- Persistenz.
+
+Diese Verantwortlichkeiten liegen außerhalb dieses Value Objects.
+
+---
+
 # ProfileSecurity
 
 ### Zugeordneter Domänentyp

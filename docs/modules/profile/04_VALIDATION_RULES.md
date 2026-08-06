@@ -5317,6 +5317,332 @@ ausschließlich durch `PRO-VR-014` beschrieben.
 
 ---
 
+---
+
+# PRO-VR-032
+
+## Titel
+
+AuthenticationProof validieren
+
+### Typ
+
+Value-Object-Validierung
+
+### Beschreibung
+
+`AuthenticationProof` bestätigt, dass eine technische Authentifizierung für
+eine bestimmte `ProfileSecurity`-Entity erfolgreich abgeschlossen wurde.
+
+Der Proof wird ausschließlich nach einer erfolgreichen technischen
+Authentifizierung durch den zuständigen Security Port erzeugt.
+
+Die kontrollierte Erzeugung erfolgt über:
+
+```text
+DomainResult<AuthenticationProof> AuthenticationProof.createVerified(
+  ProfileSecurityId? securityId,
+  Timestamp? verifiedAt,
+  Timestamp? validUntil
+)
+```
+
+Die Verwendbarkeit eines bereits erzeugten Proofs wird über folgende
+Operation geprüft:
+
+```text
+DomainResult<AuthenticationProof> AuthenticationProof.validateFor(
+  ProfileSecurityId? expectedSecurityId,
+  Timestamp? now
+)
+```
+
+Der Proof enthält keine Passwörter, Hashwerte, Credentials,
+Authentifizierungstokens oder kryptographischen Schlüssel.
+
+### Fachliche Regeln
+
+Für `AuthenticationProof.createVerified(...)` gilt:
+
+- `securityId` MUSS vorhanden und gültig sein.
+- `verifiedAt` MUSS vorhanden und gültig sein.
+- `validUntil` MUSS vorhanden und gültig sein.
+- `validUntil` MUSS nach `verifiedAt` liegen.
+- Ein identischer Wert für `verifiedAt` und `validUntil` ist unzulässig.
+- Der Proof MUSS unveränderlich sein.
+- Der Proof DARF keine Passwort-, Hash-, Credential-, Salt-, Token- oder
+  Schlüsselinformationen enthalten.
+- Der Proof DARF ausschließlich für die zugehörige `ProfileSecurityId`
+  verwendet werden.
+- Die Domain DARF fehlende Zeitwerte nicht selbst erzeugen.
+- Die Domain DARF den Gültigkeitszeitraum nicht automatisch verlängern.
+
+Für `AuthenticationProof.validateFor(...)` gilt:
+
+- `expectedSecurityId` MUSS vorhanden und gültig sein.
+- `now` MUSS vorhanden und gültig sein.
+- `expectedSecurityId` MUSS der gespeicherten `securityId` entsprechen.
+- `now` DARF nicht vor `verifiedAt` liegen.
+- `now` DARF nicht nach `validUntil` liegen.
+- Ein Proof ist einschließlich des Zeitpunkts `validUntil` gültig.
+- Ein abgelaufener Proof DARF nicht erneut verwendet werden.
+
+Es gilt:
+
+```text
+verifiedAt <= now <= validUntil
+```
+
+### Fehlercodes
+
+| Fehlercode | Message Key | Severity | Category | Feld | Constraint | Parameter |
+|------------|-------------|----------|----------|------|------------|-----------|
+| PRO-VAL-AUTHPRF-001 | `validation.authenticationProof.securityId.required` | ERROR | VALIDATION | securityId | required | – |
+| PRO-VAL-AUTHPRF-002 | `validation.authenticationProof.verifiedAt.required` | ERROR | VALIDATION | verifiedAt | required | – |
+| PRO-VAL-AUTHPRF-003 | `validation.authenticationProof.validUntil.required` | ERROR | VALIDATION | validUntil | required | – |
+| PRO-VAL-AUTHPRF-004 | `validation.authenticationProof.validityPeriod.invalid` | ERROR | VALIDATION | validUntil | chronological | `{"comparison":"validUntilNotAfterVerifiedAt"}` |
+| PRO-VAL-AUTHPRF-005 | `validation.authenticationProof.expectedSecurityId.required` | ERROR | VALIDATION | expectedSecurityId | required | – |
+| PRO-VAL-AUTHPRF-006 | `validation.authenticationProof.now.required` | ERROR | VALIDATION | now | required | – |
+| PRO-VAL-AUTHPRF-007 | `validation.authenticationProof.securityId.mismatch` | ERROR | VALIDATION | expectedSecurityId | ownership | – |
+| PRO-VAL-AUTHPRF-008 | `validation.authenticationProof.notYetValid` | ERROR | VALIDATION | now | chronological | `{"comparison":"nowBeforeVerifiedAt"}` |
+| PRO-VAL-AUTHPRF-009 | `validation.authenticationProof.expired` | ERROR | VALIDATION | now | expired | `{"comparison":"nowAfterValidUntil"}` |
+
+### Fehlerverhalten
+
+#### Fehlende ProfileSecurityId
+
+Ist bei `createVerified(...)` keine `securityId` vorhanden, wird
+
+```text
+PRO-VAL-AUTHPRF-001
+```
+
+erzeugt.
+
+#### Fehlender Verifizierungszeitpunkt
+
+Ist `verifiedAt` nicht vorhanden, wird
+
+```text
+PRO-VAL-AUTHPRF-002
+```
+
+erzeugt.
+
+#### Fehlender Ablaufzeitpunkt
+
+Ist `validUntil` nicht vorhanden, wird
+
+```text
+PRO-VAL-AUTHPRF-003
+```
+
+erzeugt.
+
+#### Ungültiger Gültigkeitszeitraum
+
+Liegt `validUntil` nicht nach `verifiedAt`, wird
+
+```text
+PRO-VAL-AUTHPRF-004
+```
+
+erzeugt.
+
+Der Fehlerparameter lautet:
+
+```json
+{
+  "comparison": "validUntilNotAfterVerifiedAt"
+}
+```
+
+Die konkreten Zeitwerte werden nicht als Fehlerparameter übertragen.
+
+#### Fehlende erwartete ProfileSecurityId
+
+Ist bei `validateFor(...)` keine `expectedSecurityId` vorhanden, wird
+
+```text
+PRO-VAL-AUTHPRF-005
+```
+
+erzeugt.
+
+#### Fehlender Prüfzeitpunkt
+
+Ist bei `validateFor(...)` kein `now` vorhanden, wird
+
+```text
+PRO-VAL-AUTHPRF-006
+```
+
+erzeugt.
+
+#### Falsche Zuordnung
+
+Entspricht `expectedSecurityId` nicht der im Proof gespeicherten
+`securityId`, wird
+
+```text
+PRO-VAL-AUTHPRF-007
+```
+
+erzeugt.
+
+Die tatsächlichen IDs werden nicht als Fehlerparameter übertragen.
+
+#### Proof noch nicht gültig
+
+Liegt `now` vor `verifiedAt`, wird
+
+```text
+PRO-VAL-AUTHPRF-008
+```
+
+erzeugt.
+
+Der Fehlerparameter lautet:
+
+```json
+{
+  "comparison": "nowBeforeVerifiedAt"
+}
+```
+
+#### Proof abgelaufen
+
+Liegt `now` nach `validUntil`, wird
+
+```text
+PRO-VAL-AUTHPRF-009
+```
+
+erzeugt.
+
+Der Fehlerparameter lautet:
+
+```json
+{
+  "comparison": "nowAfterValidUntil"
+}
+```
+
+Der Zeitpunkt `validUntil` selbst ist weiterhin gültig.
+
+### Validierungsreihenfolge
+
+#### AuthenticationProof.createVerified(...)
+
+Die Validierung erfolgt in dieser Reihenfolge:
+
+1. Vorhandensein von `securityId` prüfen.
+2. Vorhandensein von `verifiedAt` prüfen.
+3. Vorhandensein von `validUntil` prüfen.
+4. Chronologische Reihenfolge prüfen.
+5. Vollständigen unveränderlichen Proof erzeugen.
+
+Chronologische Prüfungen werden nur durchgeführt, wenn beide Zeitwerte
+vorhanden sind.
+
+#### AuthenticationProof.validateFor(...)
+
+Die Validierung erfolgt in dieser Reihenfolge:
+
+1. Vorhandensein von `expectedSecurityId` prüfen.
+2. Vorhandensein von `now` prüfen.
+3. Zuordnung zu `securityId` prüfen.
+4. `now` mit `verifiedAt` vergleichen.
+5. `now` mit `validUntil` vergleichen.
+6. Unveränderten Proof als erfolgreich verwendbar zurückgeben.
+
+Fehlende Pflichtwerte erzeugen keine zusätzlichen Zuordnungs- oder
+Chronologiefehler.
+
+Eine falsche Zuordnung erzeugt keine zusätzlichen Zeitfehler.
+
+Ein Zeitpunkt vor `verifiedAt` erzeugt keinen zusätzlichen Ablauf-Fehler.
+
+Dadurch werden Folgefehler vermieden.
+
+### Erfolgsverhalten
+
+Bei erfolgreicher Erzeugung gilt:
+
+- Der Proof ist vollständig.
+- Der Proof ist einer `ProfileSecurityId` zugeordnet.
+- `validUntil` liegt nach `verifiedAt`.
+- Der Proof ist unveränderlich.
+- Es wurden keine sensiblen Authentifizierungsdaten übernommen.
+
+Bei erfolgreicher Prüfung durch `validateFor(...)` gilt:
+
+- `expectedSecurityId` entspricht der gespeicherten `securityId`.
+- `now` liegt innerhalb des gültigen Zeitraums.
+- Der bestehende Proof bleibt unverändert.
+- Es wird derselbe fachliche Proof zurückgegeben.
+- Es entstehen keine Domain Events.
+- Es werden keine Audit- oder Versionsinformationen verändert.
+
+### Sichere Darstellung
+
+Die String-Darstellung darf keine Passwort-, Hash-, Credential-, Token- oder
+Schlüsselinformationen enthalten.
+
+Zulässig ist beispielsweise:
+
+```text
+AuthenticationProof(
+  securityId: <profileSecurityId>,
+  verifiedAt: <timestamp>,
+  validUntil: <timestamp>
+)
+```
+
+### Abgrenzung
+
+Nicht Bestandteil dieser Validation Rule sind:
+
+- Passwortprüfung,
+- Hashvergleich,
+- technische Authentifizierung,
+- Credential-Erzeugung,
+- Authentifizierungstokens,
+- Sessions,
+- kryptographische Schlüssel,
+- Festlegung der Gültigkeitsdauer,
+- Lockout,
+- Rate Limiting,
+- Persistenz,
+- Security-Port-Implementierungen.
+
+Die technische Authentifizierung muss bereits erfolgreich abgeschlossen
+sein, bevor `createVerified(...)` aufgerufen wird.
+
+### Traceability
+
+**Domain Model**
+
+- `AuthenticationProof`
+- `AuthenticationProof.createVerified(...)`
+- `AuthenticationProof.validateFor(...)`
+- `ProfileSecurity.disablePasswordProtection(...)`
+- `ProfileSecurity.changePasswordCredential(...)`
+- `ProfileSecurity.unlock(...)`
+- `ProfileSecurityId`
+- `Timestamp`
+
+**Validation Principles**
+
+- PRO-VP-001
+- PRO-VP-002
+- PRO-VP-003
+- PRO-VP-004
+- PRO-VP-007
+- PRO-VP-009
+
+---
+
 # Validierungsreihenfolge
 
 Jede Profilerstellung und Profiländerung wird in folgender Reihenfolge validiert:

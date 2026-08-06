@@ -2527,11 +2527,10 @@ DomainResult<ProfileSecurity> enablePasswordProtection(
 
 ## DomainResult<ProfileSecurity> disablePasswordProtection()
 
-```text
 DomainResult<ProfileSecurity> disablePasswordProtection(
-  AuthenticationProof proof
+  AuthenticationProof proof,
+  Timestamp now
 )
-```
 
 ### Preconditions
 
@@ -2552,7 +2551,8 @@ DomainResult<ProfileSecurity> disablePasswordProtection(
 ```text
 DomainResult<ProfileSecurity> changePasswordCredential(
   PasswordCredential newCredential,
-  AuthenticationProof proof
+  AuthenticationProof proof,
+  Timestamp now
 )
 ```
 
@@ -5118,44 +5118,292 @@ Security Ports und technischen Sicherheitskomponenten.
 
 ## Zweck
 
-`AuthenticationProof` repräsentiert die fachliche Bestätigung, dass eine erforderliche Authentifizierung erfolgreich abgeschlossen wurde.
+`AuthenticationProof` bestätigt, dass eine technische Authentifizierung für
+eine bestimmte `ProfileSecurity`-Entity erfolgreich abgeschlossen wurde.
 
-Es enthält weder Passwort noch Credential.
+Der Proof wird ausschließlich durch den zuständigen Security Port nach
+erfolgreicher Authentifizierung erzeugt.
+
+Er enthält
+
+- kein Klartextpasswort,
+- keinen Passwort-Hash,
+- kein `PasswordCredential`,
+- keinen technischen Authentifizierungstoken,
+- keinen kryptographischen Schlüssel.
+
+`AuthenticationProof` führt selbst keine Passwortprüfung und keine
+kryptographische Operation aus.
+
+---
 
 ## Attribute
 
-| Attribut | Typ |
-|---|---|
-| profileId | ProfileId |
-| verifiedAt | Timestamp |
-| purpose | AuthenticationPurpose |
-| validUntil | Timestamp? |
+| Attribut | Typ | Bedeutung |
+|---|---|---|
+| securityId | ProfileSecurityId | Sicherheits-Entity, für die die Authentifizierung bestätigt wurde |
+| verifiedAt | Timestamp | Zeitpunkt der erfolgreichen Authentifizierung |
+| validUntil | Timestamp | Zeitpunkt, bis zu dem der Proof fachlich verwendet werden darf |
 
-## Factory
+---
 
-Ein `AuthenticationProof` wird ausschließlich durch einen vertrauenswürdigen Security Application Service oder Port erzeugt.
-
-```text
-DomainResult<AuthenticationProof> createVerified(...)
-```
-
-## Regeln
-
-- Der Proof muss zum betroffenen Profil gehören.
-- Der Zweck muss zur angeforderten Operation passen.
-- Ein abgelaufener Proof ist ungültig.
-- Der Proof enthält keine geheimen Authentifizierungsdaten.
-- Der Proof ist unveränderlich.
-- Ein Proof darf nicht für einen anderen Zweck wiederverwendet werden, sofern die Sicherheitsrichtlinie dies verbietet.
-
-## Beispiele für Zwecke
+## Interne Repräsentation
 
 ```text
-unlockProfile
-changePassword
-disablePasswordProtection
-deleteProfile
+securityId: ProfileSecurityId
+verifiedAt: Timestamp
+validUntil: Timestamp
 ```
+
+Alle Attribute sind unveränderlich.
+
+Das Value Object besitzt keine eigene fachliche Identität.
+
+---
+
+## Kontrollierte Erzeugung
+
+Die kontrollierte Erzeugung eines bereits technisch verifizierten Proofs
+erfolgt ausschließlich über:
+
+```text
+DomainResult<AuthenticationProof> createVerified(
+  ProfileSecurityId? securityId,
+  Timestamp? verifiedAt,
+  Timestamp? validUntil
+)
+```
+
+Die Factory darf ausschließlich nach einer erfolgreich abgeschlossenen
+technischen Authentifizierung aufgerufen werden.
+
+Die Factory führt selbst keine Authentifizierung durch.
+
+Es existiert keine weitere öffentliche Factory.
+
+---
+
+## Fachliche Regeln
+
+Für `AuthenticationProof` gilt:
+
+- `securityId` MUSS vorhanden und gültig sein.
+- `verifiedAt` MUSS vorhanden und gültig sein.
+- `validUntil` MUSS vorhanden und gültig sein.
+- `validUntil` MUSS nach `verifiedAt` liegen.
+- Ein Proof mit identischem `verifiedAt` und `validUntil` ist unzulässig.
+- Der Proof MUSS unveränderlich sein.
+- Der Proof DARF ausschließlich für die zugehörige `ProfileSecurityId`
+  verwendet werden.
+- Der Proof DARF keine Passwort-, Hash-, Credential-, Salt- oder
+  Tokeninformationen enthalten.
+- Der Proof DARF nicht aus Profildaten oder Sicherheitsdaten abgeleitet
+  werden.
+- Die Domain DARF fehlende Zeitwerte nicht selbst erzeugen.
+- Die Domain DARF den Gültigkeitszeitraum nicht automatisch verlängern.
+- Ein abgelaufener Proof DARF nicht für eine sicherheitskritische Operation
+  verwendet werden.
+
+Die Dauer des Gültigkeitszeitraums wird nicht durch dieses Value Object
+bestimmt.
+
+Sie wird durch die zuständige Security Policy beziehungsweise den
+zuständigen Security Port festgelegt.
+
+---
+
+## Preconditions
+
+Für `createVerified(...)` gilt:
+
+- Die technische Authentifizierung wurde erfolgreich abgeschlossen.
+- `securityId` bezeichnet die authentifizierte `ProfileSecurity`-Entity.
+- `verifiedAt` bezeichnet den Zeitpunkt der erfolgreichen Authentifizierung.
+- `validUntil` wurde durch die zuständige Security Policy bestimmt.
+
+---
+
+## Erfolgsverhalten
+
+Bei erfolgreicher Erzeugung gilt:
+
+- Es wurde ein vollständiger `AuthenticationProof` erzeugt.
+- Der Proof ist eindeutig einer `ProfileSecurityId` zugeordnet.
+- `validUntil` liegt nach `verifiedAt`.
+- Sämtliche Attribute sind unveränderlich.
+- Es wurden keine sensiblen Authentifizierungsdaten übernommen.
+- Es wurden keine Domain Events erzeugt.
+- Es wurden keine Audit- oder Versionsinformationen verändert.
+
+---
+
+## Fehlerverhalten
+
+Bei einem fachlichen Fehler gilt:
+
+- Es wird kein `AuthenticationProof` erzeugt.
+- Das Ergebnis enthält mindestens einen strukturierten Validation Error.
+- Es entsteht kein teilweise gültiger Proof.
+- Sensible Authentifizierungsdaten werden nicht in Domain Messages oder
+  Fehlerparametern übertragen.
+- Erwartbare Validierungsfehler erzeugen keine Exception.
+
+Die konkreten Validation Errors werden ausschließlich in den Validation
+Rules definiert.
+
+Fehler der enthaltenen Value Objects werden nicht zusätzlich als generische
+`AuthenticationProof`-Fehler dupliziert.
+
+---
+
+## Prüfung der Verwendbarkeit
+
+Die Verwendbarkeit eines Proofs wird über folgende Operation geprüft:
+
+```text
+DomainResult<AuthenticationProof> validateFor(
+  ProfileSecurityId? expectedSecurityId,
+  Timestamp? now
+)
+```
+
+Die Operation prüft:
+
+- `expectedSecurityId` ist vorhanden.
+- `now` ist vorhanden.
+- `expectedSecurityId` entspricht der im Proof gespeicherten `securityId`.
+- `now` liegt nicht vor `verifiedAt`.
+- `now` liegt nicht nach `validUntil`.
+
+Ein Proof ist einschließlich des Zeitpunkts `validUntil` gültig.
+
+Es gilt:
+
+```text
+verifiedAt <= now <= validUntil
+```
+
+`validateFor(...)` verändert den Proof nicht.
+
+Bei erfolgreicher Prüfung wird derselbe unveränderte Proof zurückgegeben.
+
+---
+
+## Abgelaufener Proof
+
+Ein Proof ist abgelaufen, wenn gilt:
+
+```text
+now > validUntil
+```
+
+Ein abgelaufener Proof darf nicht
+
+- reaktiviert,
+- verlängert,
+- aktualisiert,
+- erneut verwendet
+
+werden.
+
+Für eine weitere sicherheitskritische Operation muss eine neue technische
+Authentifizierung durchgeführt und ein neuer `AuthenticationProof` erzeugt
+werden.
+
+---
+
+## Falsche Zuordnung
+
+Entspricht die im Proof gespeicherte `securityId` nicht der erwarteten
+`ProfileSecurityId`, darf der Proof nicht verwendet werden.
+
+Ein Proof darf insbesondere nicht
+
+- für ein anderes Profil,
+- für eine andere `ProfileSecurity`-Entity,
+- profilübergreifend
+
+wiederverwendet werden.
+
+---
+
+## Equality
+
+Zwei `AuthenticationProof`-Instanzen sind fachlich gleich, wenn alle
+folgenden Attribute fachlich gleich sind:
+
+- `securityId`,
+- `verifiedAt`,
+- `validUntil`.
+
+---
+
+## HashCode
+
+Der Hashcode basiert auf:
+
+- `securityId`,
+- `verifiedAt`,
+- `validUntil`.
+
+Er muss zur Equality-Definition konsistent sein.
+
+---
+
+## Sichere String-Darstellung
+
+`toString()` darf keine Authentifizierungsdaten oder technischen
+Proof-Inhalte offenlegen.
+
+Eine sichere Darstellung lautet:
+
+```text
+AuthenticationProof(
+  securityId: <profileSecurityId>,
+  verifiedAt: <timestamp>,
+  validUntil: <timestamp>
+)
+```
+
+Der Proof enthält keine Passwort-, Hash-, Credential- oder Tokenwerte.
+
+---
+
+## Lebenszyklus
+
+Ein `AuthenticationProof` ist kurzlebig und unveränderlich.
+
+Er wird
+
+1. nach erfolgreicher technischer Authentifizierung erzeugt,
+2. für eine oder mehrere innerhalb seines Gültigkeitszeitraums zulässige
+   Operationen verwendet,
+3. nach Ablauf verworfen.
+
+Der Proof wird nicht verlängert oder aktualisiert.
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Value Objects sind:
+
+- Klartextpasswörter,
+- Passwortverifikation,
+- Hashvergleich,
+- Credential-Erzeugung,
+- Authentifizierungstokens,
+- Sessions,
+- kryptographische Schlüssel,
+- Security-Port-Implementierungen,
+- Bestimmung der zulässigen Gültigkeitsdauer,
+- Lockout,
+- Rate Limiting,
+- Persistenzlogik,
+- Domain Events.
+
+Diese Verantwortlichkeiten liegen bei den zuständigen Security Ports,
+Security Policies und technischen Sicherheitskomponenten.
 
 ---
 
