@@ -1338,6 +1338,25 @@ modelliert.
 Lebenszyklusstatus und Sperrzustand dürfen nicht miteinander vermischt
 werden.
 
+### Kontrollierte Rekonstruktion
+
+Die kontrollierte Rekonstruktion eines einzelnen Lebenszyklusstatus erfolgt
+über:
+
+```text
+DomainResult<ProfileStatus> ProfileStatus.fromString(
+  String? value
+)
+```
+
+Vor der Validierung werden ausschließlich führende und nachfolgende
+Leerzeichen entfernt.
+
+Die Groß- und Kleinschreibung wird nicht verändert.
+
+Ein fehlender, leerer oder nach dem Trimmen leerer Wert wird als fehlender
+Status behandelt.
+
 ### Zulässige Status
 
 ```text
@@ -1428,17 +1447,23 @@ Sie erzeugen nicht automatisch einen zusätzlichen
 
 ### Fehlercodes
 
-| Fehlercode | Message Key | Severity | Feld | Constraint | Parameter |
-|------------|-------------|----------|------|------------|-----------|
-| PRO-VAL-STATUS-001 | `validation.profile.status.required` | ERROR | status | required | – |
-| PRO-VAL-STATUS-002 | `validation.profile.status.invalid` | ERROR | status | enum | `{"allowedValues":["inactive","active","archived"]}` |
-| PRO-VAL-STATUS-003 | `validation.profile.status.transition` | ERROR | status | transition | – |
+| Fehlercode | Message Key | Severity | Category | Feld | Constraint | Parameter |
+|------------|-------------|----------|----------|------|------------|-----------|
+| PRO-VAL-STATUS-001 | `validation.profile.status.required` | ERROR | VALIDATION | status | required | – |
+| PRO-VAL-STATUS-002 | `validation.profile.status.invalid` | ERROR | VALIDATION | status | enum | `{"allowedValues":["inactive","active","archived"]}` |
+| PRO-VAL-STATUS-003 | `validation.profile.status.transition` | ERROR | VALIDATION | status | transition | – |
 
 ### Fehlerverhalten
 
-#### Fehlender Profilstatus
+#### Fehlender oder leerer Profilstatus
 
-Ist kein Profilstatus vorhanden, wird ausschließlich
+Ist der an `ProfileStatus.fromString(...)` übergebene Wert
+
+- nicht vorhanden,
+- leer,
+- oder nach dem Trimmen leer,
+
+wird ausschließlich
 
 ```text
 PRO-VAL-STATUS-001
@@ -1446,7 +1471,7 @@ PRO-VAL-STATUS-001
 
 erzeugt.
 
-Weitere Statusprüfungen erfolgen in diesem Fall nicht.
+Weitere Enum-Prüfungen erfolgen in diesem Fall nicht.
 
 #### Ungültiger Profilstatus
 
@@ -1486,6 +1511,20 @@ Lebenszyklusübergang.
 
 Sperr- und Authentifizierungsfehler werden nicht unter diesem Code
 zusammengefasst.
+
+`PRO-VAL-STATUS-003` wird ausschließlich durch die fachlichen
+Lebenszyklusoperationen des `Profile`-Aggregats erzeugt.
+
+Der Code wird nicht durch
+
+```text
+ProfileStatus.fromString(...)
+```
+
+erzeugt.
+
+Die Enumeration prüft ausschließlich, ob ein einzelner gespeicherter Wert
+einem zulässigen Enumerationswert entspricht.
 
 ### Validierungsreihenfolge
 
@@ -6214,6 +6253,311 @@ Nicht Bestandteil dieser Validation Rule sind:
 - `ProfileLockStatus`
 - `Timestamp`
 - `ProfileSecurity.lockState`
+
+**Validation Principles**
+
+- PRO-VP-001
+- PRO-VP-002
+- PRO-VP-003
+- PRO-VP-004
+- PRO-VP-007
+- PRO-VP-009
+
+---
+
+# PRO-VR-035
+
+## Titel
+
+AggregateVersion validieren
+
+### Typ
+
+Value-Object-Validierung
+
+### Beschreibung
+
+`AggregateVersion` repräsentiert die unveränderliche fachliche Version
+eines Aggregatzustands.
+
+Die Version dient insbesondere
+
+- der Erkennung erfolgreicher Zustandsänderungen,
+- der optimistischen Nebenläufigkeitskontrolle,
+- der Synchronisation,
+- der Konflikterkennung,
+- der eindeutigen Reihenfolge von Domain Events.
+
+Die kontrollierte initiale Erzeugung erfolgt über:
+
+```text
+DomainResult<AggregateVersion> AggregateVersion.createInitial()
+```
+
+Die kontrollierte Rekonstruktion erfolgt über:
+
+```text
+DomainResult<AggregateVersion> AggregateVersion.fromValue(
+  int? value
+)
+```
+
+Die Erzeugung der nächsten Version erfolgt über:
+
+```text
+DomainResult<AggregateVersion> AggregateVersion.next()
+```
+
+---
+
+### Fachliche Regeln
+
+Für `AggregateVersion` gilt:
+
+- Der Versionswert MUSS vorhanden sein.
+- Der Versionswert MUSS mindestens `0` betragen.
+- Der Versionswert DARF den Wert
+
+```text
+9223372036854775807
+```
+
+nicht überschreiten.
+
+- Der Initialwert MUSS `0` sein.
+- Eine erfolgreiche fachliche Änderung erhöht die Version genau um `1`.
+- Eine fehlgeschlagene Operation verändert die Version nicht.
+- Ein erfolgreicher No Change verändert die Version nicht.
+- Die Version steigt ausschließlich monoton.
+- Die Version DARF niemals verringert werden.
+- Die Version DARF nicht direkt verändert werden.
+- Das Value Object MUSS unveränderlich sein.
+
+---
+
+### Verhalten von createInitial()
+
+Die Factory
+
+```text
+AggregateVersion.createInitial()
+```
+
+erzeugt immer
+
+```text
+AggregateVersion(0)
+```
+
+Für `createInitial()` werden keine Validation Errors definiert.
+
+---
+
+### Verhalten von fromValue(...)
+
+Für `AggregateVersion.fromValue(...)` gilt:
+
+- `value` MUSS vorhanden sein.
+- `value` MUSS mindestens `0` betragen.
+- `value` DARF den maximal zulässigen Versionswert nicht überschreiten.
+
+---
+
+### Verhalten von next()
+
+Ist der aktuelle Versionswert kleiner als
+
+```text
+9223372036854775807
+```
+
+wird eine neue `AggregateVersion`
+mit exakt um `1` erhöhtem Versionswert erzeugt.
+
+Ist der aktuelle Versionswert bereits
+
+```text
+9223372036854775807
+```
+
+wird keine neue Version erzeugt.
+
+Die bestehende Instanz bleibt unverändert.
+
+---
+
+### Fehlercodes
+
+| Fehlercode | Message Key | Severity | Category | Feld | Constraint | Parameter |
+|------------|-------------|----------|----------|------|------------|-----------|
+| PRO-VAL-AGGVER-001 | `validation.aggregateVersion.required` | ERROR | VALIDATION | value | required | – |
+| PRO-VAL-AGGVER-002 | `validation.aggregateVersion.minimum` | ERROR | VALIDATION | value | minimum | `{"minimum":0}` |
+| PRO-VAL-AGGVER-003 | `validation.aggregateVersion.maximum` | ERROR | VALIDATION | value | maximum | `{"maximum":9223372036854775807}` |
+| PRO-VAL-AGGVER-004 | `validation.aggregateVersion.overflow` | ERROR | VALIDATION | value | overflow | `{"maximum":9223372036854775807}` |
+
+---
+
+### Fehlerverhalten
+
+#### Fehlender Versionswert
+
+Ist `value` nicht vorhanden,
+
+wird ausschließlich
+
+```text
+PRO-VAL-AGGVER-001
+```
+
+erzeugt.
+
+Weitere Prüfungen erfolgen nicht.
+
+---
+
+#### Versionswert kleiner als Minimum
+
+Ist
+
+```text
+value < 0
+```
+
+wird ausschließlich
+
+```text
+PRO-VAL-AGGVER-002
+```
+
+erzeugt.
+
+Der Fehlerparameter lautet
+
+```json
+{
+  "minimum": 0
+}
+```
+
+---
+
+#### Versionswert größer als Maximum
+
+Ist
+
+```text
+value > 9223372036854775807
+```
+
+wird ausschließlich
+
+```text
+PRO-VAL-AGGVER-003
+```
+
+erzeugt.
+
+Der Fehlerparameter lautet
+
+```json
+{
+  "maximum": 9223372036854775807
+}
+```
+
+---
+
+#### Überlauf bei next()
+
+Soll `next()` auf einer Version
+
+```text
+9223372036854775807
+```
+
+ausgeführt werden,
+
+wird ausschließlich
+
+```text
+PRO-VAL-AGGVER-004
+```
+
+erzeugt.
+
+Der Fehlerparameter lautet
+
+```json
+{
+  "maximum": 9223372036854775807
+}
+```
+
+Die bestehende Instanz bleibt unverändert.
+
+---
+
+### Validierungsreihenfolge
+
+#### AggregateVersion.fromValue(...)
+
+1. Vorhandensein prüfen.
+2. Minimalwert prüfen.
+3. Maximalwert prüfen.
+4. AggregateVersion erzeugen.
+
+Ein fehlender Wert erzeugt keine weiteren Folgefehler.
+
+---
+
+#### AggregateVersion.next()
+
+1. Überlauf prüfen.
+2. Version um exakt `1` erhöhen.
+3. Neue AggregateVersion erzeugen.
+
+---
+
+### Erfolgsverhalten
+
+Bei erfolgreicher Erzeugung gilt:
+
+- Es wurde eine gültige `AggregateVersion` erzeugt.
+- Der Versionswert liegt innerhalb des zulässigen Bereichs.
+- Das Value Object ist unveränderlich.
+
+Bei erfolgreicher Erhöhung gilt zusätzlich:
+
+- Der Versionswert wurde exakt um `1` erhöht.
+- Die bisherige Instanz blieb unverändert.
+
+---
+
+### Abgrenzung
+
+Nicht Bestandteil dieser Validation Rule sind:
+
+- Persistenzkonflikte,
+- Optimistic Locking,
+- Synchronisationsprotokolle,
+- Datenbanktransaktionen,
+- Domain-Event-Publishing,
+- AuditInformation,
+- Zeitstempel,
+- technische Revisionen,
+- Repositoryzugriffe.
+
+---
+
+### Traceability
+
+**Domain Model**
+
+- `AggregateVersion`
+- `AggregateVersion.createInitial()`
+- `AggregateVersion.fromValue(...)`
+- `AggregateVersion.next()`
+- `AuditInformation.version`
 
 **Validation Principles**
 

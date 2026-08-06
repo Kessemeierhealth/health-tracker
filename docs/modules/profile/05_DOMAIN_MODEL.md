@@ -5996,50 +5996,244 @@ Diese Verantwortlichkeiten liegen außerhalb dieses Value Objects.
 
 ## Zweck
 
-`AggregateVersion` repräsentiert die Version eines fachlichen Aggregatzustands.
+`AggregateVersion` repräsentiert die unveränderliche fachliche Version eines
+Aggregatzustands.
+
+Die Version dient insbesondere
+
+- der Erkennung erfolgreicher Zustandsänderungen,
+- der optimistischen Nebenläufigkeitskontrolle,
+- der Synchronisation,
+- der Konflikterkennung,
+- der eindeutigen Reihenfolge von Domain Events.
+
+Die Version ist nicht mit einer fachlichen Konfigurationsversion wie
+`DashboardConfigurationVersion` identisch.
+
+---
 
 ## Interner Wert
 
 ```text
-NonNegativeInteger
+Signed 64-bit Integer
 ```
 
-## Factory
+Der intern gespeicherte Wert liegt im Bereich:
 
 ```text
-DomainResult<AggregateVersion> createInitial()
-
-DomainResult<AggregateVersion> fromValue(value)
+0 bis 9223372036854775807
 ```
 
-## Operation
+---
+
+## Initialwert
+
+Der verbindliche Initialwert lautet:
+
+```text
+0
+```
+
+Ein neu erzeugtes Aggregate besitzt damit vor seiner ersten nachgelagerten
+fachlichen Änderung die Version `0`.
+
+Die erste erfolgreiche fachliche Zustandsänderung erhöht die Version auf
+`1`.
+
+---
+
+## Kontrollierte initiale Erzeugung
+
+Die initiale Erzeugung erfolgt ausschließlich über:
+
+```text
+DomainResult<AggregateVersion> AggregateVersion.createInitial()
+```
+
+Bei Erfolg gilt:
+
+```text
+value = 0
+```
+
+Für `createInitial()` werden keine Validation Errors definiert.
+
+---
+
+## Kontrollierte Rekonstruktion
+
+Die Rekonstruktion eines bereits gespeicherten Versionswerts erfolgt
+ausschließlich über:
+
+```text
+DomainResult<AggregateVersion> AggregateVersion.fromValue(
+  int? value
+)
+```
+
+Die Factory prüft den vollständigen fachlich zulässigen Wertebereich.
+
+---
+
+## Fachliche Erhöhung
+
+Die Erzeugung der nachfolgenden Version erfolgt ausschließlich über:
 
 ```text
 DomainResult<AggregateVersion> next()
 ```
 
-## Regeln
+Bei Erfolg gilt:
 
-- Die Version darf nicht negativ sein.
-- Der Initialwert wird projektweit einheitlich festgelegt.
-- Die Version steigt monoton.
-- Eine erfolgreiche fachliche Änderung erhöht sie genau einmal.
-- Eine fehlgeschlagene oder zurückgerollte Änderung verändert sie nicht.
-- Der maximale technische Wertebereich muss berücksichtigt werden.
+```text
+newValue = currentValue + 1
+```
 
-## Verwendung
+Die bestehende Instanz bleibt unverändert.
 
-`AggregateVersion` kann verwendet werden für:
+---
 
-- optimistische Nebenläufigkeitskontrolle,
-- Synchronisation,
-- Konflikterkennung,
-- Ereignisreihenfolge,
-- Importprüfung.
+## Fachliche Regeln
+
+Für `AggregateVersion` gilt:
+
+- Der Wert MUSS vorhanden sein.
+- Der Wert MUSS mindestens `0` betragen.
+- Der Wert DARF `9223372036854775807` nicht überschreiten.
+- Der Initialwert MUSS `0` sein.
+- Eine erfolgreiche fachliche Zustandsänderung erhöht die Version genau
+  einmal.
+- Eine fehlgeschlagene Operation verändert die Version nicht.
+- Ein erfolgreicher No Change verändert die Version nicht.
+- Die Version steigt ausschließlich monoton.
+- Die Version darf nicht zurückgesetzt oder verringert werden.
+- Das Value Object ist unveränderlich.
+- Die Version wird nicht aus Zeitstempeln oder anderen fachlichen Daten
+  abgeleitet.
+- Ein technischer Integer-Überlauf ist unzulässig.
+
+---
+
+## Verhalten von fromValue(...)
+
+### Fehlender Wert
+
+Ist `value` nicht vorhanden, wird kein `AggregateVersion` erzeugt.
+
+### Wert unterhalb des Minimums
+
+Ist `value` kleiner als `0`, wird kein `AggregateVersion` erzeugt.
+
+### Wert oberhalb des Maximums
+
+Ist `value` größer als `9223372036854775807`, wird kein
+`AggregateVersion` erzeugt.
+
+### Gültiger Wert
+
+Liegt `value` innerhalb des zulässigen Bereichs, wird eine unveränderliche
+`AggregateVersion` erzeugt.
+
+---
+
+## Verhalten von next()
+
+Ist der aktuelle Wert kleiner als
+
+```text
+9223372036854775807
+```
+
+wird eine neue `AggregateVersion` mit dem um genau `1` erhöhten Wert
+zurückgegeben.
+
+Ist der aktuelle Wert bereits
+
+```text
+9223372036854775807
+```
+
+ist keine weitere Erhöhung zulässig.
+
+In diesem Fall:
+
+- wird keine neue `AggregateVersion` erzeugt,
+- bleibt die bestehende Instanz unverändert,
+- wird ein strukturierter Validation Error zurückgegeben,
+- wird keine Exception für den erwartbaren fachlichen Grenzfall geworfen.
+
+---
+
+## Erfolgsverhalten
+
+Bei erfolgreicher Erzeugung oder Erhöhung gilt:
+
+- Der Wert befindet sich im zulässigen Wertebereich.
+- Die Instanz ist unveränderlich.
+- `next()` hat den Wert um exakt `1` erhöht.
+- Es wurden keine Domain Events erzeugt.
+- Es wurden keine Auditinformationen verändert.
+
+---
+
+## Fehlerverhalten
+
+Bei einem fachlichen Fehler gilt:
+
+- Es wird keine neue `AggregateVersion` erzeugt.
+- Das Ergebnis enthält mindestens einen strukturierten Validation Error.
+- Die bestehende Instanz bleibt unverändert.
+- Erwartbare Validierungsfehler erzeugen keine Exception.
+
+Die konkreten Validation Errors werden ausschließlich in den Validation
+Rules definiert.
+
+---
 
 ## Equality
 
-Die Gleichheit richtet sich nach dem enthaltenen Versionswert.
+Zwei `AggregateVersion`-Instanzen sind fachlich gleich, wenn ihre
+Versionswerte identisch sind.
+
+---
+
+## HashCode
+
+Der Hashcode basiert ausschließlich auf dem Versionswert.
+
+---
+
+## String-Darstellung
+
+Die String-Darstellung lautet:
+
+```text
+AggregateVersion(<value>)
+```
+
+Beispiel:
+
+```text
+AggregateVersion(12)
+```
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Value Objects sind:
+
+- Persistenzkonflikte,
+- automatische Konfliktauflösung,
+- Synchronisationsprotokolle,
+- Datenbanktransaktionen,
+- Domain-Event-Publishing,
+- Zeitstempel,
+- technische Revisionen einzelner Datensätze,
+- Dashboard-Konfigurationsversionen.
+
+Diese Verantwortlichkeiten liegen beim Aggregate, bei Repositorys,
+Application Services und der Synchronisationsinfrastruktur.
 
 ---
 
@@ -6768,7 +6962,17 @@ Nicht Bestandteil dieser Enumeration sind:
 ---
 # Enumeration: ProfileStatus
 
-## Werte
+## Zweck
+
+`ProfileStatus` beschreibt ausschließlich den fachlichen Lebenszyklusstatus
+eines Profils.
+
+Der Sicherheits- und Sperrzustand wird getrennt durch `LockState` und
+`ProfileLockStatus` modelliert.
+
+---
+
+## Zulässige Werte
 
 ```text
 inactive
@@ -6776,12 +6980,153 @@ active
 archived
 ```
 
-## Regeln
+Weitere Werte sind nicht zulässig.
 
-- Ein Profil besitzt genau einen Lebenszyklusstatus.
-- `active` und `archived` schließen sich aus.
-- Ein gesperrtes Profil darf unabhängig vom Lebenszyklusstatus nicht aktiv sein.
-- Der Sperrstatus ist nicht Bestandteil dieser Enumeration.
+---
+
+## Kontrollierte Rekonstruktion
+
+Die kontrollierte Rekonstruktion erfolgt über:
+
+```text
+DomainResult<ProfileStatus> ProfileStatus.fromString(
+  String? value
+)
+```
+
+Vor der Validierung werden ausschließlich
+
+- führende Leerzeichen entfernt,
+- nachfolgende Leerzeichen entfernt.
+
+Die Groß- und Kleinschreibung wird nicht verändert.
+
+---
+
+## Fachliche Regeln
+
+Für `ProfileStatus.fromString(...)` gilt:
+
+- `value` MUSS vorhanden sein.
+- `value` DARF nach dem Trimmen nicht leer sein.
+- Der normalisierte Wert MUSS exakt `inactive`, `active` oder `archived`
+  entsprechen.
+- Unbekannte Werte DÜRFEN nicht durch einen Standardwert ersetzt werden.
+- Groß- und Kleinschreibung werden nicht automatisch normalisiert.
+- Die Werte `locked` und `unlocked` sind keine Werte von `ProfileStatus`.
+- Die Enumeration enthält keine Statusübergangslogik.
+- Die Enumeration enthält keinen Sperrzustand.
+- Die Enumeration ist unveränderlich.
+
+---
+
+## Fehlerverhalten der Rekonstruktion
+
+Ist `value` nicht vorhanden oder nach dem Trimmen leer, wird ausschließlich
+
+```text
+PRO-VAL-STATUS-001
+```
+
+erzeugt.
+
+Entspricht der vorhandene und nicht leere normalisierte Wert keinem
+zulässigen Enumerationswert, wird ausschließlich
+
+```text
+PRO-VAL-STATUS-002
+```
+
+erzeugt.
+
+Der ungültige Eingabewert wird nicht in Fehlerparametern oder Domain
+Messages übertragen.
+
+`PRO-VAL-STATUS-003` wird nicht durch `ProfileStatus.fromString(...)`
+erzeugt.
+
+Dieser Code gehört ausschließlich zur Prüfung von Lebenszyklusübergängen
+durch das `Profile`-Aggregate.
+
+---
+
+## Lebenszyklusübergänge
+
+Die Enumeration selbst führt keine Übergänge aus.
+
+Die Prüfung und Ausführung von Übergängen erfolgt ausschließlich über die
+fachlichen Operationen des `Profile`-Aggregats:
+
+```text
+activate()
+deactivate()
+archive()
+restore()
+```
+
+Ein ungültiger Übergang wird dort mit
+
+```text
+PRO-VAL-STATUS-003
+```
+
+abgebildet.
+
+No-Change-Verhalten wird ebenfalls ausschließlich auf Aggregate-Ebene
+behandelt.
+
+---
+
+## Cross-Field-Abgrenzung
+
+Die Regel
+
+```text
+Ein gesperrtes Profil darf nicht aktiv sein.
+```
+
+kann nicht durch `ProfileStatus` allein geprüft werden.
+
+Sie wird durch das `Profile`-Aggregate geschützt, da nur dieses sowohl
+
+- den Lebenszyklusstatus,
+- als auch `ProfileSecurity.lockState`
+
+kennt.
+
+---
+
+## Equality
+
+Zwei `ProfileStatus`-Werte sind fachlich gleich, wenn sie denselben
+Enumerationswert repräsentieren.
+
+---
+
+## String-Darstellung
+
+Die String-Darstellung entspricht exakt einem der Werte:
+
+```text
+inactive
+active
+archived
+```
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieser Enumeration sind:
+
+- Sperrzustände,
+- Authentifizierung,
+- Passwortschutz,
+- Lebenszyklusübergänge,
+- No-Change-Informationen,
+- profilübergreifende Aktivierungsregeln,
+- lokalisierte Anzeigetexte,
+- UI- oder Persistenztypen.
 
 ---
 

@@ -8959,6 +8959,42 @@ Neue fachliche Validierungsregeln werden in diesem Dokument nicht definiert.
 
 ---
 
+## Factory-Zuständigkeit
+
+`ProfileStatus.fromString(...)` verwendet ausschließlich
+
+- `PRO-VAL-STATUS-001`
+- `PRO-VAL-STATUS-002`
+
+`PRO-VAL-STATUS-003` wird ausschließlich durch die
+Lebenszyklusoperationen des `Profile`-Aggregats erzeugt.
+
+---
+
+## Verhalten leerer Werte
+
+Ein nicht vorhandener, leerer oder nach dem Trimmen leerer Eingabewert
+erzeugt
+
+```text
+PRO-VAL-STATUS-001
+```
+
+Es existiert kein eigener Blank-Code für `ProfileStatus`.
+
+---
+
+## Feldzuordnung
+
+Obwohl der Factory-Parameter technisch `value` heißt, lautet das
+fachliche Fehlerfeld für alle drei Fehlercodes
+
+```text
+status
+```
+
+---
+
 ## Fehlerverhalten
 
 ### Fehlender Profilstatus
@@ -12109,6 +12145,273 @@ Nicht Bestandteil dieses Abschnitts sind:
 
 ---
 
+# AggregateVersion
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- AggregateVersion
+
+---
+
+## Zweck
+
+Dieser Abschnitt definiert sämtliche Validation Error Codes des Value Objects
+`AggregateVersion`.
+
+Die Version repräsentiert ausschließlich die fachliche Version eines
+Aggregatzustands.
+
+Sie dient insbesondere
+
+- der Erkennung erfolgreicher Zustandsänderungen,
+- der optimistischen Nebenläufigkeitskontrolle,
+- der Synchronisation,
+- der Konflikterkennung,
+- der Reihenfolge von Domain Events.
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-AGGVER-001 | validation.aggregateVersion.required | ERROR | VALIDATION | value | required | – |
+| PRO-VAL-AGGVER-002 | validation.aggregateVersion.minimum | ERROR | VALIDATION | value | minimum | minimum |
+| PRO-VAL-AGGVER-003 | validation.aggregateVersion.maximum | ERROR | VALIDATION | value | maximum | maximum |
+| PRO-VAL-AGGVER-004 | validation.aggregateVersion.overflow | ERROR | VALIDATION | value | overflow | maximum |
+
+### Parameter
+
+#### PRO-VAL-AGGVER-002
+
+```json
+{
+  "minimum": 0
+}
+```
+
+#### PRO-VAL-AGGVER-003
+
+```json
+{
+  "maximum": 9223372036854775807
+}
+```
+
+#### PRO-VAL-AGGVER-004
+
+```json
+{
+  "maximum": 9223372036854775807
+}
+```
+
+---
+
+## Herkunft
+
+Diese Error Codes werden ausschließlich aus
+
+- PRO-VR-035
+
+abgeleitet.
+
+Neue fachliche Regeln werden in diesem Dokument nicht definiert.
+
+---
+
+## Fehlerverhalten
+
+### Fehlender Versionswert
+
+Ist `value` nicht vorhanden,
+
+wird ausschließlich
+
+```text
+PRO-VAL-AGGVER-001
+```
+
+erzeugt.
+
+Weitere Prüfungen werden nicht durchgeführt.
+
+---
+
+### Versionswert kleiner als Minimum
+
+Ist
+
+```text
+value < 0
+```
+
+wird ausschließlich
+
+```text
+PRO-VAL-AGGVER-002
+```
+
+erzeugt.
+
+Der Fehlerparameter lautet
+
+```json
+{
+  "minimum": 0
+}
+```
+
+---
+
+### Versionswert größer als Maximum
+
+Ist
+
+```text
+value > 9223372036854775807
+```
+
+wird ausschließlich
+
+```text
+PRO-VAL-AGGVER-003
+```
+
+erzeugt.
+
+Der Fehlerparameter lautet
+
+```json
+{
+  "maximum": 9223372036854775807
+}
+```
+
+---
+
+### Überlauf bei next()
+
+Soll
+
+```text
+AggregateVersion.next()
+```
+
+auf einer Version
+
+```text
+9223372036854775807
+```
+
+ausgeführt werden,
+
+wird ausschließlich
+
+```text
+PRO-VAL-AGGVER-004
+```
+
+erzeugt.
+
+Der Fehlerparameter lautet
+
+```json
+{
+  "maximum": 9223372036854775807
+}
+```
+
+Die bestehende Instanz bleibt unverändert.
+
+---
+
+## Validierungsreihenfolge
+
+### AggregateVersion.fromValue(...)
+
+1. Vorhandensein prüfen.
+2. Minimalwert prüfen.
+3. Maximalwert prüfen.
+4. AggregateVersion erzeugen.
+
+Ein fehlender Wert erzeugt keine weiteren Folgefehler.
+
+---
+
+### AggregateVersion.next()
+
+1. Überlauf prüfen.
+2. Version um exakt `1` erhöhen.
+3. Neue AggregateVersion erzeugen.
+
+---
+
+## Verhalten von createInitial()
+
+```text
+AggregateVersion.createInitial()
+```
+
+erzeugt immer
+
+```text
+AggregateVersion(0)
+```
+
+Für diese Factory werden keine Validation Errors definiert.
+
+---
+
+## Keine Fehlerduplizierung
+
+`AggregateVersion` besitzt keine enthaltenen Value Objects.
+
+Es entstehen daher keine weiterzuleitenden Validation Errors anderer
+Domänentypen.
+
+---
+
+## Hinweise
+
+`AggregateVersion` validiert ausschließlich den lokalen fachlichen
+Versionswert.
+
+Die Prüfung von
+
+- Optimistic Locking,
+- Synchronisationskonflikten,
+- Datenbankkonflikten,
+- Repository-Konflikten,
+- konkurrierenden Änderungen,
+- Domain-Event-Reihenfolgen
+
+gehört nicht zu diesem Value Object.
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Abschnitts sind:
+
+- AuditInformation,
+- Timestamp,
+- Domain Events,
+- Event Publishing,
+- Persistenz,
+- Datenbanktransaktionen,
+- Synchronisationsprotokolle,
+- Repositoryzugriffe,
+- technische Versionsverwaltung,
+- UI-Darstellungen.
+
+Diese Verantwortlichkeiten liegen beim Aggregate, Repository oder den
+Application Services.
+
+---
+
 # ProfileSecurity
 
 ### Zugeordneter Domänentyp
@@ -12266,7 +12569,9 @@ DomainResult<ProfileSecurity> ProfileSecurity.create(
   ProfileSecurityId? securityId,
   PasswordCredential? passwordCredential,
   LockState? lockState
+
 )
+```
 
 `ProfileSecurity` validiert ausschließlich den vollständigen
 fachlichen Sicherheitszustand.
@@ -12685,26 +12990,6 @@ Dieses Value Object beschreibt den Nachweis einer erfolgreichen Authentifizierun
 | validation.authenticationProof.invalid | validation.authenticationProof.invalid |
 
 ---
-
-# LockState
-
-### Zugeordneter Domänentyp
-
-**Value Object**
-
-- LockState
-
-## Zweck
-
-Dieses Value Object beschreibt den Sperrstatus eines Profils.
-
----
-
-## Error Codes
-
-| ErrorCode | MessageKey |
-|------------|------------|
-| validation.lockState.invalid | validation.lockState.invalid |
 
 # 06_ERROR_HANDLING_GUIDE.md
 
