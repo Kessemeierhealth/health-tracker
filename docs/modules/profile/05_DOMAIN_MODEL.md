@@ -2712,71 +2712,6 @@ Fehler:
 
 ---
 
-# Value Object: AuditInformation
-
-## Zweck
-
-`AuditInformation` beschreibt die fachlichen Zeit- und Versionsinformationen des Aggregats.
-
----
-
-## Attribute
-
-| Attribut | Typ |
-|---|---|
-| createdAt | Timestamp |
-| updatedAt | Timestamp |
-| version | AggregateVersion |
-
----
-
-## createInitial()
-
-```text
-DomainResult<AuditInformation> AuditInformation.createInitial(
-  Timestamp now
-)
-```
-
-### Ergebnis
-
-- `createdAt` entspricht `now`.
-- `updatedAt` entspricht `now`.
-- `version` entspricht der initialen Aggregate-Version.
-
----
-
-## touchAndIncrement()
-
-```text
-DomainResult<AuditInformation> touchAndIncrement(
-  Timestamp now
-)
-```
-
-### Preconditions
-
-- `now` liegt nicht vor `createdAt`.
-- `now` liegt nicht vor dem bisherigen `updatedAt`.
-
-### Postconditions
-
-- `createdAt` bleibt unverändert.
-- `updatedAt` entspricht `now`.
-- Die Version wurde genau einmal erhöht.
-
----
-
-## Regeln
-
-- Das Value Object ist unveränderlich.
-- Reine Leseoperationen verändern es nicht.
-- Fehlgeschlagene Operationen erzeugen keine neue Instanz.
-- Eine erfolgreiche fachliche Änderung verwendet genau eine neue Instanz.
-- Version und Zeitstempel werden gemeinsam aktualisiert.
-
----
-
 # Interne Änderungsstrategie
 
 Das Domänenmodell kann technisch:
@@ -4191,52 +4126,189 @@ Bei Fehler:
 
 ## Zweck
 
-`ImageReference` stellt eine undurchsichtige, technologieunabhängige Referenz auf extern gespeicherte Bilddaten dar.
+`ImageReference` repräsentiert eine unveränderliche und undurchsichtige
+technische Referenz auf ein bereits verarbeitetes Profilbild.
 
-## Interner Wert
+Die Referenz beschreibt weder den Speicherort noch das Speicherverfahren.
 
-```text
-Opaque String
-```
+Sie darf nicht direkt als
 
-## Factory
+- URL,
+- Dateipfad,
+- Dateiname,
+- Cloud-Schlüssel,
+- Zugangstoken
 
-```text
-DomainResult<ImageReference> create(value)
-```
+interpretiert werden.
 
-## Regeln
+---
 
-Die Referenz:
-
-- MUSS vorhanden sein.
-- DARF nicht leer sein.
-- DARF keine Zugangsdaten enthalten.
-- DARF keine personenbezogenen Informationen enthalten.
-- DARF keinen direkt interpretierbaren Betriebssystempfad voraussetzen.
-- MUSS über den zuständigen Infrastrukturport auflösbar sein.
-
-## Zulässiges Konzept
+## Interne Repräsentation
 
 ```text
-profile-image://550e8400-e29b-41d4-a716-446655440000
+String
 ```
 
-## Nicht zulässiges Domänenformat
+Der gespeicherte Wert besitzt ausschließlich fachliche Bedeutung als
+undurchsichtige Referenzkennung.
+
+---
+
+## Kontrollierte Erzeugung
+
+Die kontrollierte Erzeugung und Rekonstruktion erfolgt ausschließlich über:
 
 ```text
-C:\Users\User\Pictures\profile.jpg
+DomainResult<ImageReference> ImageReference.create(
+  String? value
+)
 ```
 
-oder:
+Es existiert keine weitere öffentliche Factory.
+
+---
+
+## Zulässiges Format
+
+Eine gültige Referenz besitzt exakt das folgende Format:
 
 ```text
-/home/user/profile.jpg
+img_<identifier>
 ```
+
+Dabei gilt:
+
+- Das Präfix lautet exakt `img_`.
+- Der Identifier besitzt exakt 26 Zeichen.
+- Der Identifier enthält ausschließlich Kleinbuchstaben von `a` bis `z`
+  und Ziffern von `0` bis `9`.
+- Die Gesamtlänge beträgt exakt 30 Zeichen.
+- Großbuchstaben sind nicht zulässig.
+- Sonderzeichen sind nicht zulässig.
+
+Das verbindliche Muster lautet:
+
+```text
+^img_[a-z0-9]{26}$
+```
+
+Beispiel:
+
+```text
+img_01hzy4x8m2k7p9q3r5s6t8v0wx
+```
+
+---
+
+## Normalisierung
+
+Vor der Validierung werden ausschließlich
+
+- führende Leerzeichen entfernt,
+- nachfolgende Leerzeichen entfernt.
+
+Weitere Transformationen sind nicht zulässig.
+
+Insbesondere werden
+
+- Groß- und Kleinschreibung nicht verändert,
+- Präfixe nicht ergänzt,
+- unzulässige Zeichen nicht entfernt,
+- Werte nicht gekürzt.
+
+---
+
+## Fachliche Regeln
+
+Für `ImageReference` gilt:
+
+- `value` MUSS vorhanden sein.
+- `value` DARF nach dem Trimmen nicht leer sein.
+- Der normalisierte Wert MUSS dem definierten Format entsprechen.
+- Die Referenz MUSS unveränderlich sein.
+- Die Referenz DARF keine personenbezogenen Angaben enthalten.
+- Die Referenz DARF keine Zugangsdaten enthalten.
+- Die Referenz DARF keine URL enthalten.
+- Die Referenz DARF keinen direkt interpretierbaren Dateipfad enthalten.
+- Die Referenz DARF keinen Dateinamen oder Dateisuffix enthalten.
+- Die Referenz DARF nicht aus Profilname, Geburtsjahr oder anderen
+  Profildaten abgeleitet werden.
+- Die Referenz DARF keine Speichertechnologie offenlegen.
+
+Die Formatdefinition stellt sicher, dass typische URLs, Dateipfade,
+Dateinamen, E-Mail-Adressen und Zugangstokens nicht als gültige
+`ImageReference` akzeptiert werden.
+
+---
+
+## Fehlerverhalten
+
+Ist `value` nicht vorhanden, wird kein `ImageReference` erzeugt.
+
+Ist `value` vorhanden, aber nach dem Trimmen leer, wird kein
+`ImageReference` erzeugt.
+
+Entspricht der normalisierte Wert nicht dem definierten Format, wird kein
+`ImageReference` erzeugt.
+
+Bei einem fachlichen Fehler gilt:
+
+- Das Ergebnis enthält mindestens einen strukturierten Validation Error.
+- Es entsteht kein teilweise gültiger Wert.
+- Der ungültige Eingabewert wird nicht in Domain Messages oder
+  Fehlerparametern übertragen.
+- Erwartbare Validierungsfehler erzeugen keine Exception.
+
+Die konkreten Validation Errors werden ausschließlich in den Validation
+Rules definiert.
+
+---
 
 ## Equality
 
-Zwei Referenzen sind gleich, wenn ihre normalisierten undurchsichtigen Kennungen identisch sind.
+Zwei `ImageReference`-Instanzen sind fachlich gleich, wenn ihre
+normalisierten Werte identisch sind.
+
+---
+
+## HashCode
+
+Der Hashcode basiert ausschließlich auf dem normalisierten Referenzwert.
+
+---
+
+## Sichere String-Darstellung
+
+Die String-Darstellung darf die vollständige Referenz enthalten, da sie
+keine personenbezogenen Daten und keine Zugangsdaten repräsentiert.
+
+Sie lautet:
+
+```text
+ImageReference(<value>)
+```
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Value Objects sind:
+
+- Bilddaten,
+- Dateinamen,
+- URLs,
+- lokale Dateipfade,
+- Cloud-Speicherpfade,
+- Zugriffstokens,
+- signierte URLs,
+- Upload- oder Downloadlogik,
+- Speicheranbieter,
+- Dateisystemzugriffe,
+- Bildverarbeitung,
+- Persistenz.
+
+Diese Verantwortlichkeiten liegen bei den zuständigen technischen
+Bild- und Speicherkomponenten.
 
 ---
 
@@ -4244,48 +4316,361 @@ Zwei Referenzen sind gleich, wenn ihre normalisierten undurchsichtigen Kennungen
 
 ## Zweck
 
-`ImageDimensions` beschreibt die Breite und Höhe eines verarbeiteten Profilbilds.
+`ImageDimensions` repräsentiert die unveränderlichen Pixelabmessungen eines
+bereits technisch verarbeiteten Profilbilds.
+
+Das Value Object beschreibt ausschließlich Breite, Höhe und das daraus
+abgeleitete Seitenverhältnis.
+
+Es verarbeitet keine Bilddaten und führt keine Skalierung oder
+Bildtransformation durch.
+
+---
 
 ## Attribute
 
-| Attribut | Typ |
-|---|---|
-| width | PositiveInteger |
-| height | PositiveInteger |
+| Attribut | Typ | Bedeutung |
+|---|---|---|
+| width | int | Bildbreite in Pixeln |
+| height | int | Bildhöhe in Pixeln |
 
-## Einheit
+---
 
-```text
-Pixel
-```
+## Kontrollierte Erzeugung
 
-## Factory
+Die kontrollierte Erzeugung und Rekonstruktion erfolgt ausschließlich über:
 
 ```text
-DomainResult<ImageDimensions> create(
-  int width,
-  int height
+DomainResult<ImageDimensions> ImageDimensions.create(
+  int? width,
+  int? height
 )
 ```
 
-## Regeln
+Es existiert keine weitere öffentliche Factory.
 
-- Breite und Höhe müssen größer als null sein.
-- Breite und Höhe dürfen die zentral definierten Maximalwerte nicht überschreiten.
-- Die Werte müssen ganzzahlig sein.
-- Die Dimensionen beschreiben das bereits verarbeitete Bild.
+---
 
-## Abgeleitete Werte
+## Zulässiger Wertebereich
+
+Für `width` gilt:
 
 ```text
-aspectRatio()
+1 bis 4096
 ```
 
-Das Seitenverhältnis wird deterministisch aus Breite und Höhe berechnet.
+Für `height` gilt:
+
+```text
+1 bis 4096
+```
+
+Die Grenzen sind jeweils einschließlich gültig.
+
+---
+
+## Fachliche Regeln
+
+Für `ImageDimensions.create(...)` gilt:
+
+- `width` MUSS vorhanden sein.
+- `height` MUSS vorhanden sein.
+- `width` MUSS mindestens `1` betragen.
+- `height` MUSS mindestens `1` betragen.
+- `width` DARF `4096` nicht überschreiten.
+- `height` DARF `4096` nicht überschreiten.
+- Breite und Höhe werden in Pixeln repräsentiert.
+- Dezimalwerte sind nicht zulässig.
+- Negative Werte und `0` sind nicht zulässig.
+- Das Value Object MUSS unveränderlich sein.
+- Das Value Object DARF keine Bilddaten enthalten.
+- Das Value Object DARF keine automatische Skalierung durchführen.
+- Das Value Object DARF keine fehlenden Werte ergänzen oder schätzen.
+
+---
+
+## Seitenverhältnis
+
+Das Seitenverhältnis wird über folgende Operation berechnet:
+
+```text
+double aspectRatio()
+```
+
+Die Berechnung lautet:
+
+```text
+width / height
+```
+
+Dabei gilt:
+
+- Das Ergebnis ist immer größer als `0`.
+- Das Ergebnis wird nicht im Value Object gerundet.
+- Das Ergebnis wird nicht formatiert.
+- Die Anzahl sichtbarer Nachkommastellen ist keine fachliche Eigenschaft.
+- Rundung und Darstellung gehören in die UI oder den Application Layer.
+
+Beispiele:
+
+```text
+1000 / 1000 = 1.0
+```
+
+```text
+1600 / 1200 = 1.3333333333333333
+```
+
+```text
+1200 / 1600 = 0.75
+```
+
+---
+
+## Fehlerverhalten
+
+Ist `width` nicht vorhanden, wird kein `ImageDimensions` erzeugt.
+
+Ist `height` nicht vorhanden, wird kein `ImageDimensions` erzeugt.
+
+Liegt `width` außerhalb des zulässigen Wertebereichs, wird kein
+`ImageDimensions` erzeugt.
+
+Liegt `height` außerhalb des zulässigen Wertebereichs, wird kein
+`ImageDimensions` erzeugt.
+
+Bei einem fachlichen Fehler gilt:
+
+- Das Ergebnis enthält mindestens einen strukturierten Validation Error.
+- Es entsteht kein teilweise gültiges Value Object.
+- Erwartbare fachliche Fehler erzeugen keine Exception.
+
+Die konkreten Validation Errors werden ausschließlich in den Validation
+Rules definiert.
+
+---
+
+## Validierungsreihenfolge
+
+Die fachlich verbindliche Validierungsreihenfolge lautet:
+
+1. Vorhandensein von `width` prüfen.
+2. Vorhandensein von `height` prüfen.
+3. Mindestwert von `width` prüfen.
+4. Mindestwert von `height` prüfen.
+5. Maximalwert von `width` prüfen.
+6. Maximalwert von `height` prüfen.
+7. Vollständiges `ImageDimensions` erzeugen.
+
+Mehrere voneinander unabhängige Fehler dürfen gemeinsam zurückgegeben
+werden.
+
+Für einen fehlenden Wert werden keine zusätzlichen Minimum- oder
+Maximumfehler erzeugt.
+
+---
+
+## Erfolgsverhalten
+
+Bei erfolgreicher Erzeugung gilt:
+
+- `width` liegt zwischen `1` und `4096`.
+- `height` liegt zwischen `1` und `4096`.
+- Das Value Object ist vollständig und unveränderlich.
+- Das Seitenverhältnis kann deterministisch berechnet werden.
+- Es wurden keine Bilddaten verarbeitet.
+- Es wurden keine Domain Events erzeugt.
+- Es wurden keine Audit- oder Versionsinformationen verändert.
+
+---
 
 ## Equality
 
-Zwei Instanzen sind gleich, wenn Breite und Höhe identisch sind.
+Zwei `ImageDimensions`-Instanzen sind fachlich gleich, wenn
+
+- ihre Breite identisch ist,
+- ihre Höhe identisch ist.
+
+---
+
+## HashCode
+
+Der Hashcode basiert auf:
+
+- `width`,
+- `height`.
+
+Er muss zur Equality-Definition konsistent sein.
+
+---
+
+## String-Darstellung
+
+Die String-Darstellung lautet:
+
+```text
+ImageDimensions(
+  width: <width>,
+  height: <height>
+)
+```
+
+Beispiel:
+
+```text
+ImageDimensions(
+  width: 1024,
+  height: 1024
+)
+```
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Value Objects sind:
+
+- Bilddaten,
+- Dateigröße,
+- Bildformat,
+- MediaType,
+- Skalierung,
+- Zuschnitt,
+- Komprimierung,
+- Orientierung,
+- EXIF-Metadaten,
+- Auflösungsänderung,
+- Upload- oder Downloadlogik,
+- Persistenz,
+- UI-Darstellung des Seitenverhältnisses.
+
+Diese Verantwortlichkeiten liegen bei den technischen Bildkomponenten und
+den jeweiligen anderen Domänentypen.
+
+---
+
+# Enumeration: ChecksumAlgorithm
+
+## Zweck
+
+`ChecksumAlgorithm` beschreibt den fachlich zulässigen Algorithmus einer
+Prüfsumme für ein bereits technisch verarbeitetes Profilbild.
+
+Die Enumeration beschreibt ausschließlich den verwendeten Algorithmus.
+
+Sie berechnet selbst keine Prüfsumme.
+
+---
+
+## Zulässige Werte
+
+```text
+sha256
+```
+
+Weitere Werte sind nicht zulässig.
+
+---
+
+## Kontrollierte Rekonstruktion
+
+Die kontrollierte Rekonstruktion erfolgt ausschließlich über:
+
+```text
+DomainResult<ChecksumAlgorithm> ChecksumAlgorithm.fromString(
+  String? value
+)
+```
+
+Es existiert keine weitere öffentliche Factory.
+
+---
+
+## Normalisierung
+
+Vor der Validierung werden ausschließlich
+
+- führende Leerzeichen entfernt,
+- nachfolgende Leerzeichen entfernt.
+
+Weitere Transformationen sind nicht zulässig.
+
+Insbesondere wird die Groß- und Kleinschreibung nicht verändert.
+
+---
+
+## Fachliche Regeln
+
+Für `ChecksumAlgorithm.fromString(...)` gilt:
+
+- `value` MUSS vorhanden sein.
+- `value` DARF nach dem Trimmen nicht leer sein.
+- Der normalisierte Wert MUSS exakt `sha256` entsprechen.
+- Groß- und Kleinschreibung werden nicht automatisch verändert.
+- Unbekannte Werte DÜRFEN nicht durch einen Standardwert ersetzt werden.
+- Unsichere oder nicht unterstützte Algorithmen sind nicht zulässig.
+- Die Enumeration MUSS unveränderlich sein.
+- Die Enumeration enthält keine Prüfsumme.
+- Die Enumeration führt keine kryptographische Berechnung durch.
+- Die Enumeration enthält keine technischen Bibliothekstypen.
+
+---
+
+## Fehlerverhalten
+
+Ist `value` nicht vorhanden, wird kein `ChecksumAlgorithm` erzeugt.
+
+Ist `value` vorhanden, aber nach dem Trimmen leer, wird kein
+`ChecksumAlgorithm` erzeugt.
+
+Entspricht der normalisierte Wert nicht exakt `sha256`, wird kein
+`ChecksumAlgorithm` erzeugt.
+
+Bei einem fachlichen Fehler gilt:
+
+- Das Ergebnis enthält mindestens einen strukturierten Validation Error.
+- Der ungültige Eingabewert wird nicht in Domain Messages oder
+  Fehlerparametern übertragen.
+- Erwartbare Validierungsfehler erzeugen keine Exception.
+
+Die konkreten Validation Errors werden ausschließlich in den Validation
+Rules definiert.
+
+---
+
+## Equality
+
+Zwei `ChecksumAlgorithm`-Werte sind fachlich gleich, wenn sie denselben
+Enumerationswert repräsentieren.
+
+---
+
+## String-Darstellung
+
+Die String-Darstellung lautet ausschließlich:
+
+```text
+sha256
+```
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieser Enumeration sind:
+
+- Berechnung von Prüfsummen,
+- kryptographische Bibliotheken,
+- Bilddaten,
+- Binärdaten,
+- Hexadezimaldarstellung,
+- Base64-Darstellung,
+- Integritätsprüfung,
+- Persistenz,
+- Upload- oder Downloadlogik.
+
+Diese Verantwortlichkeiten liegen bei den technischen Bild- und
+Speicherkomponenten sowie bei `ImageChecksum`.
 
 ---
 
@@ -4293,36 +4678,265 @@ Zwei Instanzen sind gleich, wenn Breite und Höhe identisch sind.
 
 ## Zweck
 
-`ImageChecksum` beschreibt einen Integritätswert der verarbeiteten Bilddaten.
+`ImageChecksum` repräsentiert die unveränderliche kryptographische Prüfsumme
+eines bereits technisch verarbeiteten Profilbilds.
+
+Die Prüfsumme dient ausschließlich der Integritätsprüfung und der Erkennung
+identischer Bildinhalte.
+
+Das Value Object berechnet selbst keine Prüfsumme.
+
+---
 
 ## Attribute
 
-| Attribut | Typ |
-|---|---|
-| algorithm | ChecksumAlgorithm |
-| value | String |
+| Attribut | Typ | Bedeutung |
+|---|---|---|
+| algorithm | ChecksumAlgorithm | Verwendeter Prüfsummenalgorithmus |
+| value | String | Kanonische hexadezimale Prüfsumme |
 
-## Factory
+---
+
+## Kontrollierte Erzeugung und Rekonstruktion
+
+Die kontrollierte Erzeugung und Rekonstruktion erfolgt ausschließlich über:
 
 ```text
-DomainResult<ImageChecksum> create(
-  ChecksumAlgorithm algorithm,
-  String value
+DomainResult<ImageChecksum> ImageChecksum.create(
+  ChecksumAlgorithm? algorithm,
+  String? value
 )
 ```
 
-## Regeln
+Es existiert keine weitere öffentliche Factory.
 
-- Der Algorithmus muss unterstützt werden.
-- Der Wert muss vorhanden sein.
-- Der Wert muss dem erwarteten Format des Algorithmus entsprechen.
-- Der Wert ist unveränderlich.
-- Die Checksum dient ausschließlich der Integritätsprüfung.
-- Sie ist weder Passwort-Hash noch kryptographischer Schlüssel.
+---
+
+## Unterstützter Algorithmus
+
+Für `ImageChecksum` ist aktuell ausschließlich folgender Algorithmus
+zulässig:
+
+```text
+sha256
+```
+
+Die zulässigen Algorithmen werden ausschließlich durch
+`ChecksumAlgorithm` definiert.
+
+---
+
+## Kanonisches Werteformat
+
+Für den Algorithmus `sha256` besitzt `value` exakt folgende Form:
+
+- exakt 64 Zeichen,
+- ausschließlich Ziffern von `0` bis `9`,
+- ausschließlich Kleinbuchstaben von `a` bis `f`,
+- keine Großbuchstaben,
+- keine Trennzeichen,
+- keine Leerzeichen,
+- kein Präfix.
+
+Das verbindliche Muster lautet:
+
+```text
+^[a-f0-9]{64}$
+```
+
+Beispiel:
+
+```text
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+```
+
+Nicht zulässig sind insbesondere:
+
+```text
+SHA256:e3b0...
+```
+
+```text
+sha256:e3b0...
+```
+
+```text
+E3B0C442...
+```
+
+```text
+e3b0 c442...
+```
+
+---
+
+## Normalisierung
+
+Vor der Formatprüfung werden ausschließlich
+
+- führende Leerzeichen entfernt,
+- nachfolgende Leerzeichen entfernt.
+
+Weitere Transformationen sind nicht zulässig.
+
+Insbesondere werden
+
+- Großbuchstaben nicht in Kleinbuchstaben umgewandelt,
+- Präfixe nicht entfernt,
+- innere Leerzeichen nicht entfernt,
+- Werte nicht gekürzt,
+- fehlende Zeichen nicht ergänzt.
+
+Der normalisierte Wert wird unverändert gespeichert.
+
+---
+
+## Fachliche Regeln
+
+Für `ImageChecksum.create(...)` gilt:
+
+- `algorithm` MUSS vorhanden und gültig sein.
+- `value` MUSS vorhanden sein.
+- `value` DARF nach dem Trimmen nicht leer sein.
+- `value` MUSS dem für `algorithm` definierten Format entsprechen.
+- Für `sha256` MUSS `value` exakt 64 kleingeschriebene Hexadezimalzeichen
+  enthalten.
+- Das Value Object MUSS unveränderlich sein.
+- Die Prüfsumme DARF nicht automatisch korrigiert oder normalisiert werden.
+- Die Prüfsumme DARF nicht aus Metadaten wie Dateiname, Referenz oder
+  Dimensionen abgeleitet werden.
+- Das Value Object DARF keine Bilddaten enthalten.
+- Das Value Object DARF keine kryptographische Berechnung durchführen.
+- Technische Bibliothekstypen DÜRFEN nicht Bestandteil der öffentlichen
+  Domain-Schnittstelle sein.
+
+---
+
+## Fehlerverhalten
+
+Ist `algorithm` nicht vorhanden, wird kein `ImageChecksum` erzeugt.
+
+Ist `value` nicht vorhanden, wird kein `ImageChecksum` erzeugt.
+
+Ist `value` vorhanden, ergibt aber nach dem Trimmen einen leeren Wert, wird
+kein `ImageChecksum` erzeugt.
+
+Entspricht der normalisierte Wert nicht dem für den Algorithmus definierten
+Format, wird kein `ImageChecksum` erzeugt.
+
+Bei einem fachlichen Fehler gilt:
+
+- Das Ergebnis enthält mindestens einen strukturierten Validation Error.
+- Es entsteht kein teilweise gültiges Value Object.
+- Der ungültige Prüfsummenwert wird nicht in Domain Messages oder
+  Fehlerparametern übertragen.
+- Erwartbare fachliche Fehler erzeugen keine Exception.
+
+Die konkreten Validation Errors werden ausschließlich in den Validation
+Rules definiert.
+
+---
+
+## Validierungsreihenfolge
+
+Die Validierung erfolgt in dieser Reihenfolge:
+
+1. Vorhandensein von `algorithm` prüfen.
+2. Vorhandensein von `value` prüfen.
+3. Führende und nachfolgende Leerzeichen von `value` entfernen.
+4. Leeren normalisierten Wert prüfen.
+5. Algorithmusspezifisches Format prüfen.
+6. Vollständiges unveränderliches `ImageChecksum` erzeugen.
+
+Ein fehlender Algorithmus verhindert keine Prüfung eines unabhängig
+fehlenden oder leeren Werts.
+
+Eine Formatprüfung erfolgt nur, wenn
+
+- `algorithm` vorhanden ist,
+- `value` vorhanden ist,
+- der normalisierte Wert nicht leer ist.
+
+---
+
+## Erfolgsverhalten
+
+Bei erfolgreicher Erzeugung gilt:
+
+- `algorithm` ist vorhanden und gültig.
+- `value` entspricht dem kanonischen Format des Algorithmus.
+- Für `sha256` enthält `value` exakt 64 kleingeschriebene
+  Hexadezimalzeichen.
+- Das Value Object ist vollständig und unveränderlich.
+- Es wurden keine Bilddaten verarbeitet.
+- Es wurde keine Prüfsumme berechnet.
+- Es wurden keine Domain Events erzeugt.
+- Es wurden keine Audit- oder Versionsinformationen verändert.
+
+---
 
 ## Equality
 
-Die Gleichheit richtet sich nach Algorithmus und normalisiertem Checksum-Wert.
+Zwei `ImageChecksum`-Instanzen sind fachlich gleich, wenn
+
+- ihre Algorithmen fachlich gleich sind,
+- ihre normalisierten Prüfsummenwerte identisch sind.
+
+---
+
+## HashCode
+
+Der Hashcode basiert auf:
+
+- `algorithm`,
+- `value`.
+
+Er muss zur Equality-Definition konsistent sein.
+
+---
+
+## Sichere String-Darstellung
+
+Die vollständige Prüfsumme soll nicht unnötig in sichtbaren Ausgaben
+offengelegt werden.
+
+Die sichere String-Darstellung lautet:
+
+```text
+ImageChecksum(
+  algorithm: <algorithm>,
+  value: <redacted>
+)
+```
+
+Beispiel:
+
+```text
+ImageChecksum(
+  algorithm: sha256,
+  value: <redacted>
+)
+```
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Value Objects sind:
+
+- Berechnung der Prüfsumme,
+- Bilddaten,
+- Dateidaten,
+- kryptographische Bibliotheken,
+- Datei- oder Bildzugriffe,
+- Vergleich mit externen Dateien,
+- Upload- und Downloadlogik,
+- Persistenz,
+- Speicheranbieter,
+- automatische Integritätsprüfung.
+
+Diese Verantwortlichkeiten liegen bei den technischen Bild-,
+Speicher- und Integritätskomponenten.
 
 ---
 
@@ -5769,42 +6383,118 @@ Es ist nicht identisch mit einem persistenten Audit Trail.
 | updatedAt | Timestamp |
 | version | AggregateVersion |
 
-## Factory
+## Kontrollierte Erzeugung
+
+Die kontrollierte initiale Erzeugung erfolgt ausschließlich über:
 
 ```text
-DomainResult<AuditInformation> createInitial(
-  Timestamp now
+DomainResult<AuditInformation> AuditInformation.createInitial(
+  Timestamp? now
 )
 ```
 
-## Initialzustand
+Bei Erfolg gilt:
 
-Bei erfolgreicher Erzeugung gilt:
+```text
+createdAt = now
+updatedAt = now
+version = AggregateVersion.createInitial()
+```
 
-- `createdAt` entspricht `now`.
-- `updatedAt` entspricht `now`.
-- `version` entspricht dem definierten Initialwert.
+---
+
+## Kontrollierte Rekonstruktion
+
+Die kontrollierte Rekonstruktion erfolgt ausschließlich über:
+
+```text
+DomainResult<AuditInformation> AuditInformation.reconstruct(
+  Timestamp? createdAt,
+  Timestamp? updatedAt,
+  AggregateVersion? version
+)
+```
+
+Die Rekonstruktionsfactory prüft den vollständigen Zustand.
+
+Es existiert keine weitere öffentliche Factory.
+
+---
 
 ## Fachliche Operation
 
 ```text
 DomainResult<AuditInformation> touchAndIncrement(
-  Timestamp now
+  Timestamp? now
 )
 ```
 
-## Preconditions
+Bei Erfolg gilt:
 
-- `now` liegt nicht vor `createdAt`.
-- `now` liegt nicht vor dem bisherigen `updatedAt`.
-- Die zugehörige fachliche Änderung war erfolgreich.
+- `createdAt` bleibt unverändert,
+- `updatedAt` entspricht `now`,
+- `version` wird durch `version.next()` genau einmal erhöht.
 
-## Postconditions
+---
 
-- `createdAt` bleibt unverändert.
-- `updatedAt` entspricht `now`.
-- Die Version wurde genau einmal erhöht.
-- Eine neue unveränderliche Instanz wurde erzeugt.
+## Fachliche Regeln
+
+Für `AuditInformation` gilt:
+
+- `createdAt` MUSS vorhanden und gültig sein.
+- `updatedAt` MUSS vorhanden und gültig sein.
+- `version` MUSS vorhanden und gültig sein.
+- `updatedAt` DARF nicht vor `createdAt` liegen.
+- `now` MUSS für `createInitial(...)` und `touchAndIncrement(...)`
+  vorhanden sein.
+- `touchAndIncrement(...)` DARF keinen Zeitpunkt vor `createdAt`
+  akzeptieren.
+- `touchAndIncrement(...)` DARF keinen Zeitpunkt vor `updatedAt`
+  akzeptieren.
+- Eine erfolgreiche fachliche Änderung erhöht die Version genau einmal.
+- Eine fehlgeschlagene Operation verändert keinen Bestandteil.
+- Ein erfolgreicher No Change wird nicht durch `AuditInformation` selbst
+  erzeugt.
+- Das Value Object ist unveränderlich.
+- Es greift nicht auf eine technische Systemuhr zu.
+
+---
+
+## Fehlerweitergabe
+
+Schlägt
+
+```text
+AggregateVersion.next()
+```
+
+fehl, wird der ursprüngliche Fehler unverändert weitergegeben.
+
+Insbesondere wird
+
+```text
+PRO-VAL-AGGVER-004
+```
+
+nicht in einen `PRO-VAL-AUDIT-*`-Fehler umgewandelt.
+
+Dadurch bleibt die fachliche Zuständigkeit des enthaltenen Value Objects
+erhalten.
+
+---
+
+## Fehlerverhalten
+
+Bei einem fachlichen Fehler gilt:
+
+- Es wird kein neues `AuditInformation` erzeugt.
+- Der bestehende Zustand bleibt unverändert.
+- Es entsteht kein teilweise aktualisierter Zustand.
+- Das Ergebnis enthält mindestens einen strukturierten Validation Error.
+- Erwartbare Validierungsfehler erzeugen keine Exception.
+
+Die konkreten Validation Errors werden ausschließlich in den Validation
+Rules definiert.
 
 ## Regeln
 
@@ -7385,7 +8075,16 @@ large
 
 # Enumeration: MediaType
 
-## Werte
+## Zweck
+
+`MediaType` beschreibt das fachlich zulässige Medienformat eines bereits
+technisch verarbeiteten Profilbilds.
+
+Die Enumeration enthält ausschließlich unterstützte Bildmedientypen.
+
+---
+
+## Zulässige Werte
 
 ```text
 image/jpeg
@@ -7393,11 +8092,111 @@ image/png
 image/webp
 ```
 
-## Regeln
+Weitere Werte sind nicht zulässig.
 
-- Nur freigegebene Profilbildformate sind zulässig.
-- Eine Dateiendung allein bestimmt den Medientyp nicht.
-- Die technische Inhaltsprüfung erfolgt außerhalb der Domäne.
+---
+
+## Kontrollierte Rekonstruktion
+
+Die kontrollierte Rekonstruktion erfolgt ausschließlich über:
+
+```text
+DomainResult<MediaType> MediaType.fromString(
+  String? value
+)
+```
+
+Es existiert keine weitere öffentliche Factory.
+
+---
+
+## Normalisierung
+
+Vor der Validierung werden ausschließlich
+
+- führende Leerzeichen entfernt,
+- nachfolgende Leerzeichen entfernt.
+
+Weitere Transformationen sind nicht zulässig.
+
+Insbesondere wird die Groß- und Kleinschreibung nicht verändert.
+
+---
+
+## Fachliche Regeln
+
+Für `MediaType.fromString(...)` gilt:
+
+- `value` MUSS vorhanden sein.
+- `value` DARF nach dem Trimmen nicht leer sein.
+- Der normalisierte Wert MUSS exakt einem der zulässigen Werte entsprechen.
+- Groß- und Kleinschreibung werden nicht automatisch verändert.
+- Unbekannte Medientypen DÜRFEN nicht durch einen Standardwert ersetzt
+  werden.
+- Die Enumeration MUSS unveränderlich sein.
+- Die Enumeration DARF keine Bilddaten enthalten.
+- Die Enumeration DARF keine Dateiendung ableiten oder prüfen.
+- Die Enumeration beschreibt ausschließlich den bereits festgestellten
+  Medientyp.
+
+---
+
+## Fehlerverhalten
+
+Ist `value` nicht vorhanden, wird kein `MediaType` erzeugt.
+
+Ist `value` vorhanden, aber nach dem Trimmen leer, wird kein `MediaType`
+erzeugt.
+
+Entspricht der normalisierte Wert keinem zulässigen Medientyp, wird kein
+`MediaType` erzeugt.
+
+Bei einem fachlichen Fehler gilt:
+
+- Das Ergebnis enthält mindestens einen strukturierten Validation Error.
+- Der ungültige Eingabewert wird nicht in Domain Messages oder
+  Fehlerparametern übertragen.
+- Erwartbare Validierungsfehler erzeugen keine Exception.
+
+Die konkreten Validation Errors werden ausschließlich in den Validation
+Rules definiert.
+
+---
+
+## Equality
+
+Zwei `MediaType`-Werte sind fachlich gleich, wenn sie denselben
+Enumerationswert repräsentieren.
+
+---
+
+## String-Darstellung
+
+Die String-Darstellung entspricht exakt einem der Werte:
+
+```text
+image/jpeg
+image/png
+image/webp
+```
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieser Enumeration sind:
+
+- Dateiendungen,
+- Bilddaten,
+- MIME-Erkennung,
+- Content Sniffing,
+- Uploadvalidierung,
+- Bilddekodierung,
+- Komprimierung,
+- Persistenz,
+- UI-Anzeigetexte.
+
+Diese Verantwortlichkeiten liegen bei den technischen Bildkomponenten.
 
 ---
 
@@ -13651,57 +14450,314 @@ Domain Events enthalten keine:
 
 ### Zweck
 
-`DomainEvent` ist die gemeinsame Basisklasse aller fachlichen Ereignisse.
+`DomainEvent` ist der gemeinsame abstrakte Basistyp aller fachlichen Domain
+Events.
+
+Ein Domain Event repräsentiert ausschließlich eine bereits erfolgreich
+eingetretene fachliche Tatsache.
 
 ---
 
-## Attribute
+### Typ
+
+```text
+abstract class DomainEvent<TAggregateId>
+```
+
+`DomainEvent` ist kein frei instanziierbares Datenobjekt.
+
+Konkrete Events werden durch konkrete Eventtypen implementiert.
+
+---
+
+### Gemeinsame Attribute
 
 | Attribut | Typ |
-|-----------|-----|
+|---|---|
 | eventId | DomainEventId |
 | eventType | EventType |
 | category | EventCategory |
-| aggregateId | AggregateId |
+| aggregateId | TAggregateId |
 | aggregateVersion | AggregateVersion |
 | occurredAt | Timestamp |
-| metadata | EventMetadata |
+| metadata | EventMetadata<TAggregateId> |
 
 ---
 
-## Regeln
+### Invarianten
 
-Alle Attribute sind Pflichtattribute.
-
-Die Basisklasse besitzt keinerlei Änderungsoperationen.
+- Alle Attribute sind Pflichtwerte.
+- `metadata.aggregateId` MUSS fachlich derselben Aggregate-ID entsprechen wie
+  `aggregateId`.
+- `occurredAt` ist ein bereits gültiger `Timestamp`.
+- `aggregateVersion` bezeichnet die Version nach der erfolgreich
+  abgeschlossenen fachlichen Änderung.
+- Events sind vollständig unveränderlich.
+- Events besitzen keine Publishing-Logik.
+- Events besitzen keine Repositorylogik.
 
 ---
 
-# DomainEventId
+### Identität
+
+Ein Domain Event wird ausschließlich durch
+
+```text
+DomainEventId
+```
+
+identifiziert.
+
+---
+
+### Equality
+
+Zwei Domain Events sind identisch, wenn ihre `DomainEventId` identisch ist.
+
+Payload oder Metadaten verändern die Identität nicht.
+
+---
+
+### Payload
+
+Die fachliche Payload wird ausschließlich durch den jeweiligen konkreten
+Eventtyp definiert.
+
+Der Basistyp definiert kein generisches `Map<String, dynamic>`.
+
+Dadurch bleiben konkrete Events statisch typisiert.
+
+---
+
+### Rekonstruktion
+
+Jeder konkrete Eventtyp definiert seine eigene kontrollierte
+Rekonstruktionsfactory.
+
+Der allgemeine Basistyp besitzt keine universelle JSON- oder
+Map-Rekonstruktionsfactory.
+
+Serialisierung gehört nicht in den Domain-Basistyp.
+
+---
+
+### Sichere String-Darstellung
+
+Die Basisausgabe darf enthalten:
+
+- eventId,
+- eventType,
+- category,
+- aggregateId,
+- aggregateVersion,
+- occurredAt.
+
+Sensible Payload-Inhalte dürfen niemals ungefiltert ausgegeben werden.
+
+---
+
+### Abgrenzung
+
+Nicht Bestandteil von `DomainEvent` sind:
+
+- Publishing,
+- Outbox,
+- Retry,
+- Event Store,
+- Message Broker,
+- JSON,
+- Datenbankmapping.
+
+---
+
+# Value Object: DomainEventId
 
 ## Zweck
 
-Eindeutige Identität eines Domain Events.
+`DomainEventId` repräsentiert die unveränderliche technische Identität eines
+einzelnen Domain Events.
+
+Jedes Domain Event besitzt genau eine `DomainEventId`.
+
+Die Event-ID dient ausschließlich der eindeutigen Identifikation eines
+einzelnen Ereignisses.
+
+Sie ist nicht identisch mit einer Aggregate-ID oder einer Profile-ID.
 
 ---
 
-## Typ
+## Interne Repräsentation
 
 ```text
-UUID
+UUID Version 7
+```
+
+Intern wird ausschließlich die kanonische String-Darstellung gespeichert.
+
+Die öffentliche Domain-Schnittstelle enthält keine Typen technischer
+UUID-Bibliotheken.
+
+---
+
+## Kontrollierte Neuerzeugung
+
+```text
+DomainResult<DomainEventId> DomainEventId.generate()
+```
+
+### Regeln
+
+- Es MUSS eine UUID Version 7 erzeugt werden.
+- Jede erzeugte UUID MUSS eindeutig sein.
+- Die UUID MUSS in kanonischer Kleinschreibung gespeichert werden.
+- Es entstehen keine Validation Errors.
+- Unerwartete technische Fehler sind keine fachlichen Validierungsfehler.
+
+---
+
+## Kontrollierte Rekonstruktion
+
+```text
+DomainResult<DomainEventId> DomainEventId.fromString(
+  String? value
+)
 ```
 
 ---
 
-## Factory
+## Normalisierung
+
+Vor der Validierung werden ausschließlich
+
+- führende Leerzeichen entfernt,
+- nachfolgende Leerzeichen entfernt.
+
+Eine gültige UUID wird anschließend in kanonischer Kleinschreibung
+gespeichert.
+
+Weitere Transformationen sind nicht zulässig.
+
+---
+
+## Zulässiges Format
+
+Es wird ausschließlich eine UUID Version 7 akzeptiert.
+
+Beispiel:
 
 ```text
-DomainResult<DomainEventId>
-
-generate()
-
-fromString(value)
+0198a6f4-2cb4-7d21-8c31-45d1e89fd137
 ```
+
+Andere UUID-Versionen sind unzulässig.
+
+---
+
+## Fachliche Regeln
+
+Für `DomainEventId.fromString(...)` gilt:
+
+- `value` MUSS vorhanden sein.
+- `value` DARF nach dem Trimmen nicht leer sein.
+- `value` MUSS eine gültige UUID Version 7 repräsentieren.
+- Das Value Object MUSS unveränderlich sein.
+- Eine Event-ID DARF nicht als Aggregate-ID verwendet werden.
+- Eine Aggregate-ID DARF nicht als Event-ID verwendet werden.
+- Eine Event-ID DARF nicht mehrfach für verschiedene Domain Events verwendet werden.
+- Die globale technische Eindeutigkeit wird nicht durch die Domain geprüft.
+
+---
+
+## Fehlerverhalten
+
+Ist `value` nicht vorhanden,
+
+wird keine `DomainEventId` erzeugt.
+
+Ist `value` nach dem Trimmen leer,
+
+wird keine `DomainEventId` erzeugt.
+
+Ist `value` keine gültige UUID Version 7,
+
+wird keine `DomainEventId` erzeugt.
+
+Bei einem fachlichen Fehler gilt:
+
+- Das Ergebnis enthält strukturierte Validation Errors.
+- Es entsteht keine teilweise gültige Instanz.
+- Der ungültige Eingabewert wird nicht in Fehlerparametern übertragen.
+- Erwartbare Validierungsfehler erzeugen keine Exception.
+
+Die konkreten Validation Errors werden ausschließlich in den Validation Rules definiert.
+
+---
+
+## Validierungsreihenfolge
+
+1. Vorhandensein prüfen.
+2. Trimmen.
+3. Leerwert prüfen.
+4. UUID-Syntax prüfen.
+5. UUID-Version prüfen.
+6. Kanonische Kleinschreibung herstellen.
+7. DomainEventId erzeugen.
+
+Ein fehlender Wert erzeugt keinen zusätzlichen Blank- oder Formatfehler.
+
+Ein leerer Wert erzeugt keinen zusätzlichen Formatfehler.
+
+---
+
+## Erfolgsverhalten
+
+Bei erfolgreicher Erzeugung gilt:
+
+- gültige UUID Version 7
+- kanonische Kleinschreibung
+- unveränderliches Value Object
+- keine Domain Events erzeugt
+- keine Auditinformationen verändert
+
+---
+
+## Equality
+
+Zwei `DomainEventId` sind gleich, wenn ihre kanonischen UUID-Werte identisch sind.
+
+---
+
+## HashCode
+
+Der HashCode basiert ausschließlich auf dem kanonischen UUID-Wert.
+
+---
+
+## String-Darstellung
+
+```text
+DomainEventId(<uuid>)
+```
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Value Objects sind:
+
+- AggregateId
+- ProfileId
+- EventMetadata
+- CorrelationId
+- CausationId
+- EventProducer
+- EventSchemaVersion
+- DomainEvent
+- EventStore
+- EventPublishing
+- EventBuffer
+
+Diese Verantwortlichkeiten liegen bei den jeweiligen Event-Komponenten.
 
 ---
 
@@ -13718,35 +14774,248 @@ fromString(value)
 
 ## Zweck
 
-Beschreibt den fachlichen Ereignistyp.
+`EventType` beschreibt den stabilen fachlichen Typ eines Domain Events.
+
+Der Wert identifiziert eindeutig, welcher fachliche Sachverhalt durch das
+Event beschrieben wird.
+
+`EventType` enthält keine Lokalisierung und keine technische
+Transportinformation.
 
 ---
 
-## Beispiele
+## Typ
+
+`EventType` ist ein unveränderliches Value Object mit einer kanonischen
+String-Repräsentation.
+
+Es ist keine frei erweiterbare Zeichenkette.
+
+Im Profile Bounded Context sind ausschließlich die in diesem Abschnitt
+definierten Werte zulässig.
+
+---
+
+## Zulässige Werte
+
+Für das Profile-Modul sind ausschließlich folgende Eventtypen zulässig:
 
 ```text
 ProfileCreated
-
-ProfileDeleted
-
-ProfileArchived
-
+ProfileNameChanged
+ProfileBirthYearChanged
+ProfileHeightChanged
+ProfileGenderChanged
+ProfileColorChanged
 ProfileActivated
-
+ProfileDeactivated
+ProfileArchived
+ProfileRestored
+ProfileMarkedAsDefault
+ProfileDefaultRemoved
+ProfileLanguageChanged
+ProfileMeasurementSystemChanged
+ProfileDashboardSettingsChanged
+ProfileAppearanceSettingsChanged
+ProfilePasswordProtectionEnabled
+ProfilePasswordProtectionDisabled
 ProfilePasswordChanged
-
+ProfileLocked
+ProfileUnlocked
 ProfileImageReplaced
+ProfileImageRemoved
+ProfileDeleted
+ProfileUpdated
+```
+
+Weitere Werte sind im Profile Bounded Context nicht zulässig.
+
+`ProfileUpdated` ist ein optionales generisches Ereignis.
+
+Es darf spezifische Events nicht ersetzen.
+
+---
+
+## Kontrollierte Rekonstruktion
+
+Die kontrollierte Rekonstruktion erfolgt ausschließlich über:
+
+```text
+DomainResult<EventType> EventType.fromString(
+  String? value
+)
+```
+
+Es existiert keine weitere öffentliche Rekonstruktionsfactory.
+
+---
+
+## Normalisierung
+
+Vor der Validierung werden ausschließlich
+
+- führende Leerzeichen entfernt,
+- nachfolgende Leerzeichen entfernt.
+
+Weitere Transformationen sind nicht zulässig.
+
+Insbesondere wird
+
+- die Groß- und Kleinschreibung nicht verändert,
+- kein Präfix ergänzt,
+- kein Suffix ergänzt,
+- kein unbekannter Wert auf einen bekannten Wert abgebildet.
+
+Der normalisierte Wert muss exakt einem der zulässigen Werte entsprechen.
+
+---
+
+## Fachliche Regeln
+
+Für `EventType.fromString(...)` gilt:
+
+- `value` MUSS vorhanden sein.
+- `value` DARF nach dem Trimmen nicht leer sein.
+- Der normalisierte Wert MUSS exakt einem dokumentierten Eventtyp
+  entsprechen.
+- Groß- und Kleinschreibung sind Bestandteil des kanonischen Wertes.
+- Unbekannte Werte DÜRFEN nicht durch einen Standardwert ersetzt werden.
+- Ein Eventtyp MUSS stabil bleiben.
+- Ein bestehender Eventtyp DARF später nicht für einen anderen fachlichen
+  Sachverhalt wiederverwendet werden.
+- Ein Eventtyp enthält keine Lokalisierung.
+- Ein Eventtyp enthält keine Schema-Version.
+- Die Schema-Version eines Events wird ausschließlich durch
+  `EventSchemaVersion` beschrieben.
+- Technische Ereignisse wie `DatabaseSaved`, `FileWritten` oder
+  `HttpRequestCompleted` sind nicht zulässig.
+
+---
+
+## Fehlerverhalten
+
+Ist `value` nicht vorhanden, wird kein `EventType` erzeugt.
+
+Ist `value` vorhanden, aber nach dem Trimmen leer, wird kein `EventType`
+erzeugt.
+
+Entspricht der normalisierte Wert keinem zulässigen Eventtyp, wird kein
+`EventType` erzeugt.
+
+Bei einem fachlichen Fehler gilt:
+
+- Das Ergebnis enthält mindestens einen strukturierten Validation Error.
+- Es entsteht kein teilweise gültiger Wert.
+- Der ungültige Eingabewert wird nicht in Domain Messages oder
+  Fehlerparametern übertragen.
+- Erwartbare Validierungsfehler erzeugen keine Exception.
+
+Die konkreten Validation Errors werden ausschließlich in den Validation
+Rules definiert.
+
+---
+
+## Validierungsreihenfolge
+
+Für `EventType.fromString(...)` gilt:
+
+1. Vorhandensein von `value` prüfen.
+2. Führende und nachfolgende Leerzeichen entfernen.
+3. Leeren normalisierten Wert prüfen.
+4. Exakte Übereinstimmung mit einem zulässigen Eventtyp prüfen.
+5. Unveränderlichen `EventType` erzeugen.
+
+Ein fehlender Wert erzeugt keinen zusätzlichen Blank- oder Enum-Fehler.
+
+Ein leerer normalisierter Wert erzeugt keinen zusätzlichen Enum-Fehler.
+
+---
+
+## Erfolgsverhalten
+
+Bei erfolgreicher Rekonstruktion gilt:
+
+- Der Wert entspricht exakt einem dokumentierten Eventtyp.
+- Die kanonische Groß- und Kleinschreibung bleibt erhalten.
+- Das Value Object ist unveränderlich.
+- Es wurden keine Domain Events erzeugt.
+- Es wurden keine Audit- oder Versionsinformationen verändert.
+
+---
+
+## Equality
+
+Zwei `EventType`-Instanzen sind fachlich gleich, wenn ihre kanonischen
+String-Werte identisch sind.
+
+---
+
+## HashCode
+
+Der Hashcode basiert ausschließlich auf dem kanonischen Eventtyp.
+
+Er muss zur Equality-Definition konsistent sein.
+
+---
+
+## String-Darstellung
+
+Die String-Darstellung entspricht exakt dem kanonischen Eventtyp.
+
+Beispiel:
+
+```text
+ProfileCreated
+```
+
+oder:
+
+```text
+ProfilePasswordChanged
 ```
 
 ---
 
-## Regeln
+## Versionierung
 
-Der Typ
+`EventType` und `EventSchemaVersion` besitzen unterschiedliche
+Verantwortlichkeiten.
 
-- ist stabil,
-- wird versioniert,
-- enthält keine Lokalisierung.
+`EventType` beschreibt:
+
+```text
+welches fachliche Ereignis eingetreten ist
+```
+
+`EventSchemaVersion` beschreibt:
+
+```text
+welche Strukturversion dieses Ereignis besitzt
+```
+
+Eine neue Schema-Version erzeugt daher nicht automatisch einen neuen
+`EventType`.
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil von `EventType` sind:
+
+- EventSchemaVersion,
+- EventCategory,
+- DomainEventId,
+- AggregateId,
+- AggregateVersion,
+- EventMetadata,
+- Eventdaten,
+- Event-Publishing,
+- Routingkonfiguration,
+- technische Topic- oder Queue-Namen,
+- lokalisierte Anzeigetexte.
+
+Diese Verantwortlichkeiten liegen bei den jeweiligen Event-Typen und den
+technischen Event-Komponenten.
 
 ---
 
@@ -13754,58 +15023,236 @@ Der Typ
 
 ## Zweck
 
-Ordnet Events fachlichen Kategorien zu.
+`EventCategory` klassifiziert Domain Events nach ihrer fachlichen Bedeutung.
+
+Die Kategorie dient ausschließlich der fachlichen Gruppierung.
+
+Sie ist
+
+- kein Eventtyp,
+- keine Routinginformation,
+- kein Queue- oder Topic-Name,
+- keine technische Priorität.
 
 ---
 
-## Beispielwerte
+## Typ
+
+`EventCategory` ist eine unveränderliche Enumeration.
+
+---
+
+## Zulässige Werte
+
+Im Profile Bounded Context sind ausschließlich folgende Kategorien zulässig:
 
 ```text
-ProfileLifecycle
+lifecycle
+masterData
+preferences
+security
+media
+general
+```
 
-ProfileSecurity
+### lifecycle
 
-ProfileImage
+Lebenszyklusänderungen eines Profils.
 
-ProfileSettings
+Beispiele:
 
-Import
+```text
+ProfileCreated
+ProfileActivated
+ProfileDeactivated
+ProfileArchived
+ProfileRestored
+ProfileDeleted
+```
 
-Export
+### masterData
+
+Änderungen fachlicher Profildaten.
+
+Beispiele:
+
+```text
+ProfileNameChanged
+ProfileBirthYearChanged
+ProfileHeightChanged
+ProfileGenderChanged
+ProfileColorChanged
+```
+
+### preferences
+
+Änderungen von Profileinstellungen und Präferenzen.
+
+Beispiele:
+
+```text
+ProfileMarkedAsDefault
+ProfileDefaultRemoved
+ProfileLanguageChanged
+ProfileMeasurementSystemChanged
+ProfileDashboardSettingsChanged
+ProfileAppearanceSettingsChanged
+```
+
+### security
+
+Sicherheitsrelevante Änderungen.
+
+Beispiele:
+
+```text
+ProfilePasswordProtectionEnabled
+ProfilePasswordProtectionDisabled
+ProfilePasswordChanged
+ProfileLocked
+ProfileUnlocked
+```
+
+### media
+
+Änderungen am Profilbild.
+
+Beispiele:
+
+```text
+ProfileImageReplaced
+ProfileImageRemoved
+```
+
+### general
+
+Generische fachliche Ereignisse.
+
+Beispiel:
+
+```text
+ProfileUpdated
+```
+
+`general` darf spezifischere Kategorien nicht ersetzen, wenn eine
+eindeutige spezifische Kategorie existiert.
+
+---
+
+## Kontrollierte Rekonstruktion
+
+```text
+DomainResult<EventCategory> EventCategory.fromString(
+  String? value
+)
 ```
 
 ---
 
-## Nutzen
+## Normalisierung
 
-Erleichtert
+Vor der Validierung werden ausschließlich
 
-- Routing,
-- Filterung,
-- Monitoring,
-- Dokumentation.
+- führende Leerzeichen entfernt,
+- nachfolgende Leerzeichen entfernt.
+
+Die Groß- und Kleinschreibung wird nicht verändert.
 
 ---
 
-# AggregateId
+## Fachliche Regeln
 
-## Zweck
+- `value` MUSS vorhanden sein.
+- `value` DARF nach dem Trimmen nicht leer sein.
+- Der Wert MUSS exakt einem dokumentierten Kategorienamen entsprechen.
+- Unbekannte Kategorien DÜRFEN nicht automatisch ersetzt werden.
+- Die Kategorie ist unveränderlich.
+- Die Kategorie enthält keine technische Routinginformation.
 
-Referenz auf das Aggregate,
+---
 
-welches das Event erzeugt hat.
+## Equality
+
+Zwei Werte sind gleich, wenn sie dieselbe Kategorie repräsentieren.
+
+---
+
+## String-Darstellung
+
+Die String-Darstellung entspricht exakt dem kanonischen Wert.
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil von `EventCategory` sind:
+
+- EventType,
+- EventSchemaVersion,
+- technische Topics,
+- Queue-Namen,
+- Transportprotokolle,
+- Logging-Kategorien.
+
+---
+
+# Aggregate-ID in Domain Events
+
+## Grundsatz
+
+Die Event-Basis definiert keinen allgemeinen `AggregateId`-Wrapper.
+
+Domain Events verwenden stattdessen die konkrete typisierte ID des
+betroffenen Aggregate Roots.
+
+Für das Profile-Aggregate ist dies:
+
+```text
+ProfileId
+```
+
+Andere Aggregate verwenden später ihre jeweilige eigene konkrete ID.
+
+Beispiele:
+
+```text
+ProfileId
+MeasurementId
+MedicationId
+```
+
+Dadurch bleibt die fachliche Typsicherheit erhalten.
+
+---
+
+## Technische Umsetzung
+
+Die allgemeinen Event-Basistypen werden über den konkreten Aggregate-ID-Typ
+parametrisiert.
+
+Beispiel:
+
+```text
+DomainEvent<ProfileId>
+```
+
+und:
+
+```text
+EventMetadata<ProfileId>
+```
 
 ---
 
 ## Regeln
 
-Die ID
-
-identifiziert genau
-
-ein
-
-Aggregate.
+- Eine `ProfileId` DARF nicht als ID eines anderen Aggregattyps verwendet
+  werden.
+- Es findet keine unkontrollierte Konvertierung in einen allgemeinen String
+  statt.
+- Die Event-Basis führt keinen zusätzlichen Aggregate-ID-Namespace ein.
+- Persistenz- oder Transportformate dürfen die fachliche Typsicherheit
+  innerhalb der Domain nicht aufheben.
 
 ---
 
@@ -13835,204 +15282,481 @@ des erfolgreich geänderten Aggregates entsprechen.
 
 ---
 
-# OccurredAt
+# occurredAt
+
+`occurredAt` ist kein eigenständiges Value Object.
+
+Es bezeichnet ausschließlich die semantische Rolle eines vorhandenen
+`Timestamp`.
+
+Der Typ lautet:
+
+```text
+Timestamp
+```
+
+Der Zeitpunkt wird der Event-Erzeugung ausdrücklich von außen übergeben.
+
+Domain Events greifen niemals direkt auf die technische Systemzeit zu.
+
+Für die Erzeugung eines Events gilt deshalb:
+
+```text
+Timestamp occurredAt
+```
+
+Der Wert MUSS den Zeitpunkt repräsentieren, zu dem die fachliche Änderung
+erfolgreich abgeschlossen wurde.
+
+---
+
+# Value Object: EventMetadata
 
 ## Zweck
 
-Zeitpunkt,
+`EventMetadata` bündelt die allgemeinen Metadaten eines Domain Events.
 
-an dem das Ereignis fachlich eingetreten ist.
+Es enthält keine fachliche Event-Payload.
 
 ---
 
 ## Typ
 
 ```text
-Timestamp
+EventMetadata<TAggregateId>
 ```
 
----
+Der generische Typ erhält die konkrete fachliche ID des Aggregate Roots.
 
-## Regeln
-
-Der Zeitpunkt
-
-stammt
-
-ausschließlich
-
-aus
+Für Profile Events gilt:
 
 ```text
-Clock
+EventMetadata<ProfileId>
 ```
-
----
-
-# EventMetadata
-
-## Zweck
-
-Zusätzliche Informationen,
-
-die
-
-nicht
-
-zum eigentlichen Fachinhalt gehören.
 
 ---
 
 ## Attribute
 
-| Attribut | Typ |
-|-----------|-----|
-| correlationId | CorrelationId? |
-| causationId | CausationId? |
-| producer | EventProducer |
-| schemaVersion | EventSchemaVersion |
+| Attribut | Typ | Nullability |
+|---|---|---|
+| aggregateId | TAggregateId | Pflicht |
+| correlationId | CorrelationId? | optional |
+| causationId | CausationId? | optional |
+| producer | EventProducer | Pflicht |
+| schemaVersion | EventSchemaVersion | Pflicht |
+
+`DomainEventId`, `EventType`, `occurredAt` und `AggregateVersion` gehören
+zum `DomainEvent` selbst und werden nicht in `EventMetadata` dupliziert.
+
+---
+
+## Kontrollierte Erzeugung und Rekonstruktion
+
+```text
+DomainResult<EventMetadata<TAggregateId>> EventMetadata.create(
+  TAggregateId? aggregateId,
+  CorrelationId? correlationId,
+  CausationId? causationId,
+  EventProducer? producer,
+  EventSchemaVersion? schemaVersion
+)
+```
+
+---
+
+## Fachliche Regeln
+
+- `aggregateId` MUSS vorhanden sein.
+- `producer` MUSS vorhanden sein.
+- `schemaVersion` MUSS vorhanden sein.
+- `correlationId` ist optional.
+- `causationId` ist optional.
+- enthaltene Value Objects werden nicht erneut intern validiert.
+- deren eigene Validation Errors werden nicht dupliziert.
+- das Value Object ist vollständig unveränderlich.
+- Metadaten dürfen keine Passwörter, Credentials oder Gesundheitsdaten
+  enthalten.
+
+---
+
+## Equality
+
+Wertgleichheit über alle Attribute.
+
+---
+
+## HashCode
+
+Konsistent zur Equality.
+
+---
+
+## Sichere String-Darstellung
+
+Die Darstellung darf IDs und technische Metadaten enthalten, jedoch keine
+Event-Payload.
+
+---
+
+# Value Object: CorrelationId
+
+## Zweck
+
+`CorrelationId` verbindet mehrere fachlich zusammengehörige Domain Events
+und technische Verarbeitungsschritte zu einem gemeinsamen Ablauf.
+
+Mehrere Domain Events dürfen dieselbe `CorrelationId` besitzen.
+
+---
+
+## Interne Repräsentation
+
+```text
+UUID Version 7
+```
+
+---
+
+## Kontrollierte Neuerzeugung
+
+```text
+DomainResult<CorrelationId> CorrelationId.generate()
+```
+
+---
+
+## Kontrollierte Rekonstruktion
+
+```text
+DomainResult<CorrelationId> CorrelationId.fromString(
+  String? value
+)
+```
+
+---
+
+## Normalisierung
+
+- führende Leerzeichen entfernen,
+- nachfolgende Leerzeichen entfernen,
+- gültige UUID anschließend kanonisch kleinschreiben.
+
+---
+
+## Fachliche Regeln
+
+- ausschließlich UUID Version 7,
+- unveränderlich,
+- nicht aus personenbezogenen Daten ableiten,
+- nicht als DomainEventId verwenden,
+- mehrere Events dürfen dieselbe CorrelationId besitzen.
+
+---
+
+## Verwendung
+
+In `EventMetadata` ist `correlationId` optional:
+
+```text
+CorrelationId? correlationId
+```
+
+Fehlt eine übergeordnete fachliche Korrelation, darf der Wert `null` sein.
+
+Die Event-Basis erzeugt nicht automatisch eine CorrelationId.
+
+---
+
+## Equality
+
+Wertgleichheit über die kanonische UUID.
+
+---
+
+## String-Darstellung
+
+```text
+CorrelationId(<uuid>)
+```
+
+---
+
+# Value Object: CausationId
+
+## Zweck
+
+`CausationId` referenziert das Domain Event, das das aktuelle Domain Event
+unmittelbar verursacht hat.
+
+Sie ist nicht mit `CorrelationId` identisch.
+
+---
+
+## Interne Repräsentation
+
+```text
+UUID Version 7
+```
+
+Der Wert entspricht semantisch einer `DomainEventId`.
+
+Die beiden Typen bleiben dennoch getrennt, damit ihre Rollen nicht
+verwechselt werden können.
+
+---
+
+## Kontrollierte Erzeugung aus DomainEventId
+
+```text
+DomainResult<CausationId> CausationId.fromEventId(
+  DomainEventId? eventId
+)
+```
+
+---
+
+## Kontrollierte Rekonstruktion
+
+```text
+DomainResult<CausationId> CausationId.fromString(
+  String? value
+)
+```
+
+---
+
+## Verwendung
+
+In `EventMetadata` ist:
+
+```text
+CausationId? causationId
+```
+
+optional.
+
+Ein fachliches Root Event besitzt normalerweise keine `CausationId`.
+
+---
+
+## Fachliche Regeln
+
+- Der Wert MUSS eine gültige UUID Version 7 sein.
+- Eine vorhandene `DomainEventId` darf kontrolliert als CausationId
+  übernommen werden.
+- Der Typ bleibt unveränderlich.
+- Die Rolle darf nicht mit CorrelationId verwechselt werden.
+
+---
+
+## Equality
+
+Wertgleichheit über die kanonische UUID.
+
+---
+
+## String-Darstellung
+
+```text
+CausationId(<uuid>)
+```
+
+---
+
+# Value Object: EventProducer
+
+## Zweck
+
+`EventProducer` bezeichnet den fachlichen Domänenbestandteil, der ein Domain
+Event erzeugt hat.
+
+Beispiele:
+
+```text
+profile
+profile-lifecycle
+```
+
+Der Wert beschreibt keine technische Anwendung, keinen Server und keinen
+Gerätenamen.
+
+---
+
+## Interne Repräsentation
+
+```text
+String
+```
+
+---
+
+## Kontrollierte Erzeugung und Rekonstruktion
+
+```text
+DomainResult<EventProducer> EventProducer.fromString(
+  String? value
+)
+```
+
+---
+
+## Kanonisches Format
+
+Ein Producer besitzt:
+
+- mindestens 2 Zeichen,
+- höchstens 64 Zeichen,
+- ausschließlich Kleinbuchstaben `a-z`,
+- Ziffern `0-9`,
+- Bindestriche `-`.
+
+Das Muster lautet:
+
+```text
+^[a-z][a-z0-9-]{1,63}$
+```
+
+---
+
+## Normalisierung
+
+Ausschließlich:
+
+- führende Leerzeichen entfernen,
+- nachfolgende Leerzeichen entfernen.
+
+Keine automatische Kleinschreibung.
 
 ---
 
 ## Regeln
 
-Metadata
-
-darf
-
-niemals
-
-fachliche Informationen ersetzen.
-
----
-
-# CorrelationId
-
-## Zweck
-
-Verknüpft mehrere Events,
-
-die
-
-zum selben Use Case gehören.
+- kein leerer Producer,
+- keine Leerzeichen im Wert,
+- keine technischen Host- oder Device-IDs,
+- keine personenbezogenen Daten,
+- keine URL,
+- keine Paket- oder Klassennamen erforderlich.
 
 ---
 
-## Beispiel
+## Equality
+
+Wertgleichheit über den kanonischen Producer-Wert.
+
+---
+
+## String-Darstellung
 
 ```text
-Profil löschen
-
-↓
-
-ProfileArchived
-
-↓
-
-MeasurementsDeleted
-
-↓
-
-MedicationDeleted
-
-↓
-
-ProfileDeleted
-```
-
-Alle Events
-
-teilen dieselbe
-
-CorrelationId.
-
----
-
-# CausationId
-
-## Zweck
-
-Beschreibt,
-
-welches Event
-
-ein weiteres Event ausgelöst hat.
-
----
-
-## Beispiel
-
-```text
-ProfileDeleted
-
-↓
-
-HealthDataDeleted
-
-↓
-
-DashboardReset
+EventProducer(<value>)
 ```
 
 ---
 
-# EventProducer
+# Value Object: EventSchemaVersion
 
 ## Zweck
 
-Kennzeichnet,
+`EventSchemaVersion` beschreibt die Strukturversion eines Domain Events.
 
-welche fachliche Komponente
-
-das Event erzeugt hat.
+Sie ist nicht mit `AggregateVersion` identisch.
 
 ---
 
-## Beispiele
+## Interne Repräsentation
 
 ```text
-Profile Aggregate
-
-ProfileLifecycleService
+int
 ```
 
 ---
 
-## Regeln
+## Initialwert
 
-Der Producer
+```text
+1
+```
 
-ist
-
-fachlich,
-
-nicht technisch.
+Die erste veröffentlichte Struktur eines Eventtyps besitzt Version `1`.
 
 ---
 
-# EventSchemaVersion
+## Wertebereich
 
-## Zweck
-
-Versioniert
-
-die Struktur
-
-des Events.
+```text
+1 bis 2147483647
+```
 
 ---
 
-## Regeln
+## Kontrollierte initiale Erzeugung
 
-Neue Versionen
+```text
+DomainResult<EventSchemaVersion> EventSchemaVersion.createInitial()
+```
 
-dürfen
+Ergebnis:
 
-ältere Eventdaten
+```text
+1
+```
 
-nicht
+---
 
-ungültig machen.
+## Kontrollierte Rekonstruktion
+
+```text
+DomainResult<EventSchemaVersion> EventSchemaVersion.fromValue(
+  int? value
+)
+```
+
+---
+
+## next()
+
+```text
+DomainResult<EventSchemaVersion> next()
+```
+
+`next()` wird ausschließlich verwendet, wenn bewusst eine neue
+Schema-Version definiert wird.
+
+Es wird nicht bei jedem erzeugten Event aufgerufen.
+
+---
+
+## Beziehung zu EventType
+
+Die fachliche Identität eines Eventvertrags besteht aus:
+
+```text
+EventType + EventSchemaVersion
+```
+
+Beispiel:
+
+```text
+ProfileCreated / 1
+```
+
+Eine Änderung der Schema-Version verändert nicht automatisch den EventType.
+
+---
+
+## Equality
+
+Wertgleichheit über den Integerwert.
+
+---
+
+## String-Darstellung
+
+```text
+EventSchemaVersion(<value>)
+```
 
 ---
 
@@ -14040,41 +15764,150 @@ ungültig machen.
 
 ## Zweck
 
-Ein Aggregate sammelt erzeugte Events,
+`DomainEventCollection` ist der interne geordnete Puffer noch nicht
+übergebener Domain Events eines Aggregate Roots.
 
-bis sie veröffentlicht werden.
+Die Collection veröffentlicht selbst keine Events.
 
 ---
 
-## Attribute
+## Typ
 
 ```text
-List<DomainEvent>
+DomainEventCollection<TAggregateId>
 ```
 
 ---
 
-## Operationen
+## Kontrollierte leere Erzeugung
 
 ```text
-add()
-
-all()
-
-clear()
-
-count()
+DomainEventCollection<TAggregateId> DomainEventCollection.empty()
 ```
+
+Eine neue Collection ist leer.
+
+---
+
+## Interner Zustand
+
+Die Collection speichert Domain Events in Einfügereihenfolge.
+
+Extern darf die interne Liste niemals mutierbar zugänglich sein.
+
+---
+
+## add(...)
+
+```text
+DomainEventCollection<TAggregateId> add(
+  DomainEvent<TAggregateId> event
+)
+```
+
+Die Operation erzeugt eine neue Collection mit dem Event am Ende.
+
+Die bestehende Collection bleibt unverändert.
+
+---
+
+## all()
+
+```text
+List<DomainEvent<TAggregateId>> all()
+```
+
+`all()` liefert eine unveränderliche defensive Ansicht beziehungsweise Kopie
+in Einfügereihenfolge.
+
+Eine externe Mutation darf die Collection nicht verändern.
+
+---
+
+## count
+
+```text
+int get count
+```
+
+---
+
+## isEmpty
+
+```text
+bool get isEmpty
+```
+
+---
+
+## clear()
+
+```text
+DomainEventCollection<TAggregateId> clear()
+```
+
+`clear()` liefert eine neue leere Collection.
+
+Die bestehende Collection bleibt unverändert.
+
+---
+
+## drain()
+
+Für die Domain wird keine kombinierte `drain()`-Operation definiert.
+
+Das Auslesen und das Leeren erfolgen bewusst getrennt.
+
+Der Application-/Persistence-Layer darf Events erst nach erfolgreichem
+Commit aus der gespeicherten Aggregate-Instanz entfernen beziehungsweise
+den Event-Puffer der weiterverwendeten Instanz leeren.
+
+Die konkrete Commit-Orchestrierung gehört nicht zur Collection.
+
+---
+
+## Rekonstruktion eines Aggregats
+
+Ein aus Persistenz rekonstruierter Aggregate-Zustand besitzt grundsätzlich
+eine leere `DomainEventCollection`.
+
+Historische Events werden nicht erneut in den internen Puffer geladen.
 
 ---
 
 ## Regeln
 
-Events
+- Reihenfolge MUSS erhalten bleiben.
+- `null`-Events sind nicht zulässig.
+- fehlgeschlagene Operationen ergänzen keine Events.
+- No-Change-Operationen ergänzen keine Änderungs-Events.
+- nur erfolgreiche fachliche Änderungen dürfen neue Events ergänzen.
+- die Collection ist unveränderlich.
+- externe Mutation ist ausgeschlossen.
+- die Collection publiziert keine Events.
 
-werden
+---
 
-in Erzeugungsreihenfolge gespeichert.
+## Equality
+
+Für `DomainEventCollection` wird keine fachliche Wertgleichheit als
+Aggregate-Invariante benötigt.
+
+Die Collection ist ein interner Zustandscontainer.
+
+Tests dürfen ihren Inhalt über `all()`, `count` und `isEmpty` prüfen.
+
+---
+
+## String-Darstellung
+
+Die String-Darstellung enthält ausschließlich:
+
+```text
+DomainEventCollection(count: <count>)
+```
+
+Die vollständigen Events oder Payloads werden nicht ausgegeben.
 
 ---
 

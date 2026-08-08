@@ -20,4 +20,5 @@ enum ConstraintType {
   chronological,
   expired,
   invalid,
+  overflow,
 }

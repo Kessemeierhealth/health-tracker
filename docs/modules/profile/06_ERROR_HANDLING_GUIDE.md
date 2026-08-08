@@ -4463,6 +4463,207 @@ im Log gespeichert.
 
 ---
 
+# Event Value Objects
+
+Dieses Kapitel definiert sämtliche Validation Error Codes der Value Objects
+und Enumerationen der Domain-Event-Basis.
+
+Die allgemeinen Regeln des Validation Frameworks werden ausschließlich in den
+zentralen Validation-Kapiteln definiert.
+
+Neue fachliche Regeln werden in diesem Dokument nicht eingeführt.
+
+# DomainEventId
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- DomainEventId
+
+---
+
+## Zweck
+
+Dieser Abschnitt definiert sämtliche Validation Error Codes des Value Objects
+`DomainEventId`.
+
+`DomainEventId` repräsentiert die unveränderliche technische Identität eines
+einzelnen Domain Events.
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-EVTID-001 | validation.domainEventId.required | ERROR | VALIDATION | value | required | – |
+| PRO-VAL-EVTID-002 | validation.domainEventId.blank | ERROR | VALIDATION | value | blank | – |
+| PRO-VAL-EVTID-003 | validation.domainEventId.invalidFormat | ERROR | VALIDATION | value | format | expectedFormat |
+
+---
+
+## Parameter
+
+### PRO-VAL-EVTID-003
+
+```json
+{
+  "expectedFormat": "UUIDv7"
+}
+```
+
+---
+
+## Herkunft
+
+Diese Error Codes werden ausschließlich aus
+
+- PRO-VR-042
+
+abgeleitet.
+
+Neue fachliche Regeln werden in diesem Dokument nicht definiert.
+
+---
+
+## Fehlerverhalten
+
+### Fehlender Wert
+
+Ist `value` nicht vorhanden,
+
+wird ausschließlich
+
+```text
+PRO-VAL-EVTID-001
+```
+
+erzeugt.
+
+Weitere Prüfungen werden nicht durchgeführt.
+
+---
+
+### Leerer Wert
+
+Ist `value` vorhanden und nach dem Trimmen leer,
+
+wird ausschließlich
+
+```text
+PRO-VAL-EVTID-002
+```
+
+erzeugt.
+
+Eine zusätzliche Formatprüfung erfolgt nicht.
+
+---
+
+### Ungültige UUID
+
+Ist der normalisierte Wert vorhanden und nicht leer, entspricht aber
+
+- keiner syntaktisch gültigen UUID oder
+- keiner UUID Version 7,
+
+wird ausschließlich
+
+```text
+PRO-VAL-EVTID-003
+```
+
+erzeugt.
+
+Der Parameter lautet:
+
+```json
+{
+  "expectedFormat": "UUIDv7"
+}
+```
+
+Der ungültige Eingabewert wird nicht in Fehlerparametern oder Domain
+Messages übertragen.
+
+---
+
+## Validierungsreihenfolge
+
+1. Vorhandensein prüfen.
+2. Trimmen.
+3. Leerwert prüfen.
+4. UUID-Syntax prüfen.
+5. UUID-Version prüfen.
+6. Kanonische Kleinschreibung herstellen.
+7. `DomainEventId` erzeugen.
+
+Ein fehlender Wert erzeugt keinen zusätzlichen Blank- oder Formatfehler.
+
+Ein leerer Wert erzeugt keinen zusätzlichen Formatfehler.
+
+---
+
+## Verhalten von generate()
+
+`DomainEventId.generate()` erzeugt eine neue gültige UUID Version 7.
+
+Für diese Operation werden keine fachlichen Validation Errors definiert.
+
+Ein technisches Versagen der UUID-Erzeugung ist kein fachlicher
+Validierungsfehler.
+
+---
+
+## Zulässiges Format
+
+Es wird ausschließlich eine UUID Version 7 akzeptiert.
+
+Die kanonische Darstellung erfolgt in Kleinschreibung.
+
+---
+
+## Keine Fehlerduplizierung
+
+`DomainEventId` enthält keine weiteren Value Objects.
+
+Es entstehen daher keine weiterzuleitenden Validation Errors anderer
+Domänentypen.
+
+---
+
+## Hinweise
+
+`DomainEventId` dient ausschließlich der eindeutigen Identifikation eines
+einzelnen Domain Events.
+
+Die globale technische Eindeutigkeit wird nicht durch die Domain geprüft.
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Abschnitts sind:
+
+- CorrelationId,
+- CausationId,
+- EventProducer,
+- EventSchemaVersion,
+- EventMetadata,
+- DomainEvent,
+- Event Publishing,
+- Event Persistenz,
+- Logging,
+- Monitoring.
+
+Diese Verantwortlichkeiten liegen bei den jeweiligen Event-Typen und den
+technischen Komponenten.
+
+
+
+---
+
 ## LOG-008 – Event Correlation Logging
 
 ### Zweck
@@ -4569,6 +4770,891 @@ eines Logeintrags.
 Sie ergänzt ausschließlich
 
 dessen Diagnoseinformationen.
+
+---
+
+# EventType
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- EventType
+
+---
+
+## Zweck
+
+Dieser Abschnitt definiert sämtliche Validation Error Codes des Value Objects
+`EventType`.
+
+`EventType` beschreibt den stabilen fachlichen Typ eines Domain Events.
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-EVTYPE-001 | validation.eventType.required | ERROR | VALIDATION | value | required | – |
+| PRO-VAL-EVTYPE-002 | validation.eventType.blank | ERROR | VALIDATION | value | blank | – |
+| PRO-VAL-EVTYPE-003 | validation.eventType.invalid | ERROR | VALIDATION | value | enum | allowedValues |
+
+---
+
+## Parameter
+
+### PRO-VAL-EVTYPE-003
+
+Der Parameter
+
+```text
+allowedValues
+```
+
+enthält ausschließlich die im Domain Model dokumentierten kanonischen
+Eventtypen.
+
+Der ungültige Eingabewert wird nicht übertragen.
+
+---
+
+## Herkunft
+
+Diese Error Codes werden ausschließlich aus
+
+- PRO-VR-043
+
+abgeleitet.
+
+Neue fachliche Regeln werden in diesem Dokument nicht definiert.
+
+---
+
+## Fehlerverhalten
+
+### Fehlender Wert
+
+Ist `value` nicht vorhanden, wird ausschließlich
+
+```text
+PRO-VAL-EVTYPE-001
+```
+
+erzeugt.
+
+### Leerer Wert
+
+Ist `value` nach dem Trimmen leer, wird ausschließlich
+
+```text
+PRO-VAL-EVTYPE-002
+```
+
+erzeugt.
+
+### Ungültiger Eventtyp
+
+Entspricht der normalisierte Wert keinem dokumentierten Eventtyp, wird
+
+```text
+PRO-VAL-EVTYPE-003
+```
+
+erzeugt.
+
+---
+
+## Validierungsreihenfolge
+
+1. Vorhandensein prüfen.
+2. Trimmen.
+3. Leerwert prüfen.
+4. Exakte Übereinstimmung mit einem zulässigen Eventtyp prüfen.
+5. `EventType` erzeugen.
+
+Folgefehler werden vermieden.
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Abschnitts sind:
+
+- EventSchemaVersion,
+- EventCategory,
+- DomainEventId,
+- EventMetadata,
+- konkrete Event-Payloads,
+- Event Publishing,
+- Routing.
+
+---
+
+# EventCategory
+
+### Zugeordneter Domänentyp
+
+**Enumeration**
+
+- EventCategory
+
+---
+
+## Zweck
+
+Dieser Abschnitt definiert sämtliche Validation Error Codes der Enumeration
+`EventCategory`.
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-EVCAT-001 | validation.eventCategory.required | ERROR | VALIDATION | value | required | – |
+| PRO-VAL-EVCAT-002 | validation.eventCategory.blank | ERROR | VALIDATION | value | blank | – |
+| PRO-VAL-EVCAT-003 | validation.eventCategory.invalid | ERROR | VALIDATION | value | enum | allowedValues |
+
+---
+
+## Parameter
+
+### PRO-VAL-EVCAT-003
+
+```json
+{
+  "allowedValues": [
+    "lifecycle",
+    "masterData",
+    "preferences",
+    "security",
+    "media",
+    "general"
+  ]
+}
+```
+
+---
+
+## Herkunft
+
+Diese Error Codes werden ausschließlich aus
+
+- PRO-VR-044
+
+abgeleitet.
+
+---
+
+## Fehlerverhalten
+
+Fehlender Wert:
+
+```text
+PRO-VAL-EVCAT-001
+```
+
+Leerer Wert:
+
+```text
+PRO-VAL-EVCAT-002
+```
+
+Unbekannte Kategorie:
+
+```text
+PRO-VAL-EVCAT-003
+```
+
+Der ungültige Eingabewert wird nicht übertragen.
+
+---
+
+## Validierungsreihenfolge
+
+1. Vorhandensein prüfen.
+2. Trimmen.
+3. Leerwert prüfen.
+4. Zulässige Kategorie prüfen.
+5. `EventCategory` erzeugen.
+
+---
+
+## Zulässige Werte
+
+```text
+lifecycle
+masterData
+preferences
+security
+media
+general
+```
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Abschnitts sind:
+
+- EventType,
+- technische Routingkategorien,
+- Queue-Namen,
+- Topic-Namen,
+- Logging-Kategorien.
+
+---
+
+# CorrelationId
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- CorrelationId
+
+---
+
+## Zweck
+
+Dieser Abschnitt definiert sämtliche Validation Error Codes des Value Objects
+`CorrelationId`.
+
+`CorrelationId` verbindet mehrere fachlich zusammengehörige Events und
+Verarbeitungsschritte.
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-CORRID-001 | validation.correlationId.required | ERROR | VALIDATION | value | required | – |
+| PRO-VAL-CORRID-002 | validation.correlationId.blank | ERROR | VALIDATION | value | blank | – |
+| PRO-VAL-CORRID-003 | validation.correlationId.invalidFormat | ERROR | VALIDATION | value | format | expectedFormat |
+
+---
+
+## Parameter
+
+### PRO-VAL-CORRID-003
+
+```json
+{
+  "expectedFormat": "UUIDv7"
+}
+```
+
+---
+
+## Herkunft
+
+Diese Error Codes werden ausschließlich aus
+
+- PRO-VR-045
+
+abgeleitet.
+
+---
+
+## Fehlerverhalten
+
+Fehlender Wert:
+
+```text
+PRO-VAL-CORRID-001
+```
+
+Leerer Wert:
+
+```text
+PRO-VAL-CORRID-002
+```
+
+Ungültige UUID oder unzulässige UUID-Version:
+
+```text
+PRO-VAL-CORRID-003
+```
+
+Der ungültige Eingabewert wird nicht übertragen.
+
+---
+
+## Validierungsreihenfolge
+
+1. Vorhandensein prüfen.
+2. Trimmen.
+3. Leerwert prüfen.
+4. UUID-Syntax prüfen.
+5. UUID-Version prüfen.
+6. Kanonische Kleinschreibung herstellen.
+7. `CorrelationId` erzeugen.
+
+---
+
+## Verhalten von generate()
+
+`CorrelationId.generate()` erzeugt ausschließlich UUID Version 7.
+
+Für `generate()` werden keine fachlichen Validation Errors definiert.
+
+---
+
+## Optionalität
+
+Innerhalb von `EventMetadata` ist
+
+```text
+CorrelationId? correlationId
+```
+
+optional.
+
+Ein fehlender optionaler Wert erzeugt keinen Fehler.
+
+---
+
+# CausationId
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- CausationId
+
+---
+
+## Zweck
+
+Dieser Abschnitt definiert sämtliche Validation Error Codes des Value Objects
+`CausationId`.
+
+`CausationId` referenziert das Domain Event, das ein anderes Domain Event
+unmittelbar verursacht hat.
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-CAUSID-001 | validation.causationId.required | ERROR | VALIDATION | value | required | – |
+| PRO-VAL-CAUSID-002 | validation.causationId.blank | ERROR | VALIDATION | value | blank | – |
+| PRO-VAL-CAUSID-003 | validation.causationId.invalidFormat | ERROR | VALIDATION | value | format | expectedFormat |
+
+---
+
+## Parameter
+
+### PRO-VAL-CAUSID-003
+
+```json
+{
+  "expectedFormat": "UUIDv7"
+}
+```
+
+---
+
+## Herkunft
+
+Diese Error Codes werden ausschließlich aus
+
+- PRO-VR-046
+
+abgeleitet.
+
+---
+
+## Fehlerverhalten
+
+### fromString(...)
+
+Fehlender Wert:
+
+```text
+PRO-VAL-CAUSID-001
+```
+
+Leerer Wert:
+
+```text
+PRO-VAL-CAUSID-002
+```
+
+Ungültige UUID oder andere UUID-Version:
+
+```text
+PRO-VAL-CAUSID-003
+```
+
+### fromEventId(...)
+
+Ist `eventId` nicht vorhanden, wird
+
+```text
+PRO-VAL-CAUSID-001
+```
+
+erzeugt.
+
+Eine vorhandene `DomainEventId` wird nicht erneut auf ihr UUID-Format
+geprüft.
+
+---
+
+## Validierungsreihenfolge
+
+### fromString(...)
+
+1. Vorhandensein prüfen.
+2. Trimmen.
+3. Leerwert prüfen.
+4. UUID-Syntax prüfen.
+5. UUID-Version prüfen.
+6. Kanonische Kleinschreibung herstellen.
+7. `CausationId` erzeugen.
+
+### fromEventId(...)
+
+1. Vorhandensein von `eventId` prüfen.
+2. Kanonischen UUID-Wert übernehmen.
+3. `CausationId` erzeugen.
+
+---
+
+## Optionalität
+
+Innerhalb von `EventMetadata` ist
+
+```text
+CausationId? causationId
+```
+
+optional.
+
+Ein Root Event darf keine `CausationId` besitzen.
+
+---
+
+# EventProducer
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- EventProducer
+
+---
+
+## Zweck
+
+Dieser Abschnitt definiert sämtliche Validation Error Codes des Value Objects
+`EventProducer`.
+
+`EventProducer` bezeichnet den fachlichen Domänenbestandteil, der ein Domain
+Event erzeugt hat.
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-EVPROD-001 | validation.eventProducer.required | ERROR | VALIDATION | value | required | – |
+| PRO-VAL-EVPROD-002 | validation.eventProducer.blank | ERROR | VALIDATION | value | blank | – |
+| PRO-VAL-EVPROD-003 | validation.eventProducer.invalidFormat | ERROR | VALIDATION | value | format | expectedPattern, minimumLength, maximumLength |
+
+---
+
+## Parameter
+
+### PRO-VAL-EVPROD-003
+
+```json
+{
+  "expectedPattern": "^[a-z][a-z0-9-]{1,63}$",
+  "minimumLength": 2,
+  "maximumLength": 64
+}
+```
+
+---
+
+## Herkunft
+
+Diese Error Codes werden ausschließlich aus
+
+- PRO-VR-047
+
+abgeleitet.
+
+---
+
+## Fehlerverhalten
+
+Fehlender Wert:
+
+```text
+PRO-VAL-EVPROD-001
+```
+
+Leerer Wert:
+
+```text
+PRO-VAL-EVPROD-002
+```
+
+Ungültiges Format:
+
+```text
+PRO-VAL-EVPROD-003
+```
+
+Der ungültige Eingabewert wird nicht übertragen.
+
+---
+
+## Validierungsreihenfolge
+
+1. Vorhandensein prüfen.
+2. Trimmen.
+3. Leerwert prüfen.
+4. Format prüfen.
+5. `EventProducer` erzeugen.
+
+---
+
+## Kanonisches Format
+
+```text
+^[a-z][a-z0-9-]{1,63}$
+```
+
+Für das Profile-Aggregate lautet der kanonische Producer:
+
+```text
+profile
+```
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Abschnitts sind:
+
+- Hostnamen,
+- Geräte-IDs,
+- Serverinstanzen,
+- Paketnamen,
+- technische Service-IDs.
+
+---
+
+# EventSchemaVersion
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- EventSchemaVersion
+
+---
+
+## Zweck
+
+Dieser Abschnitt definiert sämtliche Validation Error Codes des Value Objects
+`EventSchemaVersion`.
+
+`EventSchemaVersion` beschreibt die Strukturversion eines Domain Events.
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-EVSCHEMA-001 | validation.eventSchemaVersion.required | ERROR | VALIDATION | value | required | – |
+| PRO-VAL-EVSCHEMA-002 | validation.eventSchemaVersion.minimum | ERROR | VALIDATION | value | minimum | minimum |
+| PRO-VAL-EVSCHEMA-003 | validation.eventSchemaVersion.maximum | ERROR | VALIDATION | value | maximum | maximum |
+| PRO-VAL-EVSCHEMA-004 | validation.eventSchemaVersion.overflow | ERROR | VALIDATION | value | overflow | maximum |
+
+---
+
+## Parameter
+
+### PRO-VAL-EVSCHEMA-002
+
+```json
+{
+  "minimum": 1
+}
+```
+
+### PRO-VAL-EVSCHEMA-003
+
+```json
+{
+  "maximum": 2147483647
+}
+```
+
+### PRO-VAL-EVSCHEMA-004
+
+```json
+{
+  "maximum": 2147483647
+}
+```
+
+---
+
+## Herkunft
+
+Diese Error Codes werden ausschließlich aus
+
+- PRO-VR-048
+
+abgeleitet.
+
+---
+
+## Wertebereich
+
+```text
+1 bis 2147483647
+```
+
+Initialwert:
+
+```text
+1
+```
+
+---
+
+## Fehlerverhalten
+
+Fehlender Wert:
+
+```text
+PRO-VAL-EVSCHEMA-001
+```
+
+Wert kleiner als `1`:
+
+```text
+PRO-VAL-EVSCHEMA-002
+```
+
+Wert größer als `2147483647`:
+
+```text
+PRO-VAL-EVSCHEMA-003
+```
+
+Überlauf bei `next()`:
+
+```text
+PRO-VAL-EVSCHEMA-004
+```
+
+---
+
+## Validierungsreihenfolge
+
+### fromValue(...)
+
+1. Vorhandensein prüfen.
+2. Minimum prüfen.
+3. Maximum prüfen.
+4. `EventSchemaVersion` erzeugen.
+
+### next()
+
+1. Überlauf prüfen.
+2. Wert exakt um `1` erhöhen.
+3. neue Instanz erzeugen.
+
+---
+
+## Verhalten von createInitial()
+
+```text
+EventSchemaVersion.createInitial()
+```
+
+erzeugt immer:
+
+```text
+EventSchemaVersion(1)
+```
+
+Für diese Operation werden keine Validation Errors definiert.
+
+---
+
+## Abgrenzung
+
+`EventSchemaVersion` ist ausdrücklich nicht identisch mit:
+
+- AggregateVersion,
+- Softwareversion,
+- Datenbankversion,
+- API-Version.
+
+---
+
+# EventMetadata
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- EventMetadata
+
+---
+
+## Zweck
+
+Dieser Abschnitt definiert sämtliche Validation Error Codes des Value Objects
+
+```text
+EventMetadata<TAggregateId>
+```
+
+`EventMetadata` bündelt die allgemeinen Metadaten eines Domain Events.
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-EVMETA-001 | validation.eventMetadata.aggregateId.required | ERROR | VALIDATION | aggregateId | required | – |
+| PRO-VAL-EVMETA-002 | validation.eventMetadata.producer.required | ERROR | VALIDATION | producer | required | – |
+| PRO-VAL-EVMETA-003 | validation.eventMetadata.schemaVersion.required | ERROR | VALIDATION | schemaVersion | required | – |
+
+---
+
+## Herkunft
+
+Diese Error Codes werden ausschließlich aus
+
+- PRO-VR-049
+
+abgeleitet.
+
+Neue fachliche Regeln werden in diesem Dokument nicht definiert.
+
+---
+
+## Fehlerverhalten
+
+### Fehlende Aggregate-ID
+
+Ist `aggregateId` nicht vorhanden, wird
+
+```text
+PRO-VAL-EVMETA-001
+```
+
+erzeugt.
+
+### Fehlender Producer
+
+Ist `producer` nicht vorhanden, wird
+
+```text
+PRO-VAL-EVMETA-002
+```
+
+erzeugt.
+
+### Fehlende Schema-Version
+
+Ist `schemaVersion` nicht vorhanden, wird
+
+```text
+PRO-VAL-EVMETA-003
+```
+
+erzeugt.
+
+Mehrere unabhängige Pflichtfeldfehler dürfen gemeinsam zurückgegeben
+werden.
+
+---
+
+## Optionalität
+
+Folgende Attribute sind optional:
+
+```text
+CorrelationId? correlationId
+CausationId? causationId
+```
+
+Ein fehlender optionaler Wert erzeugt keinen Validation Error.
+
+---
+
+## Validierungsreihenfolge
+
+1. `aggregateId` prüfen.
+2. `producer` prüfen.
+3. `schemaVersion` prüfen.
+4. vollständiges `EventMetadata` erzeugen.
+
+---
+
+## Keine Fehlerduplizierung
+
+Validation Errors bereits typisierter enthaltenen Value Objects werden nicht
+als `EventMetadata`-Fehler dupliziert.
+
+Dies betrifft insbesondere:
+
+- CorrelationId,
+- CausationId,
+- EventProducer,
+- EventSchemaVersion,
+- die konkrete Aggregate-ID.
+
+---
+
+## Datenschutz und Sicherheit
+
+`EventMetadata` darf keine fachliche Payload enthalten.
+
+Insbesondere dürfen nicht enthalten sein:
+
+- Klartextpasswörter,
+- PasswordCredential-Inhalte,
+- AuthenticationProof-Inhalte,
+- Gesundheitswerte,
+- Notizen,
+- Bilddaten,
+- personenbezogene Nutzdaten.
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Abschnitts sind:
+
+- DomainEventId,
+- EventType,
+- EventCategory,
+- occurredAt,
+- AggregateVersion,
+- konkrete Event-Payload,
+- Publishing,
+- Outbox,
+- Logging,
+- Monitoring.
 
 ---
 
@@ -11338,6 +12424,303 @@ Nicht Bestandteil dieses Abschnitts sind:
 
 ---
 
+# AuditInformation
+
+### Zugeordneter Domänentyp
+
+**Value Object**
+
+- AuditInformation
+
+---
+
+## Zweck
+
+Dieser Abschnitt definiert sämtliche Validation Error Codes des Value Objects
+`AuditInformation`.
+
+Das Value Object beschreibt ausschließlich die fachlichen Erstellungs-,
+Änderungs- und Versionsinformationen eines Aggregats.
+
+Es ist nicht identisch mit einem technischen Audit Trail.
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-AUDIT-001 | validation.auditInformation.createdAt.required | ERROR | VALIDATION | createdAt | required | – |
+| PRO-VAL-AUDIT-002 | validation.auditInformation.updatedAt.required | ERROR | VALIDATION | updatedAt | required | – |
+| PRO-VAL-AUDIT-003 | validation.auditInformation.version.required | ERROR | VALIDATION | version | required | – |
+| PRO-VAL-AUDIT-004 | validation.auditInformation.now.required | ERROR | VALIDATION | now | required | – |
+| PRO-VAL-AUDIT-005 | validation.auditInformation.now.beforeCreatedAt | ERROR | VALIDATION | now | chronological | comparison |
+| PRO-VAL-AUDIT-006 | validation.auditInformation.now.beforeUpdatedAt | ERROR | VALIDATION | now | chronological | comparison |
+| PRO-VAL-AUDIT-007 | validation.auditInformation.updatedAt.beforeCreatedAt | ERROR | VALIDATION | updatedAt | chronological | comparison |
+
+---
+
+## Parameter
+
+### PRO-VAL-AUDIT-005
+
+```json
+{
+  "comparison": "nowBeforeCreatedAt"
+}
+```
+
+### PRO-VAL-AUDIT-006
+
+```json
+{
+  "comparison": "nowBeforeUpdatedAt"
+}
+```
+
+### PRO-VAL-AUDIT-007
+
+```json
+{
+  "comparison": "updatedAtBeforeCreatedAt"
+}
+```
+
+---
+
+## Herkunft
+
+Diese Error Codes werden ausschließlich aus
+
+- PRO-VR-036
+
+abgeleitet.
+
+Neue fachliche Regeln werden in diesem Dokument nicht definiert.
+
+---
+
+## Fehlerverhalten
+
+### Fehlender Erstellungszeitpunkt
+
+Ist `createdAt` nicht vorhanden,
+
+wird ausschließlich
+
+```text
+PRO-VAL-AUDIT-001
+```
+
+erzeugt.
+
+---
+
+### Fehlender Änderungszeitpunkt
+
+Ist `updatedAt` nicht vorhanden,
+
+wird ausschließlich
+
+```text
+PRO-VAL-AUDIT-002
+```
+
+erzeugt.
+
+---
+
+### Fehlende Version
+
+Ist `version` nicht vorhanden,
+
+wird ausschließlich
+
+```text
+PRO-VAL-AUDIT-003
+```
+
+erzeugt.
+
+---
+
+### Fehlender Operationszeitpunkt
+
+Ist bei
+
+- `createInitial(...)`
+- `touchAndIncrement(...)`
+
+kein `now` vorhanden,
+
+wird ausschließlich
+
+```text
+PRO-VAL-AUDIT-004
+```
+
+erzeugt.
+
+Weitere chronologische Prüfungen erfolgen nicht.
+
+---
+
+### Aktualisierung vor Erstellungszeitpunkt
+
+Liegt `now` vor `createdAt`,
+
+wird ausschließlich
+
+```text
+PRO-VAL-AUDIT-005
+```
+
+erzeugt.
+
+Der Parameter lautet
+
+```json
+{
+  "comparison": "nowBeforeCreatedAt"
+}
+```
+
+---
+
+### Aktualisierung vor bisherigem Änderungszeitpunkt
+
+Liegt `now` nicht vor `createdAt`,
+aber vor `updatedAt`,
+
+wird ausschließlich
+
+```text
+PRO-VAL-AUDIT-006
+```
+
+erzeugt.
+
+Der Parameter lautet
+
+```json
+{
+  "comparison": "nowBeforeUpdatedAt"
+}
+```
+
+---
+
+### Widersprüchliche Rekonstruktion
+
+Liegt bei einer Rekonstruktion
+
+```text
+updatedAt < createdAt
+```
+
+wird ausschließlich
+
+```text
+PRO-VAL-AUDIT-007
+```
+
+erzeugt.
+
+Der Parameter lautet
+
+```json
+{
+  "comparison": "updatedAtBeforeCreatedAt"
+}
+```
+
+---
+
+## Validierungsreihenfolge
+
+### AuditInformation.createInitial(...)
+
+1. `now` prüfen.
+2. `AggregateVersion.createInitial()` ausführen.
+3. AuditInformation erzeugen.
+
+---
+
+### AuditInformation.reconstruct(...)
+
+1. `createdAt` prüfen.
+2. `updatedAt` prüfen.
+3. `version` prüfen.
+4. Chronologie prüfen.
+5. AuditInformation erzeugen.
+
+---
+
+### AuditInformation.touchAndIncrement(...)
+
+1. `now` prüfen.
+2. `now < createdAt` prüfen.
+3. `now < updatedAt` prüfen.
+4. `AggregateVersion.next()` ausführen.
+5. AuditInformation erzeugen.
+
+Fehler aus `AggregateVersion.next()` werden unverändert weitergegeben.
+
+---
+
+## Keine Fehlerduplizierung
+
+Validation Errors der enthaltenen Value Objects werden nicht als
+`AuditInformation`-Fehler erneut erzeugt.
+
+Dies betrifft insbesondere
+
+- `Timestamp`
+- `AggregateVersion`
+
+Insbesondere wird
+
+```text
+PRO-VAL-AGGVER-004
+```
+
+nicht in einen `PRO-VAL-AUDIT-*`-Fehler umgewandelt.
+
+---
+
+## Hinweise
+
+`AuditInformation` validiert ausschließlich den lokalen fachlichen
+Auditzustand.
+
+Nicht Bestandteil dieses Value Objects sind
+
+- technische Audit Trails,
+- Benutzerkennungen,
+- Änderungsgründe,
+- Synchronisationskonflikte,
+- Repositorykonflikte,
+- Domain-Event-Publishing.
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Abschnitts sind:
+
+- Timestamp,
+- AggregateVersion,
+- Domain Events,
+- Persistenz,
+- technische Audit-Systeme,
+- Datenbanktransaktionen,
+- Synchronisationsmechanismen.
+
+Diese Verantwortlichkeiten liegen bei den jeweiligen Domänentypen,
+Repositorys oder Application Services.
+
+---
+
 # Timestamp
 
 ### Zugeordneter Domänentyp
@@ -13166,12 +14549,202 @@ wird nicht durch generische `ProfileImage`-Fehler dupliziert.
 
 - ImageReference
 
+---
+
+## Zweck
+
+Dieser Abschnitt definiert sämtliche Validation Error Codes des Value Objects
+`ImageReference`.
+
+`ImageReference` repräsentiert eine unveränderliche und undurchsichtige
+technische Referenz auf ein bereits verarbeitetes Profilbild.
+
+Die Referenz enthält keinen direkt interpretierbaren Speicherort und keine
+personenbezogenen oder sicherheitsrelevanten Angaben.
+
+---
+
 ## Error Codes
 
-| ErrorCode | MessageKey |
-|------------|------------|
-| validation.imageReference.required | validation.imageReference.required |
-| validation.imageReference.invalid | validation.imageReference.invalid |
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-IMGREF-001 | validation.imageReference.required | ERROR | VALIDATION | value | required | – |
+| PRO-VAL-IMGREF-002 | validation.imageReference.blank | ERROR | VALIDATION | value | blank | – |
+| PRO-VAL-IMGREF-003 | validation.imageReference.invalidFormat | ERROR | VALIDATION | value | format | expectedPattern, expectedLength |
+
+---
+
+## Parameter
+
+### PRO-VAL-IMGREF-003
+
+```json
+{
+  "expectedPattern": "^img_[a-z0-9]{26}$",
+  "expectedLength": 30
+}
+```
+
+---
+
+## Herkunft
+
+Diese Error Codes werden ausschließlich aus
+
+- PRO-VR-037
+
+abgeleitet.
+
+Neue fachliche Regeln werden in diesem Dokument nicht definiert.
+
+---
+
+## Fehlerverhalten
+
+### Fehlender Wert
+
+Ist `value` nicht vorhanden, wird ausschließlich
+
+```text
+PRO-VAL-IMGREF-001
+```
+
+erzeugt.
+
+Weitere Prüfungen werden nicht durchgeführt.
+
+---
+
+### Leerer Wert
+
+Ist `value` vorhanden, ergibt aber nach dem Trimmen einen leeren Wert, wird
+ausschließlich
+
+```text
+PRO-VAL-IMGREF-002
+```
+
+erzeugt.
+
+Eine zusätzliche Formatprüfung wird nicht durchgeführt.
+
+---
+
+### Ungültiges Format
+
+Ist der normalisierte Wert vorhanden und nicht leer, entspricht aber nicht
+dem verbindlichen Format, wird
+
+```text
+PRO-VAL-IMGREF-003
+```
+
+erzeugt.
+
+Der Fehlerparameter lautet:
+
+```json
+{
+  "expectedPattern": "^img_[a-z0-9]{26}$",
+  "expectedLength": 30
+}
+```
+
+Der ungültige Eingabewert wird nicht in Fehlerparametern oder Domain
+Messages übertragen.
+
+---
+
+## Validierungsreihenfolge
+
+1. Vorhandensein von `value` prüfen.
+2. Führende und nachfolgende Leerzeichen entfernen.
+3. Leeren normalisierten Wert prüfen.
+4. Format prüfen.
+5. Vollständige `ImageReference` erzeugen.
+
+Ein fehlender Wert erzeugt keinen zusätzlichen Blank- oder Formatfehler.
+
+Ein leerer normalisierter Wert erzeugt keinen zusätzlichen Formatfehler.
+
+Dadurch werden Folgefehler vermieden.
+
+---
+
+## Zulässiges Format
+
+Eine gültige Referenz entspricht exakt:
+
+```text
+^img_[a-z0-9]{26}$
+```
+
+Die Gesamtlänge beträgt exakt:
+
+```text
+30
+```
+
+Die Referenz enthält:
+
+- das Präfix `img_`,
+- anschließend exakt 26 Kleinbuchstaben oder Ziffern.
+
+Großbuchstaben und Sonderzeichen sind nicht zulässig.
+
+---
+
+## Sichere Darstellung
+
+Die String-Darstellung darf die vollständige Referenz enthalten.
+
+Zulässig ist:
+
+```text
+ImageReference(<value>)
+```
+
+Das definierte Format erlaubt keine unmittelbar interpretierbaren
+
+- URLs,
+- Dateipfade,
+- Dateinamen,
+- E-Mail-Adressen,
+- Zugangsdaten,
+- Zugriffstokens.
+
+---
+
+## Keine Fehlerduplizierung
+
+`ImageReference` enthält keine weiteren Value Objects.
+
+Es entstehen daher keine weiterzuleitenden Validation Errors anderer
+Domänentypen.
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Abschnitts sind:
+
+- Bilddaten,
+- Bildformate,
+- Bilddimensionen,
+- Prüfsummen,
+- Dateinamen,
+- URLs,
+- lokale Dateipfade,
+- Cloud-Speicherpfade,
+- Zugriffstokens,
+- signierte URLs,
+- Upload- oder Downloadlogik,
+- Speicheranbieter,
+- Bildverarbeitung,
+- Persistenz.
+
+Diese Verantwortlichkeiten liegen bei den jeweiligen Bild-Value-Objects
+und den zuständigen technischen Komponenten.
 
 ---
 
@@ -13183,11 +14756,645 @@ wird nicht durch generische `ProfileImage`-Fehler dupliziert.
 
 - ImageDimensions
 
+---
+
+## Zweck
+
+Dieser Abschnitt definiert sämtliche Validation Error Codes des Value Objects
+`ImageDimensions`.
+
+Das Value Object beschreibt ausschließlich die Pixelabmessungen eines bereits
+technisch verarbeiteten Profilbilds.
+
+Es enthält keine Bilddaten und führt keine Bildverarbeitung durch.
+
+---
+
 ## Error Codes
 
-| ErrorCode | MessageKey |
-|------------|------------|
-| validation.imageDimensions.invalid | validation.imageDimensions.invalid |
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-IMGDIM-001 | validation.imageDimensions.width.required | ERROR | VALIDATION | width | required | – |
+| PRO-VAL-IMGDIM-002 | validation.imageDimensions.height.required | ERROR | VALIDATION | height | required | – |
+| PRO-VAL-IMGDIM-003 | validation.imageDimensions.width.minimum | ERROR | VALIDATION | width | minimum | minimum, unit |
+| PRO-VAL-IMGDIM-004 | validation.imageDimensions.height.minimum | ERROR | VALIDATION | height | minimum | minimum, unit |
+| PRO-VAL-IMGDIM-005 | validation.imageDimensions.width.maximum | ERROR | VALIDATION | width | maximum | maximum, unit |
+| PRO-VAL-IMGDIM-006 | validation.imageDimensions.height.maximum | ERROR | VALIDATION | height | maximum | maximum, unit |
+
+---
+
+## Parameter
+
+### PRO-VAL-IMGDIM-003
+
+```json
+{
+  "minimum": 1,
+  "unit": "pixels"
+}
+```
+
+### PRO-VAL-IMGDIM-004
+
+```json
+{
+  "minimum": 1,
+  "unit": "pixels"
+}
+```
+
+### PRO-VAL-IMGDIM-005
+
+```json
+{
+  "maximum": 4096,
+  "unit": "pixels"
+}
+```
+
+### PRO-VAL-IMGDIM-006
+
+```json
+{
+  "maximum": 4096,
+  "unit": "pixels"
+}
+```
+
+---
+
+## Herkunft
+
+Diese Error Codes werden ausschließlich aus
+
+- PRO-VR-038
+
+abgeleitet.
+
+Neue fachliche Regeln werden in diesem Dokument nicht definiert.
+
+---
+
+## Fehlerverhalten
+
+### Fehlende Breite
+
+Ist `width` nicht vorhanden,
+
+wird ausschließlich
+
+```text
+PRO-VAL-IMGDIM-001
+```
+
+erzeugt.
+
+---
+
+### Fehlende Höhe
+
+Ist `height` nicht vorhanden,
+
+wird ausschließlich
+
+```text
+PRO-VAL-IMGDIM-002
+```
+
+erzeugt.
+
+---
+
+### Breite kleiner als Minimum
+
+Ist
+
+```text
+width < 1
+```
+
+wird ausschließlich
+
+```text
+PRO-VAL-IMGDIM-003
+```
+
+erzeugt.
+
+---
+
+### Höhe kleiner als Minimum
+
+Ist
+
+```text
+height < 1
+```
+
+wird ausschließlich
+
+```text
+PRO-VAL-IMGDIM-004
+```
+
+erzeugt.
+
+---
+
+### Breite größer als Maximum
+
+Ist
+
+```text
+width > 4096
+```
+
+wird ausschließlich
+
+```text
+PRO-VAL-IMGDIM-005
+```
+
+erzeugt.
+
+---
+
+### Höhe größer als Maximum
+
+Ist
+
+```text
+height > 4096
+```
+
+wird ausschließlich
+
+```text
+PRO-VAL-IMGDIM-006
+```
+
+erzeugt.
+
+---
+
+## Validierungsreihenfolge
+
+1. Vorhandensein von `width` prüfen.
+2. Vorhandensein von `height` prüfen.
+3. Mindestwert von `width` prüfen.
+4. Mindestwert von `height` prüfen.
+5. Maximalwert von `width` prüfen.
+6. Maximalwert von `height` prüfen.
+7. Vollständiges `ImageDimensions` erzeugen.
+
+Ein fehlender Wert erzeugt keine zusätzlichen Minimum- oder
+Maximumfehler.
+
+---
+
+## Verhalten von aspectRatio()
+
+`aspectRatio()` berechnet
+
+```text
+width / height
+```
+
+Die Rückgabe erfolgt als `double`.
+
+Es erfolgt keine Rundung und keine Formatierung.
+
+---
+
+## Keine Fehlerduplizierung
+
+`ImageDimensions` enthält keine weiteren Value Objects.
+
+Es entstehen daher keine weiterzuleitenden Validation Errors anderer
+Domänentypen.
+
+---
+
+## Hinweise
+
+`ImageDimensions` validiert ausschließlich Breite und Höhe eines bereits
+verarbeiteten Bildes.
+
+Nicht Bestandteil dieses Value Objects sind
+
+- Bilddaten,
+- Bildformate,
+- Dateigröße,
+- Skalierung,
+- Zuschnitt,
+- Komprimierung,
+- EXIF-Metadaten,
+- Upload,
+- Download.
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Abschnitts sind:
+
+- ImageReference,
+- ImageChecksum,
+- ProfileImage,
+- Bildverarbeitung,
+- Persistenz,
+- technische Speichermechanismen.
+
+Diese Verantwortlichkeiten liegen bei den jeweiligen Value Objects und
+technischen Komponenten.
+
+---
+
+# MediaType
+
+### Zugeordneter Domänentyp
+
+**Enumeration**
+
+- MediaType
+
+---
+
+## Zweck
+
+Dieser Abschnitt definiert sämtliche Validation Error Codes der Enumeration
+`MediaType`.
+
+`MediaType` beschreibt ausschließlich den fachlich zulässigen Medientyp eines
+bereits technisch verarbeiteten Profilbilds.
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-MTYPE-001 | validation.mediaType.required | ERROR | VALIDATION | value | required | – |
+| PRO-VAL-MTYPE-002 | validation.mediaType.blank | ERROR | VALIDATION | value | blank | – |
+| PRO-VAL-MTYPE-003 | validation.mediaType.invalid | ERROR | VALIDATION | value | enum | allowedValues |
+
+---
+
+## Parameter
+
+### PRO-VAL-MTYPE-003
+
+```json
+{
+  "allowedValues": [
+    "image/jpeg",
+    "image/png",
+    "image/webp"
+  ]
+}
+```
+
+---
+
+## Herkunft
+
+Diese Error Codes werden ausschließlich aus
+
+- PRO-VR-039
+
+abgeleitet.
+
+Neue fachliche Regeln werden in diesem Dokument nicht definiert.
+
+---
+
+## Fehlerverhalten
+
+### Fehlender Wert
+
+Ist `value` nicht vorhanden,
+
+wird ausschließlich
+
+```text
+PRO-VAL-MTYPE-001
+```
+
+erzeugt.
+
+Weitere Prüfungen werden nicht durchgeführt.
+
+---
+
+### Leerer Wert
+
+Ist `value` vorhanden, ergibt aber nach dem Trimmen einen leeren Wert,
+
+wird ausschließlich
+
+```text
+PRO-VAL-MTYPE-002
+```
+
+erzeugt.
+
+Eine zusätzliche Enum-Prüfung erfolgt nicht.
+
+---
+
+### Ungültiger Medientyp
+
+Ist der normalisierte Wert vorhanden und nicht leer, entspricht aber keinem
+zulässigen Medientyp,
+
+wird ausschließlich
+
+```text
+PRO-VAL-MTYPE-003
+```
+
+erzeugt.
+
+Der Parameter lautet
+
+```json
+{
+  "allowedValues": [
+    "image/jpeg",
+    "image/png",
+    "image/webp"
+  ]
+}
+```
+
+Der ungültige Eingabewert wird nicht in Fehlerparametern oder Domain
+Messages übertragen.
+
+---
+
+## Validierungsreihenfolge
+
+1. Vorhandensein von `value` prüfen.
+2. Führende und nachfolgende Leerzeichen entfernen.
+3. Leeren normalisierten Wert prüfen.
+4. Zulässigen Medientyp prüfen.
+5. Enumeration erzeugen.
+
+Ein fehlender Wert erzeugt keinen zusätzlichen Blank- oder Enum-Fehler.
+
+Ein leerer normalisierter Wert erzeugt keinen zusätzlichen Enum-Fehler.
+
+---
+
+## Zulässige Werte
+
+Die Enumeration akzeptiert ausschließlich:
+
+```text
+image/jpeg
+image/png
+image/webp
+```
+
+Weitere Werte sind nicht zulässig.
+
+---
+
+## Keine Fehlerduplizierung
+
+`MediaType` enthält keine weiteren Value Objects.
+
+Es entstehen daher keine weiterzuleitenden Validation Errors anderer
+Domänentypen.
+
+---
+
+## Hinweise
+
+`MediaType` beschreibt ausschließlich den bereits festgestellten
+Medientyp.
+
+Nicht Bestandteil dieser Enumeration sind
+
+- Dateiendungen,
+- MIME-Erkennung,
+- Content Sniffing,
+- Bilddaten,
+- Bildverarbeitung,
+- Uploadvalidierung,
+- Persistenz.
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Abschnitts sind:
+
+- ImageReference,
+- ImageDimensions,
+- ChecksumAlgorithm,
+- ImageChecksum,
+- ProfileImage,
+- technische Bildverarbeitung,
+- Speichermechanismen.
+
+Diese Verantwortlichkeiten liegen bei den jeweiligen Domänentypen und
+technischen Komponenten.
+
+---
+
+# ChecksumAlgorithm
+
+### Zugeordneter Domänentyp
+
+**Enumeration**
+
+- ChecksumAlgorithm
+
+---
+
+## Zweck
+
+Dieser Abschnitt definiert sämtliche Validation Error Codes der Enumeration
+`ChecksumAlgorithm`.
+
+`ChecksumAlgorithm` beschreibt ausschließlich den fachlich zulässigen
+Algorithmus einer Prüfsumme eines bereits technisch verarbeiteten
+Profilbilds.
+
+Die Enumeration berechnet selbst keine Prüfsummen.
+
+---
+
+## Error Codes
+
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-CHKALG-001 | validation.checksumAlgorithm.required | ERROR | VALIDATION | value | required | – |
+| PRO-VAL-CHKALG-002 | validation.checksumAlgorithm.blank | ERROR | VALIDATION | value | blank | – |
+| PRO-VAL-CHKALG-003 | validation.checksumAlgorithm.invalid | ERROR | VALIDATION | value | enum | allowedValues |
+
+---
+
+## Parameter
+
+### PRO-VAL-CHKALG-003
+
+```json
+{
+  "allowedValues": [
+    "sha256"
+  ]
+}
+```
+
+---
+
+## Herkunft
+
+Diese Error Codes werden ausschließlich aus
+
+- PRO-VR-040
+
+abgeleitet.
+
+Neue fachliche Regeln werden in diesem Dokument nicht definiert.
+
+---
+
+## Fehlerverhalten
+
+### Fehlender Wert
+
+Ist `value` nicht vorhanden,
+
+wird ausschließlich
+
+```text
+PRO-VAL-CHKALG-001
+```
+
+erzeugt.
+
+Weitere Prüfungen werden nicht durchgeführt.
+
+---
+
+### Leerer Wert
+
+Ist `value` vorhanden, ergibt aber nach dem Trimmen einen leeren Wert,
+
+wird ausschließlich
+
+```text
+PRO-VAL-CHKALG-002
+```
+
+erzeugt.
+
+Eine zusätzliche Enum-Prüfung erfolgt nicht.
+
+---
+
+### Ungültiger Algorithmus
+
+Ist der normalisierte Wert vorhanden und nicht leer, entspricht aber nicht
+exakt
+
+```text
+sha256
+```
+
+wird ausschließlich
+
+```text
+PRO-VAL-CHKALG-003
+```
+
+erzeugt.
+
+Der Parameter lautet
+
+```json
+{
+  "allowedValues": [
+    "sha256"
+  ]
+}
+```
+
+Der ungültige Eingabewert wird nicht in Fehlerparametern oder Domain
+Messages übertragen.
+
+---
+
+## Validierungsreihenfolge
+
+1. Vorhandensein von `value` prüfen.
+2. Führende und nachfolgende Leerzeichen entfernen.
+3. Leeren normalisierten Wert prüfen.
+4. Zulässigen Algorithmus prüfen.
+5. Enumeration erzeugen.
+
+Ein fehlender Wert erzeugt keinen zusätzlichen Blank- oder Enum-Fehler.
+
+Ein leerer normalisierter Wert erzeugt keinen zusätzlichen Enum-Fehler.
+
+---
+
+## Zulässige Werte
+
+Die Enumeration akzeptiert ausschließlich:
+
+```text
+sha256
+```
+
+Weitere Werte sind nicht zulässig.
+
+---
+
+## Keine Fehlerduplizierung
+
+`ChecksumAlgorithm` enthält keine weiteren Value Objects.
+
+Es entstehen daher keine weiterzuleitenden Validation Errors anderer
+Domänentypen.
+
+---
+
+## Hinweise
+
+`ChecksumAlgorithm` beschreibt ausschließlich den bereits festgestellten
+Algorithmus.
+
+Nicht Bestandteil dieser Enumeration sind:
+
+- Berechnung von Prüfsummen,
+- kryptographische Bibliotheken,
+- Integritätsprüfung,
+- Hexadezimaldarstellung,
+- Base64-Darstellung,
+- Bilddaten,
+- Persistenz.
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Abschnitts sind:
+
+- ImageReference,
+- ImageDimensions,
+- MediaType,
+- ImageChecksum,
+- ProfileImage,
+- technische Kryptographie,
+- Bildverarbeitung,
+- Speichermechanismen.
+
+Diese Verantwortlichkeiten liegen bei den jeweiligen Domänentypen und den
+technischen Komponenten.
 
 ---
 
@@ -13199,11 +15406,257 @@ wird nicht durch generische `ProfileImage`-Fehler dupliziert.
 
 - ImageChecksum
 
+---
+
+## Zweck
+
+Dieser Abschnitt definiert sämtliche Validation Error Codes des Value Objects
+`ImageChecksum`.
+
+`ImageChecksum` repräsentiert die unveränderliche kryptographische Prüfsumme
+eines bereits technisch verarbeiteten Profilbilds.
+
+Das Value Object berechnet selbst keine Prüfsumme.
+
+---
+
 ## Error Codes
 
-| ErrorCode | MessageKey |
-|------------|------------|
-| validation.imageChecksum.invalid | validation.imageChecksum.invalid |
+| ErrorCode | MessageKey | Severity | Category | Field | Constraint | Parameters |
+|------------|------------|----------|----------|-------|------------|------------|
+| PRO-VAL-IMGCHK-001 | validation.imageChecksum.algorithm.required | ERROR | VALIDATION | algorithm | required | – |
+| PRO-VAL-IMGCHK-002 | validation.imageChecksum.value.required | ERROR | VALIDATION | value | required | – |
+| PRO-VAL-IMGCHK-003 | validation.imageChecksum.value.blank | ERROR | VALIDATION | value | blank | – |
+| PRO-VAL-IMGCHK-004 | validation.imageChecksum.value.invalidFormat | ERROR | VALIDATION | value | format | algorithm, expectedPattern, expectedLength |
+
+---
+
+## Parameter
+
+### PRO-VAL-IMGCHK-004
+
+```json
+{
+  "algorithm": "sha256",
+  "expectedPattern": "^[a-f0-9]{64}$",
+  "expectedLength": 64
+}
+```
+
+---
+
+## Herkunft
+
+Diese Error Codes werden ausschließlich aus
+
+- PRO-VR-041
+
+abgeleitet.
+
+Neue fachliche Regeln werden in diesem Dokument nicht definiert.
+
+---
+
+## Fehlerverhalten
+
+### Fehlender Algorithmus
+
+Ist `algorithm` nicht vorhanden,
+
+wird
+
+```text
+PRO-VAL-IMGCHK-001
+```
+
+erzeugt.
+
+Ein unabhängig fehlender oder leerer `value` wird zusätzlich entsprechend
+seiner eigenen Regel geprüft.
+
+---
+
+### Fehlender Prüfsummenwert
+
+Ist `value` nicht vorhanden,
+
+wird
+
+```text
+PRO-VAL-IMGCHK-002
+```
+
+erzeugt.
+
+Eine zusätzliche Blank- oder Formatprüfung erfolgt nicht.
+
+---
+
+### Leerer Prüfsummenwert
+
+Ist `value` vorhanden, ergibt aber nach dem Trimmen einen leeren Wert,
+
+wird
+
+```text
+PRO-VAL-IMGCHK-003
+```
+
+erzeugt.
+
+Eine zusätzliche Formatprüfung erfolgt nicht.
+
+---
+
+### Ungültiges Prüfsummenformat
+
+Sind
+
+- `algorithm` vorhanden,
+- `value` vorhanden,
+- der normalisierte Wert nicht leer,
+
+entspricht der Wert aber nicht dem für den Algorithmus definierten Format,
+
+wird
+
+```text
+PRO-VAL-IMGCHK-004
+```
+
+erzeugt.
+
+Für `sha256` lautet der Parameter:
+
+```json
+{
+  "algorithm": "sha256",
+  "expectedPattern": "^[a-f0-9]{64}$",
+  "expectedLength": 64
+}
+```
+
+Der ungültige Prüfsummenwert wird nicht in Fehlerparametern oder Domain
+Messages übertragen.
+
+---
+
+## Validierungsreihenfolge
+
+1. Vorhandensein von `algorithm` prüfen.
+2. Vorhandensein von `value` prüfen.
+3. Führende und nachfolgende Leerzeichen von `value` entfernen.
+4. Leeren normalisierten Wert prüfen.
+5. Algorithmusspezifisches Format prüfen.
+6. Vollständiges `ImageChecksum` erzeugen.
+
+Mehrere unabhängige Pflichtfeldfehler dürfen gemeinsam zurückgegeben werden.
+
+Ein fehlender Wert erzeugt keinen zusätzlichen Blank- oder Formatfehler.
+
+Ein leerer normalisierter Wert erzeugt keinen zusätzlichen Formatfehler.
+
+Eine Formatprüfung erfolgt nur, wenn `algorithm` vorhanden und gültig ist.
+
+---
+
+## Unterstützter Algorithmus
+
+Aktuell wird ausschließlich folgender Algorithmus unterstützt:
+
+```text
+sha256
+```
+
+Für `sha256` gilt:
+
+- exakt 64 Zeichen,
+- ausschließlich `0-9` und `a-f`,
+- ausschließlich Kleinschreibung,
+- keine Leerzeichen,
+- keine Trennzeichen,
+- kein Präfix.
+
+Das verbindliche Muster lautet:
+
+```text
+^[a-f0-9]{64}$
+```
+
+---
+
+## Normalisierung
+
+Vor der Formatprüfung werden ausschließlich
+
+- führende Leerzeichen entfernt,
+- nachfolgende Leerzeichen entfernt.
+
+Nicht durchgeführt werden:
+
+- Umwandlung in Kleinschreibung,
+- Entfernung innerer Leerzeichen,
+- Entfernung von Präfixen,
+- Kürzung oder Ergänzung des Wertes.
+
+---
+
+## Sichere Darstellung
+
+Die vollständige Prüfsumme wird in sichtbaren Ausgaben redigiert.
+
+Die sichere String-Darstellung lautet:
+
+```text
+ImageChecksum(
+  algorithm: <algorithm>,
+  value: <redacted>
+)
+```
+
+---
+
+## Keine Fehlerduplizierung
+
+Validation Errors eines bereits typisiert übergebenen
+`ChecksumAlgorithm` werden nicht als `ImageChecksum`-Fehler dupliziert.
+
+Die Rekonstruktion unbekannter oder ungültiger Algorithmen wird
+ausschließlich durch `ChecksumAlgorithm.fromString(...)` validiert.
+
+---
+
+## Hinweise
+
+`ImageChecksum` validiert ausschließlich den bereits berechneten
+Prüfsummenwert und dessen Zuordnung zum Algorithmus.
+
+Nicht Bestandteil dieses Value Objects sind:
+
+- Berechnung der Prüfsumme,
+- technische Kryptographie,
+- Bild- oder Dateizugriffe,
+- Vergleich mit externen Dateien,
+- automatische Integritätsprüfung.
+
+---
+
+## Abgrenzung
+
+Nicht Bestandteil dieses Abschnitts sind:
+
+- ImageReference,
+- ImageDimensions,
+- MediaType,
+- ProfileImage,
+- Bilddaten,
+- kryptographische Bibliotheken,
+- Upload- und Downloadlogik,
+- Persistenz,
+- Speicheranbieter.
+
+Diese Verantwortlichkeiten liegen bei den jeweiligen Domänentypen und den
+technischen Bild-, Speicher- und Integritätskomponenten.
 
 ---
 
@@ -13423,40 +15876,6 @@ Nicht Bestandteil dieses Abschnitts sind:
 | ErrorCode | MessageKey |
 |------------|------------|
 | validation.auditInformation.invalid | validation.auditInformation.invalid |
-
----
-
-# Timestamp
-
-### Zugeordneter Domänentyp
-
-**Value Object**
-
-- Timestamp
-
-## Error Codes
-
-| ErrorCode | MessageKey |
-|------------|------------|
-| validation.timestamp.required | validation.timestamp.required |
-| validation.timestamp.invalid | validation.timestamp.invalid |
-| validation.timestamp.future | validation.timestamp.future |
-
----
-
-# AggregateVersion
-
-### Zugeordneter Domänentyp
-
-**Value Object**
-
-- AggregateVersion
-
-## Error Codes
-
-| ErrorCode | MessageKey |
-|------------|------------|
-| validation.aggregateVersion.invalid | validation.aggregateVersion.invalid |
 
 ---
 

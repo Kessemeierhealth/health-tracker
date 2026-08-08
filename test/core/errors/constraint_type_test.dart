@@ -27,6 +27,7 @@ void main() {
         ConstraintType.chronological,
         ConstraintType.expired,
         ConstraintType.invalid,
+        ConstraintType.overflow,
       ],
     );
     expect(ConstraintType.required.toString(), 'ConstraintType.required');
